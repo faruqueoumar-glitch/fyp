@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}FEFO Automated Dispensing | PharmaAudit OS{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-8 font-mono">
+    <div class="border-2 border-black p-8 bg-white brutal-shadow-lg">
+        <div class="border-b-2 border-black pb-5 mb-8">
+            <span class="text-xs font-bold bg-black text-white px-2.5 py-1 uppercase tracking-widest">FR5 FEFO DISPENSING ENGINE</span>
+            <h1 class="text-2xl font-black uppercase tracking-tight mt-2">First-Expired, First-Out (FEFO) Dispenser</h1>
+            <p class="text-sm text-zinc-600 font-sans mt-1">Automated batch selection engine. Prioritizes earliest expiring non-expired active stock to minimize wastage.</p>
+        </div>
+
+        <form method="POST" action="{% url 'fefo_dispense' %}" class="space-y-6 text-sm">
+            {% csrf_token %}
+
+            <div>
+                <label class="block font-extrabold uppercase mb-2">Select Medication Item</label>
+                {{ form.medication }}
+                {% if form.medication.errors %}<p class="text-black font-bold mt-1 text-xs">{{ form.medication.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div>
+                <label class="block font-extrabold uppercase mb-2">Quantity to Dispense (Units)</label>
+                {{ form.quantity }}
+                {% if form.quantity.errors %}<p class="text-black font-bold mt-1 text-xs">{{ form.quantity.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div>
+                <label class="block font-extrabold uppercase mb-2">Patient Prescription ID / Dispense Notes</label>
+                {{ form.reason }}
+                {% if form.reason.errors %}<p class="text-black font-bold mt-1 text-xs">{{ form.reason.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div class="p-5 border border-black bg-zinc-50 space-y-2 text-xs text-zinc-700 font-sans">
+                <p class="font-bold text-black uppercase text-xs font-mono">&bull; FEFO Algorithmic Execution Rules:</p>
+                <p>1. Filters out all expired batches automatically.</p>
+                <p>2. Sorts active batches by Expiry Date in Ascending order (<code>expiry_date ASC</code>).</p>
+                <p>3. Deducts required quantity from earliest expiring batch first before moving to subsequent batches.</p>
+                <p>4. Generates cryptographic SHA-256 ledger transactions for every batch deduction.</p>
+            </div>
+
+            <div class="pt-5 border-t border-zinc-300 flex justify-end space-x-4">
+                <a href="{% url 'medications_list' %}" class="px-6 py-3 border border-black font-bold uppercase">Cancel</a>
+                <button type="submit" class="px-8 py-3 bg-black text-white font-extrabold uppercase border border-black hover:bg-zinc-800 transition flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span>Execute FEFO Dispense & Sign Audit Log</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

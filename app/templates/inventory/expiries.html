@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}FEFO Expiry Monitoring & Quarantine | PharmaAudit OS{% endblock %}
+
+{% block content %}
+<div class="space-y-10 font-mono">
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b-2 border-black pb-6">
+        <div>
+            <span class="text-xs font-black bg-black text-white px-2.5 py-1 uppercase">FR7 AUTOMATED EXPIRY ALERT ENGINE</span>
+            <h1 class="text-3xl font-black uppercase tracking-tight mt-2">FEFO Expiry Monitoring & Isolation Console</h1>
+            <p class="text-sm text-zinc-600 font-sans mt-1">First-Expired, First-Out Batch Expiration Monitoring Framework & Quarantine Controls</p>
+        </div>
+
+        <div class="flex flex-wrap gap-2 text-xs font-bold">
+            <a href="{% url 'expiries_monitoring' %}" class="px-4 py-2.5 border-2 border-black {% if not status_filter %}bg-black text-white{% else %}bg-white text-black{% endif %} uppercase">
+                All Batches
+            </a>
+            <a href="{% url 'expiries_monitoring' %}?status=EXPIRED" class="px-4 py-2.5 border-2 border-black {% if status_filter == 'EXPIRED' %}bg-black text-white{% else %}bg-white text-black{% endif %} uppercase">
+                Expired Batches
+            </a>
+            <a href="{% url 'expiries_monitoring' %}?status=30_DAYS" class="px-4 py-2.5 border-2 border-black {% if status_filter == '30_DAYS' %}bg-black text-white{% else %}bg-white text-black{% endif %} uppercase">
+                Expiring &le; 30 Days
+            </a>
+            <a href="{% url 'expiries_monitoring' %}?status=90_DAYS" class="px-4 py-2.5 border-2 border-black {% if status_filter == '90_DAYS' %}bg-black text-white{% else %}bg-white text-black{% endif %} uppercase">
+                Expiring &le; 90 Days
+            </a>
+        </div>
+    </div>
+
+    <!-- Batches Expiry Monitoring Table -->
+    <div class="border-2 border-black bg-white brutal-shadow-lg overflow-x-auto">
+        <table class="w-full text-left text-sm border-collapse">
+            <thead>
+                <tr class="border-b-2 border-black bg-zinc-100 text-black uppercase">
+                    <th class="p-4 border-r border-zinc-300">Medication</th>
+                    <th class="p-4 border-r border-zinc-300">Batch Number</th>
+                    <th class="p-4 border-r border-zinc-300">Pharmacy Section</th>
+                    <th class="p-4 border-r border-zinc-300">Remaining Quantity</th>
+                    <th class="p-4 border-r border-zinc-300">Manufacture Date</th>
+                    <th class="p-4 border-r border-zinc-300 bg-zinc-200">Expiry Date (FEFO Key)</th>
+                    <th class="p-4 border-r border-zinc-300">Days to Expiry</th>
+                    <th class="p-4 border-r border-zinc-300">Expiry Status</th>
+                    <th class="p-4">Quarantine Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-200">
+                {% for batch in batches %}
+                <tr class="hover:bg-zinc-50">
+                    <td class="p-4 border-r border-zinc-200 font-black uppercase text-black text-base">{{ batch.medication.name }}</td>
+                    <td class="p-4 border-r border-zinc-200 font-bold text-zinc-900">{{ batch.batch_number }}</td>
+                    <td class="p-4 border-r border-zinc-200 text-zinc-600">{{ batch.medication.section.name }}</td>
+                    <td class="p-4 border-r border-zinc-200 font-black text-base text-black">{{ batch.quantity }} {{ batch.medication.unit }}</td>
+                    <td class="p-4 border-r border-zinc-200 text-zinc-600">{{ batch.manufacture_date }}</td>
+                    <td class="p-4 border-r border-zinc-200 bg-zinc-100 font-black text-base text-black">{{ batch.expiry_date }}</td>
+                    <td class="p-4 border-r border-zinc-200 font-bold">
+                        {% if batch.days_to_expiry < 0 %}
+                        <span class="text-black font-extrabold">{{ batch.days_to_expiry }} days (EXPIRED)</span>
+                        {% else %}
+                        {{ batch.days_to_expiry }} days remaining
+                        {% endif %}
+                    </td>
+                    <td class="p-4 border-r border-zinc-200">
+                        {% if batch.expiry_status == 'EXPIRED' %}
+                        <span class="inline-block bg-black text-white px-3 py-1 font-bold uppercase text-xs">EXPIRED</span>
+                        {% elif batch.expiry_status == 'CRITICAL_30_DAYS' %}
+                        <span class="inline-block bg-zinc-200 text-black border border-black px-3 py-1 font-bold uppercase text-xs">&le; 30 DAYS CRITICAL</span>
+                        {% elif batch.expiry_status == 'WARNING_90_DAYS' %}
+                        <span class="inline-block bg-white text-black border border-black px-3 py-1 font-bold uppercase text-xs">&le; 90 DAYS WARNING</span>
+                        {% else %}
+                        <span class="inline-block bg-white text-zinc-500 border border-zinc-300 px-3 py-1 font-bold uppercase text-xs">HEALTHY</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-4">
+                        {% if batch.quantity > 0 %}
+                        <form method="POST" action="{% url 'quarantine_batch' batch.id %}" onsubmit="return confirm('Quarantine batch {{ batch.batch_number }}? Quantity will be set to 0 and logged in audit ledger.');">
+                            {% csrf_token %}
+                            <button type="submit" class="px-3.5 py-2 bg-black text-white font-bold text-xs uppercase border border-black hover:bg-zinc-800 transition">
+                                Quarantine Batch
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="text-xs text-zinc-400 font-bold uppercase">Quarantined / Depleted</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="p-8 text-center text-zinc-500 text-sm">No batches match the selected expiry filter.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}
