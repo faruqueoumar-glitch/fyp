@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications Console | PharmaAudit OS{% endblock %}
+
+{% block main_content %}
+<div class="max-w-6xl mx-auto space-y-6">
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+    <div>
+      <div class="flex items-center space-x-2">
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">Notifications Center</h1>
+        {% if unread_count > 0 %}
+        <span class="px-2.5 py-0.5 bg-rose-500 text-white font-bold text-xs rounded-full">
+          {{ unread_count }} New
+        </span>
+        {% endif %}
+      </div>
+      <p class="text-sm text-slate-500 mt-1">Real-time alerts, stock warnings, PO approvals, and system audit updates.</p>
+    </div>
+    {% if unread_count > 0 %}
+    <form action="{% url 'notifications:mark_all_as_read' %}" method="post">
+      {% csrf_token %}
+      <button type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl transition shadow-sm flex items-center space-x-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span>Mark All as Read</span>
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <!-- Notification Feed -->
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    {% if notifications %}
+    <div class="divide-y divide-slate-100">
+      {% for notification in notifications %}
+      <div class="p-5 transition hover:bg-slate-50/80 flex items-start justify-between gap-4 {% if not notification.is_read %}bg-slate-50/50 border-l-4 border-slate-900{% endif %}">
+        <div class="flex items-start space-x-4">
+          <!-- Icon indicator -->
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 
+            {% if notification.type == 'error' or notification.category == 'out_of_stock' %}bg-rose-100 text-rose-600 border border-rose-200
+            {% elif notification.type == 'warning' or notification.category == 'rop_alert' or notification.category == 'expiry_alert' %}bg-amber-100 text-amber-600 border border-amber-200
+            {% elif notification.type == 'success' or notification.category == 'po_approved' %}bg-emerald-100 text-emerald-600 border border-emerald-200
+            {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+            {% if notification.category == 'rop_alert' or notification.category == 'out_of_stock' %}
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            {% elif notification.category == 'expiry_alert' %}
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {% elif notification.category == 'po_created' or notification.category == 'po_approved' %}
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            {% else %}
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9" />
+            </svg>
+            {% endif %}
+          </div>
+
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 class="font-bold text-slate-900 text-sm">{{ notification.title }}</h3>
+              <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold">
+                {{ notification.get_category_display }}
+              </span>
+            </div>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed">{{ notification.message }}</p>
+            <div class="flex items-center space-x-3 mt-2 text-[11px] text-slate-400 font-mono">
+              <span>{{ notification.created_at|date:"M d, Y H:i" }}</span>
+              {% if notification.actor %}
+              <span>• Caused by {{ notification.actor.first_name|default:notification.actor.email }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2 flex-shrink-0">
+          {% if not notification.is_read %}
+          <form action="{% url 'notifications:mark_as_read' notification.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition" title="Mark as Read">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </button>
+          </form>
+          {% endif %}
+          <a href="{% url 'notifications:detail' notification.id %}" class="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition" title="View Detail">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-12 text-center">
+      <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-3">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9" />
+        </svg>
+      </div>
+      <h3 class="text-sm font-bold text-slate-900">No Notifications</h3>
+      <p class="text-xs text-slate-500 mt-1">You are all caught up! No active inventory or system notifications.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

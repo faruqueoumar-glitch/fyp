@@ -2,200 +2,208 @@
 
 {% block title %}Stock Catalog, ROP & EOQ | PharmaAudit OS{% endblock %}
 
-{% block content %}
-<div class="space-y-10 font-mono">
+{% block main_content %}
+<div class="space-y-8">
 
     <!-- Header and Controls Bar -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b-2 border-black pb-6">
+    <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-            <span class="text-xs font-black bg-black text-white px-2.5 py-1 uppercase">FR1, FR3 & FR4 OPTIMIZATION ENGINE</span>
-            <h1 class="text-3xl font-black uppercase tracking-tight mt-2">Stock Catalog, ROP & EOQ Optimization</h1>
-            <p class="text-sm text-zinc-600 font-sans mt-1">Reorder Point $ROP = (Daily \times Lead) + Safety$, Economic Order Quantity $EOQ = \sqrt{\frac{2DS}{H}}$</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Stock Catalog, ROP & EOQ Optimization</h1>
+            <p class="text-sm text-slate-500 font-sans mt-1">Reorder Point $ROP = (Daily \times Lead) + Safety$, Economic Order Quantity $EOQ = \sqrt{\frac{2DS}{H}}$</p>
         </div>
 
-        <button onclick="document.getElementById('addMedModal').classList.remove('hidden')" class="px-6 py-3.5 bg-black text-white font-black text-sm uppercase tracking-wider border-2 border-black brutal-shadow hover:bg-zinc-800 transition flex items-center space-x-2">
+        <button onclick="document.getElementById('addMedModal').classList.remove('hidden')" class="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl shadow-md transition-all duration-200 flex items-center space-x-2 flex-shrink-0">
             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
             <span>Register New Drug Item</span>
         </button>
     </div>
 
     <!-- Filter & Search Bar -->
-    <form method="GET" action="{% url 'medications_list' %}" class="flex flex-col sm:flex-row gap-4 text-sm font-bold">
-        <input type="text" name="q" value="{{ query }}" placeholder="Search by Drug Name, Formula, or SKU..." class="flex-1 px-5 py-3 border-2 border-black bg-white focus:outline-none">
+    <form method="GET" action="{% url 'medications_list' %}" class="flex flex-col sm:flex-row gap-3.5 text-sm">
+        <div class="relative flex-1">
+            <input type="text" name="q" value="{{ query }}" placeholder="Search by Drug Name, Formula, or SKU..." class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 placeholder-slate-400">
+        </div>
         
-        <select name="section" class="px-5 py-3 border-2 border-black bg-white focus:outline-none font-bold">
+        <select name="section" class="px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-700 font-medium">
             <option value="">All Pharmacy Sections</option>
             {% for s in sections %}
             <option value="{{ s.id }}" {% if selected_section == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
             {% endfor %}
         </select>
 
-        <button type="submit" class="px-6 py-3 bg-black text-white uppercase tracking-wider border-2 border-black brutal-shadow">
+        <button type="submit" class="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-sm transition-all duration-200">
             Filter Catalog
         </button>
         {% if query or selected_section %}
-        <a href="{% url 'medications_list' %}" class="px-6 py-3 bg-zinc-200 text-black uppercase tracking-wider border-2 border-black text-center">
+        <a href="{% url 'medications_list' %}" class="px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded-xl text-center transition">
             Clear
         </a>
         {% endif %}
     </form>
 
     <!-- Medication Table with ROP & EOQ Metrics -->
-    <div class="border-2 border-black bg-white brutal-shadow-lg overflow-x-auto">
-        <table class="w-full text-left text-sm border-collapse">
-            <thead>
-                <tr class="border-b-2 border-black bg-zinc-100 text-black uppercase">
-                    <th class="p-4 border-r border-zinc-300">Drug Identity / SKU</th>
-                    <th class="p-4 border-r border-zinc-300">Section & Supplier</th>
-                    <th class="p-4 border-r border-zinc-300">Current Stock</th>
-                    <th class="p-4 border-r border-zinc-300">Min Stock</th>
-                    <th class="p-4 border-r border-zinc-300 bg-zinc-200">Reorder Point (ROP)</th>
-                    <th class="p-4 border-r border-zinc-300 font-bold bg-zinc-100">FR3 EOQ Recommended</th>
-                    <th class="p-4 border-r border-zinc-300">Status Indicator</th>
-                    <th class="p-4">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-200">
-                {% for med in medications %}
-                <tr class="hover:bg-zinc-50">
-                    <td class="p-4 border-r border-zinc-200">
-                        <p class="font-black text-base text-black uppercase">{{ med.name }}</p>
-                        <p class="text-zinc-500 text-xs">SKU: {{ med.sku }} | Unit: {{ med.unit }} (${{ med.unit_cost }}/unit)</p>
-                    </td>
-                    <td class="p-4 border-r border-zinc-200">
-                        <p class="font-bold text-zinc-900">{{ med.section.name }}</p>
-                        <p class="text-zinc-500 text-xs">Supplier: {{ med.supplier.name|default:"Unassigned" }}</p>
-                    </td>
-                    <td class="p-4 border-r border-zinc-200 font-black text-base">
-                        {{ med.current_stock }} {{ med.unit }}
-                    </td>
-                    <td class="p-4 border-r border-zinc-200 text-zinc-700 font-bold">{{ med.min_level }} units</td>
-                    <td class="p-4 border-r border-zinc-200 bg-zinc-50 font-black text-black text-base">
-                        {{ med.reorder_point }} units
-                    </td>
-                    <td class="p-4 border-r border-zinc-200 bg-zinc-100 font-black text-base text-black">
-                        {{ med.eoq }} {{ med.unit }}
-                    </td>
-                    <td class="p-4 border-r border-zinc-200">
-                        {% if med.stock_status == 'OUT_OF_STOCK' %}
-                        <span class="inline-block bg-black text-white px-3 py-1 font-extrabold uppercase text-xs">OUT OF STOCK</span>
-                        {% elif med.stock_status == 'BELOW_MINIMUM' %}
-                        <span class="inline-block bg-black text-white px-3 py-1 font-extrabold uppercase text-xs border border-black">BELOW MIN</span>
-                        {% elif med.stock_status == 'AT_REORDER_POINT' %}
-                        <span class="inline-block bg-zinc-200 text-black border border-black px-3 py-1 font-extrabold uppercase text-xs">&le; ROP ALERT</span>
-                        {% else %}
-                        <span class="inline-block bg-white text-black border border-black px-3 py-1 font-extrabold uppercase text-xs">ADEQUATE</span>
-                        {% endif %}
-                    </td>
-                    <td class="p-4 space-x-2">
-                        <a href="{% url 'fefo_dispense' %}?medication={{ med.id }}" class="inline-flex items-center px-3 py-1.5 bg-black text-white font-extrabold text-xs uppercase border border-black hover:bg-zinc-800">
-                            Dispense
-                        </a>
-                        {% if med.current_stock <= med.reorder_point and med.supplier %}
-                        <a href="{% url 'auto_generate_draft_po' med.id %}" class="inline-flex items-center px-3 py-1.5 bg-white text-black font-extrabold text-xs uppercase border border-black hover:bg-zinc-100">
-                            + Auto PO
-                        </a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8" class="p-8 text-center text-zinc-500 text-sm">No drug items found matching the query.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="bg-white border border-slate-200/80 rounded-3xl shadow-sm shadow-slate-200/50 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-100/80 text-slate-700 uppercase border-b border-slate-200 font-mono">
+                        <th class="p-4 font-bold">Drug Identity / SKU</th>
+                        <th class="p-4 font-bold">Section & Supplier</th>
+                        <th class="p-4 font-bold">Current Stock</th>
+                        <th class="p-4 font-bold">Min Stock</th>
+                        <th class="p-4 font-bold bg-amber-50/70 text-amber-900">Reorder Point (ROP)</th>
+                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">FR3 EOQ Recommended</th>
+                        <th class="p-4 font-bold">Status Indicator</th>
+                        <th class="p-4 font-bold">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    {% for med in medications %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4">
+                            <p class="font-bold text-sm text-slate-900">{{ med.name }}</p>
+                            <p class="text-slate-500 font-mono text-[11px] mt-0.5">SKU: {{ med.sku }} | Unit: {{ med.unit }} (₦{{ med.unit_cost }}/unit)</p>
+                        </td>
+                        <td class="p-4">
+                            <p class="font-semibold text-slate-800">{{ med.section.name }}</p>
+                            <p class="text-slate-500 text-[11px]">Supplier: {{ med.supplier.name|default:"Unassigned" }}</p>
+                        </td>
+                        <td class="p-4 font-extrabold text-sm text-slate-900 font-mono">
+                            {{ med.current_stock }} {{ med.unit }}
+                        </td>
+                        <td class="p-4 text-slate-600 font-semibold font-mono">{{ med.min_level }} units</td>
+                        <td class="p-4 bg-amber-50/40 font-extrabold text-amber-900 text-sm font-mono">
+                            {{ med.reorder_point }} units
+                        </td>
+                        <td class="p-4 bg-slate-100 font-extrabold text-slate-900 text-sm font-mono">
+                            {{ med.eoq }} {{ med.unit }}
+                        </td>
+                        <td class="p-4">
+                            {% if med.stock_status == 'OUT_OF_STOCK' %}
+                            <span class="inline-block bg-rose-100 text-rose-800 border border-rose-200 px-3 py-1 font-bold rounded-full text-[10px] uppercase shadow-2xs">OUT OF STOCK</span>
+                            {% elif med.stock_status == 'BELOW_MINIMUM' %}
+                            <span class="inline-block bg-orange-100 text-orange-800 border border-orange-200 px-3 py-1 font-bold rounded-full text-[10px] uppercase shadow-2xs">BELOW MIN</span>
+                            {% elif med.stock_status == 'AT_REORDER_POINT' %}
+                            <span class="inline-block bg-amber-100 text-amber-800 border border-amber-200 px-3 py-1 font-bold rounded-full text-[10px] uppercase shadow-2xs">&le; ROP ALERT</span>
+                            {% else %}
+                            <span class="inline-block bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1 font-bold rounded-full text-[10px] uppercase shadow-2xs">ADEQUATE</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4">
+                            <div class="flex items-center space-x-2">
+                                <a href="{% url 'fefo_dispense' %}?medication={{ med.id }}" class="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-2xs transition">
+                                    Dispense
+                                </a>
+                                {% if med.current_stock <= med.reorder_point and med.supplier %}
+                                <a href="{% url 'auto_generate_draft_po' med.id %}" class="inline-flex items-center px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-2xs transition">
+                                    + Auto PO
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="p-8 text-center text-slate-500 text-sm">No drug items found matching the query.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
 </div>
 
 <!-- Modal: Register New Medication -->
-<div id="addMedModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6">
-    <div class="max-w-2xl w-full border-2 border-black bg-white p-8 brutal-shadow-lg font-mono text-sm max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between border-b-2 border-black pb-4 mb-6">
-            <h3 class="font-black uppercase tracking-tight text-base">Register New Drug Identity & EOQ / ROP Parameters</h3>
-            <button onclick="document.getElementById('addMedModal').classList.add('hidden')" class="text-black font-extrabold text-2xl leading-none">&times;</button>
+<div id="addMedModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="max-w-2xl w-full border border-slate-200 bg-white p-6 sm:p-8 rounded-3xl shadow-2xl text-sm max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+            <div>
+                <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">FR1 Catalog Entry</span>
+                <h3 class="font-bold text-slate-900 tracking-tight text-lg">Register New Drug Identity & EOQ / ROP</h3>
+            </div>
+            <button onclick="document.getElementById('addMedModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 font-bold text-2xl leading-none">&times;</button>
         </div>
 
         <form method="POST" action="{% url 'add_medication' %}" class="space-y-5">
             {% csrf_token %}
 
             <div>
-                <label class="block font-bold uppercase mb-1.5">Medication Name</label>
+                <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Medication Name</label>
                 {{ form.name }}
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block font-bold uppercase mb-1.5">SKU / Item Code</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">SKU / Item Code</label>
                     {{ form.sku }}
                 </div>
                 <div>
-                    <label class="block font-bold uppercase mb-1.5">Pharmacy Section</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Pharmacy Section</label>
                     {{ form.section }}
                 </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block font-bold uppercase mb-1.5">Supplier</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Supplier</label>
                     {{ form.supplier }}
                 </div>
                 <div>
-                    <label class="block font-bold uppercase mb-1.5">Unit of Measure</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Unit of Measure</label>
                     {{ form.unit }}
                 </div>
                 <div>
-                    <label class="block font-bold uppercase mb-1.5">Unit Purchase Cost ($)</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Unit Purchase Cost (₦)</label>
                     {{ form.unit_cost }}
                 </div>
             </div>
 
-            <div class="p-4 border border-black bg-zinc-50 font-bold uppercase text-xs">
+            <div class="p-3.5 bg-slate-100 border border-slate-200 rounded-xl font-semibold text-slate-800 text-xs">
                 FR3 Economic Order Quantity (EOQ) Parameters:
             </div>
 
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block font-bold uppercase mb-1.5">Annual Demand (D)</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Annual Demand (D)</label>
                     {{ form.annual_demand }}
                 </div>
                 <div>
-                    <label class="block font-bold uppercase mb-1.5">Ordering Cost S ($/PO)</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Ordering Cost S (₦/PO)</label>
                     {{ form.ordering_cost }}
                 </div>
                 <div>
-                    <label class="block font-bold uppercase mb-1.5">Holding Cost H ($/unit/yr)</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Holding Cost H (₦/unit/yr)</label>
                     {{ form.holding_cost }}
                 </div>
             </div>
 
-            <div class="p-4 border border-black bg-zinc-50 font-bold uppercase text-xs">
+            <div class="p-3.5 bg-amber-50/80 border border-amber-100 rounded-xl font-semibold text-amber-900 text-xs">
                 FR4 Reorder Point (ROP) & Safety Stock Parameters:
             </div>
 
-            <div class="grid grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
-                    <label class="block font-bold uppercase mb-1.5">Daily Usage</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Daily Usage</label>
                     {{ form.daily_consumption }}
                 </div>
                 <div>
-                    <label class="block font-bold uppercase mb-1.5">Lead Time (Days)</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Lead Time (Days)</label>
                     {{ form.lead_time_days }}
                 </div>
                 <div>
-                    <label class="block font-bold uppercase mb-1.5">Safety Stock</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Safety Stock</label>
                     {{ form.safety_stock }}
                 </div>
                 <div>
-                    <label class="block font-bold uppercase mb-1.5">Max Capacity</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Max Capacity</label>
                     {{ form.max_level }}
                 </div>
             </div>
 
-            <div class="pt-4 border-t border-zinc-300 flex justify-end space-x-3">
-                <button type="button" onclick="document.getElementById('addMedModal').classList.add('hidden')" class="px-5 py-2.5 border border-black font-bold uppercase">Cancel</button>
-                <button type="submit" class="px-6 py-2.5 bg-black text-white font-extrabold uppercase border border-black">Save & Compute EOQ/ROP</button>
+            <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
+                <button type="button" onclick="document.getElementById('addMedModal').classList.add('hidden')" class="px-5 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition">Cancel</button>
+                <button type="submit" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-md transition">Save & Compute EOQ/ROP</button>
             </div>
         </form>
     </div>

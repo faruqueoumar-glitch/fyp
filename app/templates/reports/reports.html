@@ -2,162 +2,169 @@
 
 {% block title %}Comprehensive Reports & CSV Export | PharmaAudit OS{% endblock %}
 
-{% block content %}
-<div class="space-y-10 font-mono">
+{% block main_content %}
+<div class="space-y-8">
 
     <!-- Header & Export Action Bar -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b-2 border-black pb-6">
+    <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-            <span class="text-xs font-black bg-black text-white px-2.5 py-1 uppercase">FR9 COMPREHENSIVE REPORTING MODULE</span>
-            <h1 class="text-3xl font-black uppercase tracking-tight mt-2">Inventory & Audit Reporting Console</h1>
-            <p class="text-sm text-zinc-600 font-sans mt-1">On-demand reporting for Stock Movement, Inventory Status, Expiries, ABC Classification, PO History, and Audit Trail.</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Inventory & Audit Reporting Console</h1>
+            <p class="text-sm text-slate-500 font-sans mt-1">On-demand reporting for Stock Movement, Inventory Status, Expiries, ABC Classification, PO History, and Audit Trail.</p>
         </div>
 
-        <a href="{% url 'export_report_csv' %}?type={{ report_type }}" class="px-6 py-3.5 bg-black text-white font-black text-sm uppercase tracking-wider border-2 border-black brutal-shadow hover:bg-zinc-800 transition flex items-center space-x-2">
+        <a href="{% url 'export_report_csv' %}?type={{ report_type }}" class="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl shadow-md transition flex items-center space-x-2 flex-shrink-0">
             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            <span>Export Current Report (CSV / Excel)</span>
+            <span>Export Current Report (CSV)</span>
         </a>
     </div>
 
     <!-- Report Type Selector Tabs -->
-    <div class="flex flex-wrap gap-3 text-xs font-bold">
-        <a href="{% url 'reports' %}?type=stock_status" class="px-5 py-3 border-2 border-black {% if report_type == 'stock_status' %}bg-black text-white{% else %}bg-white text-black hover:bg-zinc-100{% endif %} uppercase">
+    <div class="flex flex-wrap gap-2.5 text-xs font-semibold">
+        <a href="{% url 'reports' %}?type=stock_status" class="px-4 py-2.5 rounded-xl border transition {% if report_type == 'stock_status' %}bg-slate-900 text-white border-slate-900 shadow-xs{% else %}bg-white text-slate-700 border-slate-200 hover:bg-slate-50{% endif %}">
             Current Inventory Status (EOQ & ROP)
         </a>
-        <a href="{% url 'reports' %}?type=abc_classification" class="px-5 py-3 border-2 border-black {% if report_type == 'abc_classification' %}bg-black text-white{% else %}bg-white text-black hover:bg-zinc-100{% endif %} uppercase">
+        <a href="{% url 'reports' %}?type=abc_classification" class="px-4 py-2.5 rounded-xl border transition {% if report_type == 'abc_classification' %}bg-slate-900 text-white border-slate-900 shadow-xs{% else %}bg-white text-slate-700 border-slate-200 hover:bg-slate-50{% endif %}">
             ABC Classification Report
         </a>
-        <a href="{% url 'reports' %}?type=expiries" class="px-5 py-3 border-2 border-black {% if report_type == 'expiries' %}bg-black text-white{% else %}bg-white text-black hover:bg-zinc-100{% endif %} uppercase">
+        <a href="{% url 'reports' %}?type=expiries" class="px-4 py-2.5 rounded-xl border transition {% if report_type == 'expiries' %}bg-slate-900 text-white border-slate-900 shadow-xs{% else %}bg-white text-slate-700 border-slate-200 hover:bg-slate-50{% endif %}">
             Expiry Report (90-Day Warning)
         </a>
-        <a href="{% url 'reports' %}?type=audit_trail" class="px-5 py-3 border-2 border-black {% if report_type == 'audit_trail' %}bg-black text-white{% else %}bg-white text-black hover:bg-zinc-100{% endif %} uppercase">
+        <a href="{% url 'reports' %}?type=audit_trail" class="px-4 py-2.5 rounded-xl border transition {% if report_type == 'audit_trail' %}bg-slate-900 text-white border-slate-900 shadow-xs{% else %}bg-white text-slate-700 border-slate-200 hover:bg-slate-50{% endif %}">
             Immutable Audit Trail Report
         </a>
     </div>
 
     <!-- Dynamic Report Content -->
     {% if report_type == 'stock_status' %}
-    <div class="border-2 border-black bg-white brutal-shadow-lg overflow-x-auto">
-        <table class="w-full text-left text-sm border-collapse">
-            <thead>
-                <tr class="border-b-2 border-black bg-zinc-100 text-black uppercase">
-                    <th class="p-4 border-r border-zinc-300">SKU</th>
-                    <th class="p-4 border-r border-zinc-300">Medication Name</th>
-                    <th class="p-4 border-r border-zinc-300">Section</th>
-                    <th class="p-4 border-r border-zinc-300">Current Stock</th>
-                    <th class="p-4 border-r border-zinc-300 bg-zinc-200">Reorder Point (ROP)</th>
-                    <th class="p-4 border-r border-zinc-300 font-bold">FR3 EOQ Recommended</th>
-                    <th class="p-4">Stock Status</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-200">
-                {% for med in medications %}
-                <tr class="hover:bg-zinc-50">
-                    <td class="p-4 border-r border-zinc-200 font-bold text-zinc-800">{{ med.sku }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-black uppercase text-black">{{ med.name }}</td>
-                    <td class="p-4 border-r border-zinc-200">{{ med.section.name }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-black text-base">{{ med.current_stock }} {{ med.unit }}</td>
-                    <td class="p-4 border-r border-zinc-200 bg-zinc-50 font-bold text-base">{{ med.reorder_point }} units</td>
-                    <td class="p-4 border-r border-zinc-200 font-black text-black text-base">{{ med.eoq }} units</td>
-                    <td class="p-4">
-                        <span class="inline-block px-3 py-1 bg-black text-white text-xs font-bold uppercase">{{ med.stock_status }}</span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="bg-white border border-slate-200/80 rounded-3xl shadow-sm shadow-slate-200/50 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-100/80 text-slate-700 uppercase border-b border-slate-200 font-mono">
+                        <th class="p-4 font-bold">SKU</th>
+                        <th class="p-4 font-bold">Medication Name</th>
+                        <th class="p-4 font-bold">Section</th>
+                        <th class="p-4 font-bold">Current Stock</th>
+                        <th class="p-4 font-bold bg-amber-50/70 text-amber-900">Reorder Point (ROP)</th>
+                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">FR3 EOQ Recommended</th>
+                        <th class="p-4 font-bold">Stock Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    {% for med in medications %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-bold text-slate-800 font-mono">{{ med.sku }}</td>
+                        <td class="p-4 font-bold text-sm text-slate-900">{{ med.name }}</td>
+                        <td class="p-4 text-slate-500">{{ med.section.name }}</td>
+                        <td class="p-4 font-extrabold text-sm text-slate-900 font-mono">{{ med.current_stock }} {{ med.unit }}</td>
+                        <td class="p-4 bg-amber-50/40 font-bold text-amber-900 text-sm font-mono">{{ med.reorder_point }} units</td>
+                        <td class="p-4 bg-slate-100 font-bold text-slate-900 text-sm font-mono">{{ med.eoq }} units</td>
+                        <td class="p-4">
+                            <span class="inline-block px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-full uppercase shadow-2xs">{{ med.stock_status }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     {% elif report_type == 'abc_classification' %}
-    <div class="border-2 border-black bg-white brutal-shadow-lg overflow-x-auto">
-        <table class="w-full text-left text-sm border-collapse">
-            <thead>
-                <tr class="border-b-2 border-black bg-zinc-100 text-black uppercase">
-                    <th class="p-4 border-r border-zinc-300">Rank</th>
-                    <th class="p-4 border-r border-zinc-300">SKU</th>
-                    <th class="p-4 border-r border-zinc-300">Medication Name</th>
-                    <th class="p-4 border-r border-zinc-300">Annual Demand</th>
-                    <th class="p-4 border-r border-zinc-300">Annual Value ($)</th>
-                    <th class="p-4 border-r border-zinc-300">Cumulative %</th>
-                    <th class="p-4">Category</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-200">
-                {% for item in abc_data %}
-                <tr class="hover:bg-zinc-50">
-                    <td class="p-4 border-r border-zinc-200 font-extrabold text-black">#{{ forloop.counter }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-bold">{{ item.medication.sku }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-black uppercase text-black">{{ item.medication.name }}</td>
-                    <td class="p-4 border-r border-zinc-200">{{ item.medication.annual_demand }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-black text-base">${{ item.annual_value|floatformat:2 }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-bold">{{ item.cum_pct }}%</td>
-                    <td class="p-4 font-bold uppercase">Category {{ item.category }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="bg-white border border-slate-200/80 rounded-3xl shadow-sm shadow-slate-200/50 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-100/80 text-slate-700 uppercase border-b border-slate-200 font-mono">
+                        <th class="p-4 font-bold">Rank</th>
+                        <th class="p-4 font-bold">SKU</th>
+                        <th class="p-4 font-bold">Medication Name</th>
+                        <th class="p-4 font-bold">Annual Demand</th>
+                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">Annual Value (₦)</th>
+                        <th class="p-4 font-bold">Cumulative %</th>
+                        <th class="p-4 font-bold">Category</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    {% for item in abc_data %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-bold text-slate-900 font-mono">#{{ forloop.counter }}</td>
+                        <td class="p-4 font-semibold text-slate-800 font-mono">{{ item.medication.sku }}</td>
+                        <td class="p-4 font-bold text-sm text-slate-900">{{ item.medication.name }}</td>
+                        <td class="p-4 font-semibold text-slate-700 font-mono">{{ item.medication.annual_demand }}</td>
+                        <td class="p-4 bg-slate-100 font-extrabold text-slate-900 text-sm font-mono">₦{{ item.annual_value|floatformat:2 }}</td>
+                        <td class="p-4 font-bold text-slate-800 font-mono">{{ item.cum_pct }}%</td>
+                        <td class="p-4 font-bold text-slate-900 uppercase">Category {{ item.category }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     {% elif report_type == 'expiries' %}
-    <div class="border-2 border-black bg-white brutal-shadow-lg overflow-x-auto">
-        <table class="w-full text-left text-sm border-collapse">
-            <thead>
-                <tr class="border-b-2 border-black bg-zinc-100 text-black uppercase">
-                    <th class="p-4 border-r border-zinc-300">Medication</th>
-                    <th class="p-4 border-r border-zinc-300">Batch Number</th>
-                    <th class="p-4 border-r border-zinc-300">Supplier</th>
-                    <th class="p-4 border-r border-zinc-300">Quantity</th>
-                    <th class="p-4 border-r border-zinc-300">Expiry Date</th>
-                    <th class="p-4 border-r border-zinc-300">Days Remaining</th>
-                    <th class="p-4">Expiry Status</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-200">
-                {% for b in expiries %}
-                <tr class="hover:bg-zinc-50">
-                    <td class="p-4 border-r border-zinc-200 font-black uppercase text-black">{{ b.medication.name }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-bold">{{ b.batch_number }}</td>
-                    <td class="p-4 border-r border-zinc-200 text-zinc-600">{{ b.supplier.name|default:"N/A" }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-bold text-base">{{ b.quantity }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-black text-base">{{ b.expiry_date }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-bold">{{ b.days_to_expiry }} days</td>
-                    <td class="p-4">
-                        <span class="inline-block px-3 py-1 bg-black text-white text-xs font-bold uppercase">{{ b.expiry_status }}</span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="bg-white border border-slate-200/80 rounded-3xl shadow-sm shadow-slate-200/50 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-100/80 text-slate-700 uppercase border-b border-slate-200 font-mono">
+                        <th class="p-4 font-bold">Medication</th>
+                        <th class="p-4 font-bold">Batch Number</th>
+                        <th class="p-4 font-bold">Supplier</th>
+                        <th class="p-4 font-bold">Quantity</th>
+                        <th class="p-4 font-bold bg-rose-50/70 text-rose-900">Expiry Date</th>
+                        <th class="p-4 font-bold">Days Remaining</th>
+                        <th class="p-4 font-bold">Expiry Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    {% for b in expiries %}
+                    <tr class="hover:bg-rose-50/20 transition">
+                        <td class="p-4 font-bold text-sm text-slate-900">{{ b.medication.name }}</td>
+                        <td class="p-4 font-semibold text-slate-800 font-mono">{{ b.batch_number }}</td>
+                        <td class="p-4 text-slate-500">{{ b.supplier.name|default:"N/A" }}</td>
+                        <td class="p-4 font-extrabold text-slate-900 font-mono text-sm">{{ b.quantity }}</td>
+                        <td class="p-4 bg-rose-50/40 font-extrabold text-rose-900 text-sm font-mono">{{ b.expiry_date }}</td>
+                        <td class="p-4 font-bold text-slate-800 font-mono">{{ b.days_to_expiry }} days</td>
+                        <td class="p-4">
+                            <span class="inline-block px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-full uppercase shadow-2xs">{{ b.expiry_status }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     {% elif report_type == 'audit_trail' %}
-    <div class="border-2 border-black bg-white brutal-shadow-lg overflow-x-auto">
-        <table class="w-full text-left text-sm border-collapse">
-            <thead>
-                <tr class="border-b-2 border-black bg-zinc-100 text-black uppercase">
-                    <th class="p-4 border-r border-zinc-300">Transaction ID</th>
-                    <th class="p-4 border-r border-zinc-300">Timestamp</th>
-                    <th class="p-4 border-r border-zinc-300">User Identity</th>
-                    <th class="p-4 border-r border-zinc-300">Action Type</th>
-                    <th class="p-4 border-r border-zinc-300">Entity & PK</th>
-                    <th class="p-4 border-r border-zinc-300">IP Address</th>
-                    <th class="p-4">SHA-256 Current Hash</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-200">
-                {% for log in audits %}
-                <tr class="hover:bg-zinc-50">
-                    <td class="p-4 border-r border-zinc-200 font-extrabold text-black">{{ log.transaction_id }}</td>
-                    <td class="p-4 border-r border-zinc-200 text-zinc-600">{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-bold text-black">{{ log.user_identity }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-bold uppercase">{{ log.get_action_type_display }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-bold">{{ log.affected_entity }} #{{ log.entity_pk }}</td>
-                    <td class="p-4 border-r border-zinc-200 text-zinc-600">{{ log.ip_address|default:"127.0.0.1" }}</td>
-                    <td class="p-4 font-mono text-xs text-zinc-600 truncate max-w-[160px]">{{ log.current_hash }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="bg-white border border-slate-200/80 rounded-3xl shadow-sm shadow-slate-200/50 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-100/80 text-slate-700 uppercase border-b border-slate-200 font-mono">
+                        <th class="p-4 font-bold">Transaction ID</th>
+                        <th class="p-4 font-bold">Timestamp</th>
+                        <th class="p-4 font-bold">User Identity</th>
+                        <th class="p-4 font-bold">Action Type</th>
+                        <th class="p-4 font-bold">Entity & PK</th>
+                        <th class="p-4 font-bold">IP Address</th>
+                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">SHA-256 Current Hash</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    {% for log in audits %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-bold text-slate-900 font-mono">{{ log.transaction_id }}</td>
+                        <td class="p-4 text-slate-500 font-mono">{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                        <td class="p-4 font-semibold text-slate-800">{{ log.user_identity }}</td>
+                        <td class="p-4 font-semibold text-slate-800 uppercase">{{ log.get_action_type_display }}</td>
+                        <td class="p-4 font-semibold text-slate-800 font-mono">{{ log.affected_entity }} #{{ log.entity_pk }}</td>
+                        <td class="p-4 text-slate-500 font-mono">{{ log.ip_address|default:"127.0.0.1" }}</td>
+                        <td class="p-4 bg-slate-100 font-mono text-[11px] text-slate-700 truncate max-w-[160px]">{{ log.current_hash }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
     {% endif %}
 

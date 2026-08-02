@@ -1,232 +1,916 @@
-<!DOCTYPE html>
-<html lang="en" class="h-full bg-white">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}PharmaAudit & Stock Optimization OS{% endblock %}</title>
+{% load static %}
+<!doctype html>
+<html lang="en" class="h-full bg-slate-50">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      {% block title %}PharmaAudit & Stock Optimization OS{% endblock %}
+    </title>
+
     <!-- Google Fonts: Inter & JetBrains Mono -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Inter"', 'sans-serif'],
-                        mono: ['"JetBrains Mono"', 'monospace'],
-                    }
-                }
-            }
-        }
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              silver: {
+                50: "#f8fafc",
+                100: "#f1f5f9",
+                200: "#e2e8f0",
+                300: "#cbd5e1",
+                400: "#94a3b8",
+                500: "#64748b",
+                600: "#475569",
+                700: "#334155",
+                800: "#1e293b",
+                900: "#0f172a",
+              },
+            },
+            fontFamily: {
+              sans: ['"Inter"', "sans-serif"],
+              mono: ['"JetBrains Mono"', "monospace"],
+            },
+          },
+        },
+      };
     </script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-        /* Ultra crisp brutalist shadows */
-        .brutal-shadow-sm { box-shadow: 3px 3px 0px 0px #000000; }
-        .brutal-shadow { box-shadow: 5px 5px 0px 0px #000000; }
-        .brutal-shadow-lg { box-shadow: 8px 8px 0px 0px #000000; }
-    </style>
-    {% block extra_head %}{% endblock %}
-</head>
-<body class="h-full font-sans antialiased text-zinc-950 bg-white selection:bg-black selection:text-white">
 
+    <!-- Core Brand Styling & Custom CSS -->
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background: #f8fafc;
+      }
+      .font-mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      /* Custom smooth scrollbar for sidebar */
+      aside::-webkit-scrollbar {
+        width: 5px;
+      }
+      aside::-webkit-scrollbar-track {
+        background: #0f172a;
+      }
+      aside::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 4px;
+      }
+      aside::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+      }
+    </style>
+    {% block extra_head %}{% endblock %} {% block extra_css %}{% endblock %}
+  </head>
+  <body
+    class="h-full font-sans antialiased text-slate-900 bg-slate-50 selection:bg-slate-900 selection:text-white"
+  >
     <!-- Flash Messages Toast System -->
     {% if messages %}
-    <div class="fixed top-5 right-5 z-50 max-w-lg w-full space-y-3 px-4 sm:px-0">
-        {% for message in messages %}
-        <div class="p-4 bg-black text-white border-2 border-black brutal-shadow flex items-start justify-between transition" role="alert">
-            <div class="flex items-center space-x-3">
-                <span class="w-3 h-3 bg-white rounded-full animate-pulse flex-shrink-0"></span>
-                <span class="text-sm font-mono font-bold tracking-wide uppercase">{{ message }}</span>
-            </div>
-            <button onclick="this.parentElement.remove()" class="text-zinc-400 hover:text-white p-1 text-lg font-black leading-none">
-                &times;
-            </button>
+    <div
+      class="fixed top-5 right-5 z-50 max-w-md w-full space-y-3 px-4 sm:px-0"
+    >
+      {% for message in messages %}
+      <div
+        class="toast-card p-4 bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700 flex items-start justify-between transition-all duration-300 transform translate-y-0 opacity-100"
+        role="alert"
+      >
+        <div class="flex items-center space-x-3">
+          <span class="text-sm font-medium tracking-wide">{{ message }}</span>
         </div>
-        {% endfor %}
+        <button
+          onclick="this.parentElement.remove()"
+          class="text-slate-400 hover:text-white p-1 text-lg font-bold leading-none ml-4 transition"
+        >
+          &times;
+        </button>
+      </div>
+      {% endfor %}
     </div>
-    {% endif %}
-
-    {% if user.is_authenticated %}
-    {% with current_url=request.resolver_match.url_name %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const toasts = document.querySelectorAll('.toast-card');
+        toasts.forEach(function(toast) {
+          setTimeout(function() {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-10px)';
+            setTimeout(function() {
+              if (toast.parentElement) toast.remove();
+            }, 300);
+          }, 4000);
+        });
+      });
+    </script>
+    {% endif %} {% with current_url=request.resolver_match.url_name %}
     <!-- Layout Wrapper -->
-    <div class="min-h-screen flex flex-col lg:flex-row bg-white">
+    <div class="min-h-screen flex flex-col lg:flex-row bg-slate-50">
+      {% if user.is_authenticated %}
+      <!-- Mobile Header Bar (< lg screens) -->
+      <header
+        class="lg:hidden bg-slate-900 text-white border-b border-slate-800 px-4 py-3.5 flex items-center justify-between sticky top-0 z-50 shadow-md"
+      >
+        <div class="flex items-center space-x-3">
+          <div
+            class="w-9 h-9 bg-gradient-to-tr from-zinc-700 via-slate-800 to-slate-900 text-white font-black text-base flex items-center justify-center rounded-xl border border-slate-600 shadow-md"
+          >
+            Rx
+          </div>
+          <div>
+            <h1
+              class="font-bold text-sm tracking-wide text-white leading-tight"
+            >
+              PharmaAudit OS
+            </h1>
+          </div>
+        </div>
+        <button
+          id="mobileMenuBtn"
+          onclick="toggleSidebar()"
+          class="p-2 bg-slate-800 border border-slate-700 rounded-xl text-slate-200 hover:text-white hover:bg-slate-700 transition focus:outline-none"
+          aria-label="Toggle Navigation Menu"
+        >
+          <svg
+            id="menuIcon"
+            class="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+          <svg
+            id="closeIcon"
+            class="w-6 h-6 hidden"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </header>
 
-        <!-- Sticky Sidebar Navigation -->
-        <aside class="w-full lg:w-80 bg-zinc-950 text-white border-r-2 border-black flex flex-col justify-between flex-shrink-0 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
-            <div class="flex-1">
-                <!-- Brand Header -->
-                <div class="p-6 border-b border-zinc-800 flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-white text-black font-black text-xl flex items-center justify-center border-2 border-white brutal-shadow-sm">
-                        Rx
-                    </div>
-                    <div>
-                        <h1 class="font-black text-base tracking-wider uppercase text-white">PharmaAudit OS</h1>
-                        <p class="text-xs text-zinc-400 font-mono">Stock Audit & Optimization</p>
-                    </div>
-                </div>
+      <!-- Sidebar Backdrop Overlay for Mobile -->
+      <div
+        id="sidebarBackdrop"
+        onclick="toggleSidebar()"
+        class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden hidden transition-opacity duration-300"
+      ></div>
 
-                <!-- Navigation Links with Professional Vector SVG Icons & Pathname Highlighting -->
-                <nav class="p-4 space-y-1.5 font-mono">
-                    
-                    <!-- Real-Time Dashboard -->
-                    <a href="{% url 'dashboard' %}" class="flex items-center space-x-3.5 px-4 py-3 text-sm transition rounded-none {% if current_url == 'dashboard' %}bg-white text-black font-black border-2 border-black brutal-shadow-sm{% else %}text-zinc-300 hover:bg-zinc-900 hover:text-white border border-transparent font-medium{% endif %}">
-                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
-                        <span class="uppercase tracking-wide">Real-Time Dashboard</span>
-                    </a>
-
-                    <!-- Stock Catalog (EOQ & ROP) -->
-                    <a href="{% url 'medications_list' %}" class="flex items-center space-x-3.5 px-4 py-3 text-sm transition rounded-none {% if current_url == 'medications_list' or current_url == 'add_medication' %}bg-white text-black font-black border-2 border-black brutal-shadow-sm{% else %}text-zinc-300 hover:bg-zinc-900 hover:text-white border border-transparent font-medium{% endif %}">
-                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.096.176l-1.08.54a2 2 0 00-1.096 1.789v.084a2 2 0 002 2h15.228a2 2 0 002-2v-.084a2 2 0 00-1.096-1.789l-1.08-.54zM4 6h16M4 10h16"/></svg>
-                        <span class="uppercase tracking-wide">Stock Catalog (EOQ/ROP)</span>
-                    </a>
-
-                    <!-- Goods Receipt Intake -->
-                    <a href="{% url 'receive_batch' %}" class="flex items-center space-x-3.5 px-4 py-3 text-sm transition rounded-none {% if current_url == 'receive_batch' %}bg-white text-black font-black border-2 border-black brutal-shadow-sm{% else %}text-zinc-300 hover:bg-zinc-900 hover:text-white border border-transparent font-medium{% endif %}">
-                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                        <span class="uppercase tracking-wide">Goods Receipt Intake</span>
-                    </a>
-
-                    <!-- FEFO Automated Dispense -->
-                    <a href="{% url 'fefo_dispense' %}" class="flex items-center space-x-3.5 px-4 py-3 text-sm transition rounded-none {% if current_url == 'fefo_dispense' %}bg-white text-black font-black border-2 border-black brutal-shadow-sm{% else %}text-zinc-300 hover:bg-zinc-900 hover:text-white border border-transparent font-medium{% endif %}">
-                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        <span class="uppercase tracking-wide">FEFO Auto Dispense</span>
-                    </a>
-
-                    <!-- Physical Stock Audit -->
-                    <a href="{% url 'stock_adjustment' %}" class="flex items-center space-x-3.5 px-4 py-3 text-sm transition rounded-none {% if current_url == 'stock_adjustment' %}bg-white text-black font-black border-2 border-black brutal-shadow-sm{% else %}text-zinc-300 hover:bg-zinc-900 hover:text-white border border-transparent font-medium{% endif %}">
-                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-                        <span class="uppercase tracking-wide">Physical Stock Audit</span>
-                    </a>
-
-                    <!-- Purchase Orders (EOQ) -->
-                    <a href="{% url 'purchase_orders' %}" class="flex items-center space-x-3.5 px-4 py-3 text-sm transition rounded-none {% if current_url == 'purchase_orders' %}bg-white text-black font-black border-2 border-black brutal-shadow-sm{% else %}text-zinc-300 hover:bg-zinc-900 hover:text-white border border-transparent font-medium{% endif %}">
-                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-                        <span class="uppercase tracking-wide">Purchase Orders (EOQ)</span>
-                    </a>
-
-                    <!-- ABC Classification -->
-                    <a href="{% url 'abc_classification' %}" class="flex items-center space-x-3.5 px-4 py-3 text-sm transition rounded-none {% if current_url == 'abc_classification' %}bg-white text-black font-black border-2 border-black brutal-shadow-sm{% else %}text-zinc-300 hover:bg-zinc-900 hover:text-white border border-transparent font-medium{% endif %}">
-                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                        <span class="uppercase tracking-wide">ABC Classification</span>
-                    </a>
-
-                    <!-- FEFO Expiry Alerts -->
-                    <a href="{% url 'expiries_monitoring' %}" class="flex items-center space-x-3.5 px-4 py-3 text-sm transition rounded-none {% if current_url == 'expiries_monitoring' %}bg-white text-black font-black border-2 border-black brutal-shadow-sm{% else %}text-zinc-300 hover:bg-zinc-900 hover:text-white border border-transparent font-medium{% endif %}">
-                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span class="uppercase tracking-wide">FEFO Expiry Alerts</span>
-                    </a>
-
-                    <!-- Immutable Audit Ledger -->
-                    <a href="{% url 'stock_audit_ledger' %}" class="flex items-center space-x-3.5 px-4 py-3 text-sm transition rounded-none {% if current_url == 'stock_audit_ledger' %}bg-white text-black font-black border-2 border-black brutal-shadow-sm{% else %}text-zinc-300 hover:bg-zinc-900 hover:text-white border border-transparent font-medium{% endif %}">
-                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                        <span class="uppercase tracking-wide">Immutable Audit Trail</span>
-                    </a>
-
-                    <!-- Reports & CSV Export -->
-                    <a href="{% url 'reports' %}" class="flex items-center space-x-3.5 px-4 py-3 text-sm transition rounded-none {% if current_url == 'reports' or current_url == 'export_report_csv' %}bg-white text-black font-black border-2 border-black brutal-shadow-sm{% else %}text-zinc-300 hover:bg-zinc-900 hover:text-white border border-transparent font-medium{% endif %}">
-                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        <span class="uppercase tracking-wide">Reports & CSV Export</span>
-                    </a>
-
-                </nav>
+      <!-- Sticky Sidebar Navigation -->
+      <aside
+        id="sidebarNav"
+        class="w-full lg:w-72 bg-slate-900 text-white border-r border-slate-800 flex flex-col justify-between flex-shrink-0 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto hidden lg:flex fixed inset-y-0 left-0 z-50 lg:z-auto transition-transform duration-300 ease-in-out shadow-xl lg:shadow-none"
+      >
+        <div class="flex-1">
+          <!-- Brand Header (Desktop) -->
+          <div
+            class="p-6 border-b border-slate-800/80 flex items-center space-x-3.5"
+          >
+            <div
+              class="w-11 h-11 bg-gradient-to-tr from-zinc-700 via-slate-800 to-slate-900 text-white font-black text-xl flex items-center justify-center rounded-2xl border border-slate-700 shadow-md"
+            >
+              Rx
             </div>
-
-            <div class="p-5 border-t border-zinc-800 text-xs text-zinc-500 font-mono">
-                System Status: Active
-            </div>
-        </aside>
-
-        <!-- Main Body Container -->
-        <main class="flex-1 min-w-0 bg-white flex flex-col justify-between min-h-screen">
             <div>
-                <!-- Top Header Navbar with Dynamic Pathname & Breadcrumb -->
-                <header class="border-b-2 border-black px-8 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white sticky top-0 z-40">
-                    <div>
-                        <div class="flex items-center space-x-2 text-xs font-mono font-bold text-zinc-500 uppercase">
-                            <span>PharmaAudit OS</span>
-                            <span>/</span>
-                            <span class="text-black font-black">
-                                {% if current_url == 'dashboard' %}Dashboard
-                                {% elif current_url == 'medications_list' or current_url == 'add_medication' %}Stock Catalog
-                                {% elif current_url == 'receive_batch' %}Goods Receipt Intake
-                                {% elif current_url == 'fefo_dispense' %}FEFO Dispense
-                                {% elif current_url == 'stock_adjustment' %}Physical Stock Audit
-                                {% elif current_url == 'purchase_orders' %}Purchase Orders
-                                {% elif current_url == 'abc_classification' %}ABC Classification
-                                {% elif current_url == 'expiries_monitoring' %}FEFO Expiry Alerts
-                                {% elif current_url == 'stock_audit_ledger' %}Immutable Audit Trail
-                                {% elif current_url == 'reports' or current_url == 'export_report_csv' %}Reports
-                                {% else %}Overview{% endif %}
-                            </span>
-                        </div>
-                        <h2 class="text-xl font-black uppercase tracking-wider text-black mt-1">
-                            {% if current_url == 'dashboard' %}Real-Time Inventory Dashboard
-                            {% elif current_url == 'medications_list' or current_url == 'add_medication' %}Stock Catalog (EOQ & ROP)
-                            {% elif current_url == 'receive_batch' %}Goods Receipt Intake
-                            {% elif current_url == 'fefo_dispense' %}FEFO Automated Dispense
-                            {% elif current_url == 'stock_adjustment' %}Physical Stock Audit
-                            {% elif current_url == 'purchase_orders' %}Purchase Orders (EOQ Guidance)
-                            {% elif current_url == 'abc_classification' %}ABC Inventory Classification
-                            {% elif current_url == 'expiries_monitoring' %}FEFO Expiry Alerts & Isolation
-                            {% elif current_url == 'stock_audit_ledger' %}Immutable SHA-256 Audit Trail
-                            {% elif current_url == 'reports' or current_url == 'export_report_csv' %}Inventory Reports & CSV Export
-                            {% else %}System Console{% endif %}
-                        </h2>
-                    </div>
+              <h1 class="font-bold text-base tracking-tight text-white">
+                PharmaAudit OS
+              </h1>
+            </div>
+          </div>
 
-                    <!-- Right Side: User Profile Box -->
-                    <div class="flex items-center space-x-4 flex-shrink-0 font-mono">
-                        <!-- User Profile & Logout Box -->
-                        <div class="flex items-center space-x-3 border-2 border-black p-2 bg-white brutal-shadow-sm">
-                            <!-- User SVG Icon Avatar -->
-                            <div class="w-9 h-9 bg-black text-white font-extrabold flex items-center justify-center border border-black">
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                            </div>
-                            <div class="text-left text-xs leading-tight pr-2">
-                                <p class="font-black text-black text-sm truncate max-w-[180px]">{{ user.email }}</p>
-                                <span class="inline-block text-[10px] font-extrabold px-2 py-0.5 bg-zinc-100 text-black border border-black uppercase mt-1">
-                                    {{ user.get_role_display }}
-                                </span>
-                            </div>
-                            <!-- Logout Button -->
-                            <a href="{% url 'logout' %}" class="px-3 py-2 bg-black text-white hover:bg-zinc-800 font-bold text-xs uppercase border border-black transition flex items-center space-x-1" title="Sign Out">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                                <span>LOGOUT</span>
-                            </a>
-                        </div>
-                    </div>
-                </header>
+          <!-- Navigation Links -->
+          <nav class="p-4 space-y-6 text-sm font-medium">
+            <!-- Section 1: Overview -->
+            <div class="space-y-1">
+              <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
+                <span>Overview</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+              </div>
+              <!-- Real-Time Dashboard -->
+              <a
+                href="{% url 'dashboard' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'dashboard' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+                  />
+                </svg>
+                <span>Dashboard</span>
+              </a>
 
-                <div class="p-8">
-                    {% block content %}{% endblock %}
-                </div>
+              <!-- Real-Time Alerts -->
+              <a
+                href="{% url 'notifications:list' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if request.resolver_match.namespace == 'notifications' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9"
+                  />
+                </svg>
+                <span>Real-Time Alerts</span>
+              </a>
             </div>
 
-            <!-- Whole Document Global Footer -->
-            <footer class="border-t-2 border-black bg-zinc-950 text-white p-8 font-mono mt-12">
-                <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <h3 class="font-black text-base uppercase tracking-wider text-white">Pharmaceutical Stock Auditing & Inventory Optimization System</h3>
-                        <p class="text-xs text-zinc-400 font-mono mt-1">FR1–FR9 Compliant • Immutable SHA-256 Ledger • EOQ & ROP Engine • ABC Classification</p>
+            <!-- Section 2: Catalog & Master Data -->
+            <div class="space-y-1">
+              <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
+                <span>Catalog & Master Data</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+              </div>
+              <!-- Stock Catalog (EOQ & ROP) -->
+              <a
+                href="{% url 'medications_list' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'medications_list' or current_url == 'add_medication' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.096.176l-1.08.54a2 2 0 00-1.096 1.789v.084a2 2 0 002 2h15.228a2 2 0 002-2v-.084a2 2 0 00-1.096-1.789l-1.08-.54zM4 6h16M4 10h16"
+                  />
+                </svg>
+                <span>Stock Catalog (EOQ/ROP)</span>
+              </a>
+
+              <!-- Pharmacy Sections -->
+              <a
+                href="{% url 'sections_list' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'sections_list' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0H9m1 0h4"
+                  />
+                </svg>
+                <span>Pharmacy Sections</span>
+              </a>
+
+              <!-- Suppliers Directory -->
+              <a
+                href="{% url 'suppliers_list' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'suppliers_list' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+                <span>Suppliers Directory</span>
+              </a>
+            </div>
+
+            <!-- Section 3: Inventory Operations -->
+            <div class="space-y-1">
+              <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
+                <span>Inventory Operations</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+              </div>
+              <!-- Goods Receipt Intake -->
+              <a
+                href="{% url 'receive_batch' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'receive_batch' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                  />
+                </svg>
+                <span>Goods Receipt Intake</span>
+              </a>
+
+              <!-- FEFO Automated Dispense -->
+              <a
+                href="{% url 'fefo_dispense' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'fefo_dispense' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+                <span>FEFO Auto Dispense</span>
+              </a>
+
+              <!-- Physical Stock Audit -->
+              <a
+                href="{% url 'stock_adjustment' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'stock_adjustment' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                  />
+                </svg>
+                <span>Physical Stock Audit</span>
+              </a>
+            </div>
+
+            <!-- Section 4: Procurement & Optimization -->
+            <div class="space-y-1">
+              <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
+                <span>Procurement & Analytics</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+              </div>
+              <!-- Purchase Orders (EOQ) -->
+              <a
+                href="{% url 'purchase_orders' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'purchase_orders' or current_url == 'auto_generate_draft_po' or current_url == 'approve_po' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  />
+                </svg>
+                <span>Purchase Orders (EOQ)</span>
+              </a>
+
+              <!-- ABC Classification -->
+              <a
+                href="{% url 'abc_classification' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'abc_classification' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                  />
+                </svg>
+                <span>ABC Classification</span>
+              </a>
+
+              <!-- FEFO Expiry Alerts -->
+              <a
+                href="{% url 'expiries_monitoring' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'expiries_monitoring' or current_url == 'quarantine_batch' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span>FEFO Expiry Alerts</span>
+              </a>
+            </div>
+
+            <!-- Section 5: Audit & Reporting -->
+            <div class="space-y-1">
+              <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
+                <span>Audit & Reporting</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+              </div>
+              <!-- Immutable Audit Ledger -->
+              <a
+                href="{% url 'stock_audit_ledger' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'stock_audit_ledger' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+                <span>Immutable Audit Trail</span>
+              </a>
+
+              <!-- Reports & CSV Export -->
+              <a
+                href="{% url 'reports' %}"
+                class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'reports' or current_url == 'export_report_csv' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+              >
+                <svg
+                  class="w-5 h-5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <span>Reports & CSV Export</span>
+              </a>
+            </div>
+          </nav>
+        </div>
+      </aside>
+      {% endif %}
+
+      <!-- Main Body Container -->
+      <main
+        class="flex-1 min-w-0 bg-slate-50 flex flex-col justify-between min-h-screen"
+      >
+        <div>
+          {% if user.is_authenticated %}
+          <!-- Top Header Navbar with Dynamic Pathname & Breadcrumb -->
+          <header
+            class="border-b border-slate-200 px-6 lg:px-8 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/95 backdrop-blur-md sticky top-0 z-40 shadow-xs"
+          >
+            <div>
+              <div
+                class="flex items-center space-x-2 text-xs font-mono font-medium text-slate-500 uppercase tracking-wider"
+              >
+                <span>PharmaAudit OS</span>
+                <span class="text-slate-300">/</span>
+                <span class="text-slate-900 font-bold">
+                  {% if current_url == 'dashboard' %}Dashboard{% elif current_url == 'medications_list' or current_url == 'add_medication' %}Stock Catalog{% elif current_url == 'sections_list' %}Pharmacy Sections{% elif current_url == 'suppliers_list' %}Suppliers Directory{% elif current_url == 'receive_batch' %}Goods Receipt Intake{% elif current_url == 'fefo_dispense' %}FEFO Dispense{% elif current_url == 'stock_adjustment' %}Physical Stock Audit{% elif current_url == 'purchase_orders' or current_url == 'auto_generate_draft_po' or current_url == 'approve_po' %}Purchase Orders{% elif current_url == 'abc_classification' %}ABC Classification{% elif current_url == 'expiries_monitoring' or current_url == 'quarantine_batch' %}FEFO Expiry Alerts{% elif current_url == 'stock_audit_ledger' %}Immutable Audit Trail{% elif current_url == 'reports' or current_url == 'export_report_csv' %}Reports{% elif request.resolver_match.namespace == 'notifications' %}Real-Time Alerts{% else %}Overview{% endif %}
+                </span>
+              </div>
+              <h2
+                class="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5"
+              >
+                {% if current_url == 'dashboard' %}Dashboard Overview{% elif current_url == 'medications_list' or current_url == 'add_medication' %}Stock Catalog (EOQ & ROP){% elif current_url == 'sections_list' %}Pharmacy Sections & Locations{% elif current_url == 'suppliers_list' %}Pharmaceutical Suppliers Directory{% elif current_url == 'receive_batch' %}Goods Receipt Intake{% elif current_url == 'fefo_dispense' %}FEFO Automated Dispense{% elif current_url == 'stock_adjustment' %}Physical Stock Audit{% elif current_url == 'purchase_orders' or current_url == 'auto_generate_draft_po' or current_url == 'approve_po' %}Purchase Orders (EOQ Guidance){% elif current_url == 'abc_classification' %}ABC Inventory Classification{% elif current_url == 'expiries_monitoring' or current_url == 'quarantine_batch' %}FEFO Expiry Alerts & Isolation{% elif current_url == 'stock_audit_ledger' %}Immutable SHA-256 Audit Trail{% elif current_url == 'reports' or current_url == 'export_report_csv' %}Inventory Reports & CSV Export{% elif request.resolver_match.namespace == 'notifications' %}Real-Time Notifications & System Alerts{% else %}System Console{% endif %}
+              </h2>
+            </div>
+
+            <!-- Right Side: Notifications & User Dropdown -->
+            <div class="relative flex items-center space-x-3 flex-shrink-0">
+              <!-- Real-Time Notification Bell & Dropdown -->
+              <div class="relative">
+                <button
+                  id="notifyDropdownBtn"
+                  onclick="toggleNotifyDropdown(event)"
+                  class="relative p-2 bg-slate-100 hover:bg-slate-200/80 text-slate-700 hover:text-slate-900 border border-slate-200 rounded-2xl transition focus:outline-none flex items-center justify-center"
+                  aria-label="Notifications"
+                  title="Notifications"
+                >
+                  <svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9" />
+                  </svg>
+                  <span
+                    id="notificationBadge"
+                    class="absolute -top-1 -right-1 bg-rose-500 text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-xs hidden"
+                  >0</span>
+                </button>
+
+                <!-- Notifications Dropdown Panel -->
+                <div
+                  id="notifyDropdownMenu"
+                  class="hidden absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 transition-all duration-200 transform opacity-0 scale-95 origin-top-right overflow-hidden"
+                >
+                  <div class="p-3.5 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
+                    <h4 class="font-bold text-xs uppercase tracking-wider text-slate-800">Real-Time Alerts</h4>
+                    <a href="{% url 'notifications:list' %}" class="text-xs font-semibold text-slate-900 hover:underline">View All &rarr;</a>
+                  </div>
+                  <div id="notificationDropdownList" class="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                    <div class="p-4 text-center text-xs text-slate-400 qstack-no-notifications">
+                      No new notifications
                     </div>
-                    <div class="text-left md:text-right border-t md:border-t-0 border-zinc-800 pt-4 md:pt-0">
-                        <p class="font-bold text-sm text-white uppercase">Developed by Hassan Saidu, CSC/22U/4159</p>
-                        <p class="text-zinc-400 text-xs mt-1">Pharmaceutical Stock OS &copy; 2026 • All Rights Reserved</p>
-                    </div>
+                  </div>
                 </div>
-            </footer>
-        </main>
+              </div>
+
+              <button
+                id="userDropdownBtn"
+                onclick="toggleUserDropdown(event)"
+                class="flex items-center space-x-3 p-1.5 pl-3 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 rounded-2xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-400 group"
+                aria-expanded="false"
+                aria-haspopup="true"
+              >
+                <div
+                  class="w-8 h-8 bg-slate-900 text-white font-bold flex items-center justify-center rounded-xl shadow-xs group-hover:scale-105 transition-transform flex-shrink-0 text-sm"
+                >
+                  <svg
+                    class="w-4 h-4 text-slate-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <div class="text-left text-xs leading-tight pr-1">
+                  <p class="font-bold text-slate-900 truncate max-w-[150px]">
+                    {{ user.first_name|default:user.username|default:user.email
+                    }}
+                  </p>
+                  <span
+                    class="inline-block text-[10px] font-semibold text-slate-600 uppercase mt-0.5"
+                  >
+                    {{ user.get_role_display|default:"Pharmacist" }}
+                  </span>
+                </div>
+                <svg
+                  class="w-4 h-4 text-slate-500 transition-transform duration-200 ml-1"
+                  id="userDropdownChevron"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              <!-- User Profile Dropdown Menu Card -->
+              <div
+                id="userDropdownMenu"
+                class="hidden absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 py-2 transition-all duration-200 transform opacity-0 scale-95 origin-top-right"
+              >
+                <div
+                  class="px-4 py-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl"
+                >
+                  <p
+                    class="text-xs font-semibold text-slate-400 uppercase tracking-wider"
+                  >
+                    Signed in as
+                  </p>
+                  <p class="text-sm font-bold text-slate-900 truncate mt-0.5">
+                    {{ user.email|default:user.username }}
+                  </p>
+                  <span
+                    class="inline-block text-[10px] font-bold px-2 py-0.5 bg-slate-200 text-slate-800 rounded-md uppercase mt-1.5"
+                  >
+                    {{ user.get_role_display|default:"Pharmacist" }} Account
+                  </span>
+                </div>
+
+                <div class="py-1 text-xs text-slate-700">
+                  <a
+                    href="{% url 'dashboard' %}"
+                    class="flex items-center space-x-2 px-4 py-2.5 hover:bg-slate-100 transition font-medium"
+                  >
+                    <svg
+                      class="w-4 h-4 text-slate-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4 6h16M4 12h16M4 18h16"
+                      />
+                    </svg>
+                    <span>System Dashboard</span>
+                  </a>
+                  <a
+                    href="{% url 'medications_list' %}"
+                    class="flex items-center space-x-2 px-4 py-2.5 hover:bg-slate-100 transition font-medium"
+                  >
+                    <svg
+                      class="w-4 h-4 text-slate-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                      />
+                    </svg>
+                    <span>Stock Catalog</span>
+                  </a>
+                </div>
+
+                <div class="border-t border-slate-100 pt-1">
+                  <a
+                    href="{% url 'logout' %}"
+                    class="flex items-center space-x-2 px-4 py-2.5 text-rose-600 hover:bg-rose-50 font-semibold transition"
+                  >
+                    <svg
+                      class="w-4 h-4 text-rose-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    <span>Sign Out / Logout</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </header>
+          {% endif %}
+
+          <div
+            class="{% if user.is_authenticated %}p-4 sm:p-6 lg:p-8{% endif %}"
+          >
+            {% block main_content %}{% endblock %}
+          </div>
+        </div>
+
+        {% if user.is_authenticated %}
+        <!-- Whole Document Global Footer -->
+        <footer
+          class="border-t border-slate-800 bg-slate-900 text-white py-2 px-6  lg:px-8 mt-12"
+        >
+          <div
+            class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6"
+          >
+            <div>
+              <h3 class="font-bold text-base tracking-wide text-white">
+                Pharmaceutical Stock Auditing & Inventory Optimization System
+              </h3>
+              <p class="text-xs text-slate-400 font-mono mt-1">
+                FR1–FR9 Compliant • Immutable SHA-256 Ledger • EOQ & ROP Engine
+                • ABC Classification
+              </p>
+            </div>
+            <div
+              class="text-left md:text-right border-t md:border-t-0 border-slate-800 pt-4 md:pt-0"
+            >
+              <p class="font-semibold text-sm text-slate-200">
+                Developed by Hassan Saidu, CSC/22U/4159
+              </p>
+              <p class="text-slate-400 text-xs mt-1">
+                Pharmaceutical Stock OS &copy; 2026 • All Rights Reserved
+              </p>
+            </div>
+          </div>
+        </footer>
+        {% endif %}
+      </main>
     </div>
     {% endwith %}
-    {% else %}
-        {% block unauth_content %}{% endblock %}
-    {% endif %}
 
+    <script>
+      function toggleSidebar() {
+        const sidebar = document.getElementById("sidebarNav");
+        const backdrop = document.getElementById("sidebarBackdrop");
+        const menuIcon = document.getElementById("menuIcon");
+        const closeIcon = document.getElementById("closeIcon");
+
+        if (!sidebar || !backdrop) return;
+
+        if (sidebar.classList.contains("hidden")) {
+          sidebar.classList.remove("hidden");
+          sidebar.classList.add("flex");
+          backdrop.classList.remove("hidden");
+          if (menuIcon) menuIcon.classList.add("hidden");
+          if (closeIcon) closeIcon.classList.remove("hidden");
+        } else {
+          sidebar.classList.add("hidden");
+          sidebar.classList.remove("flex");
+          backdrop.classList.add("hidden");
+          if (menuIcon) menuIcon.classList.remove("hidden");
+          if (closeIcon) closeIcon.classList.add("hidden");
+        }
+      }
+
+      function toggleUserDropdown(event) {
+        if (event) event.stopPropagation();
+        const menu = document.getElementById("userDropdownMenu");
+        const chevron = document.getElementById("userDropdownChevron");
+        const btn = document.getElementById("userDropdownBtn");
+
+        if (!menu) return;
+
+        const isHidden = menu.classList.contains("hidden");
+
+        if (isHidden) {
+          menu.classList.remove("hidden");
+          // trigger opacity and scale animation
+          setTimeout(() => {
+            menu.classList.remove("opacity-0", "scale-95");
+            menu.classList.add("opacity-100", "scale-100");
+          }, 10);
+          if (chevron) chevron.classList.add("rotate-180");
+          if (btn) btn.setAttribute("aria-expanded", "true");
+        } else {
+          menu.classList.remove("opacity-100", "scale-100");
+          menu.classList.add("opacity-0", "scale-95");
+          setTimeout(() => {
+            menu.classList.add("hidden");
+          }, 150);
+          if (chevron) chevron.classList.remove("rotate-180");
+          if (btn) btn.setAttribute("aria-expanded", "false");
+        }
+      }
+
+      function toggleNotifyDropdown(event) {
+        if (event) event.stopPropagation();
+        const menu = document.getElementById("notifyDropdownMenu");
+        if (!menu) return;
+        const isHidden = menu.classList.contains("hidden");
+
+        if (isHidden) {
+          menu.classList.remove("hidden");
+          setTimeout(() => {
+            menu.classList.remove("opacity-0", "scale-95");
+            menu.classList.add("opacity-100", "scale-100");
+          }, 10);
+        } else {
+          menu.classList.remove("opacity-100", "scale-100");
+          menu.classList.add("opacity-0", "scale-95");
+          setTimeout(() => {
+            menu.classList.add("hidden");
+          }, 150);
+        }
+      }
+
+      // Close dropdown menus when clicking anywhere outside
+      document.addEventListener("click", function (event) {
+        const userMenu = document.getElementById("userDropdownMenu");
+        const userBtn = document.getElementById("userDropdownBtn");
+        if (userMenu && !userMenu.classList.contains("hidden")) {
+          if (!userMenu.contains(event.target) && !userBtn.contains(event.target)) {
+            toggleUserDropdown();
+          }
+        }
+
+        const notifyMenu = document.getElementById("notifyDropdownMenu");
+        const notifyBtn = document.getElementById("notifyDropdownBtn");
+        if (notifyMenu && !notifyMenu.classList.contains("hidden")) {
+          if (!notifyMenu.contains(event.target) && !notifyBtn.contains(event.target)) {
+            toggleNotifyDropdown();
+          }
+        }
+      });
+
+      // Close dropdown menus on Escape key
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          const userMenu = document.getElementById("userDropdownMenu");
+          if (userMenu && !userMenu.classList.contains("hidden")) {
+            toggleUserDropdown();
+          }
+          const notifyMenu = document.getElementById("notifyDropdownMenu");
+          if (notifyMenu && !notifyMenu.classList.contains("hidden")) {
+            toggleNotifyDropdown();
+          }
+        }
+      });
+
+      // Initial fetch for unread notification count & dropdown list
+      {% if user.is_authenticated %}
+      document.addEventListener("DOMContentLoaded", function() {
+        fetch("{% url 'notifications:unread_count' %}")
+          .then(res => res.json())
+          .then(data => {
+            const badge = document.getElementById("notificationBadge");
+            if (badge && data.unread_count > 0) {
+              badge.textContent = data.unread_count;
+              badge.classList.remove("hidden");
+              badge.style.display = "flex";
+            }
+            const list = document.getElementById("notificationDropdownList");
+            if (list && data.notifications && data.notifications.length > 0) {
+              list.innerHTML = "";
+              data.notifications.forEach(n => {
+                const item = document.createElement("a");
+                item.href = "{% url 'notifications:list' %}";
+                item.className = "block p-3 hover:bg-slate-50 transition border-b border-slate-100";
+                item.innerHTML = `
+                  <h4 class="text-xs font-bold text-slate-900">${n.title}</h4>
+                  <p class="text-[11px] text-slate-600 truncate mt-0.5">${n.body}</p>
+                  <span class="text-[10px] text-slate-400 font-mono mt-1 block">${new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                `;
+                list.appendChild(item);
+              });
+            }
+          })
+          .catch(err => console.error("Error fetching notifications:", err));
+      });
+      {% endif %}
+    </script>
+
+    {% if user.is_authenticated %}
+    <script 
+      id="qstack-notify-script"
+      src="{% static 'notify-widget.js' %}?v=3"
+      data-server="https://notification.qstack.com.ng"
+      data-recipient="{{ user.email }}"
+      data-badge-selector="#notificationBadge"
+      data-list-selector="#notificationDropdownList"
+      data-toast="true">
+    </script>
+    {% endif %}
     {% block extra_scripts %}{% endblock %}
-</body>
+  </body>
 </html>

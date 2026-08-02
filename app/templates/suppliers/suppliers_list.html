@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Pharmaceutical Suppliers | PharmaAudit OS{% endblock %}
+
+{% block main_content %}
+<div class="max-w-6xl mx-auto space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+    <div>
+      <h1 class="text-2xl font-black text-slate-900 tracking-tight">Suppliers Directory</h1>
+      <p class="text-sm text-slate-500 mt-1">Manage pharmaceutical manufacturers, distributors, and procurement contacts.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+    <!-- Form Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+      <h2 class="text-base font-bold text-slate-900 pb-3 border-b border-slate-100 flex items-center space-x-2">
+        <svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0H9m1 0h4" />
+        </svg>
+        <span>Register New Supplier</span>
+      </h2>
+
+      <form method="POST" action="{% url 'suppliers_list' %}" class="space-y-4">
+        {% csrf_token %}
+        <div>
+          <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Supplier / Company Name</label>
+          {{ form.name }}
+          {% if form.name.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ form.name.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Contact Representative</label>
+          {{ form.contact_person }}
+          {% if form.contact_person.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ form.contact_person.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Email Address</label>
+          {{ form.email }}
+          {% if form.email.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ form.email.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Phone Number</label>
+          {{ form.phone }}
+          {% if form.phone.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ form.phone.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Physical Address</label>
+          {{ form.address }}
+          {% if form.address.errors %}
+          <p class="text-xs text-rose-600 mt-1">{{ form.address.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <button type="submit" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl transition shadow-sm">
+          Register Supplier
+        </button>
+      </form>
+    </div>
+
+    <!-- Table List Card -->
+    <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+        <h3 class="font-bold text-sm text-slate-900">Registered Suppliers</h3>
+        <span class="px-2.5 py-0.5 bg-slate-200 text-slate-800 text-xs font-mono font-bold rounded-full">
+          {{ suppliers.count }} Registered
+        </span>
+      </div>
+
+      {% if suppliers %}
+      <div class="divide-y divide-slate-100">
+        {% for sup in suppliers %}
+        <div class="p-5 hover:bg-slate-50/80 transition flex items-start justify-between gap-4">
+          <div class="space-y-1.5">
+            <div class="flex items-center space-x-2">
+              <span class="font-bold text-slate-900 text-sm">{{ sup.name }}</span>
+            </div>
+            {% if sup.contact_person %}
+            <p class="text-xs text-slate-700 font-semibold">Contact: {{ sup.contact_person }}</p>
+            {% endif %}
+            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500 font-mono">
+              {% if sup.email %}
+              <span>✉ {{ sup.email }}</span>
+              {% endif %}
+              {% if sup.phone %}
+              <span>📞 {{ sup.phone }}</span>
+              {% endif %}
+            </div>
+            {% if sup.address %}
+            <p class="text-xs text-slate-400 mt-1">{{ sup.address }}</p>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="p-12 text-center text-slate-400 text-xs">
+        No suppliers registered yet.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

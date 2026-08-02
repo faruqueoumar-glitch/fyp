@@ -8,6 +8,10 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
 
+    # Master Data Management (Sections & Suppliers)
+    path('sections/', views.sections_list_view, name='sections_list'),
+    path('suppliers/', views.suppliers_list_view, name='suppliers_list'),
+
     # Real-Time Inventory & Optimization
     path('medications/', views.medications_list_view, name='medications_list'),
     path('medications/add/', views.add_medication_view, name='add_medication'),

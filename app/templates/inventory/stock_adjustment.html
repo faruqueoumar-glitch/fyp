@@ -2,44 +2,43 @@
 
 {% block title %}Physical Audit Count Adjustment | PharmaAudit OS{% endblock %}
 
-{% block content %}
-<div class="max-w-3xl mx-auto space-y-8 font-mono">
-    <div class="border-2 border-black p-8 bg-white brutal-shadow-lg">
-        <div class="border-b-2 border-black pb-5 mb-8">
-            <span class="text-xs font-bold bg-black text-white px-2.5 py-1 uppercase tracking-widest">OBJECTIVE (II): AUDIT FRAMEWORK</span>
-            <h1 class="text-2xl font-black uppercase tracking-tight mt-2">Physical Audit Count Adjustment</h1>
-            <p class="text-sm text-zinc-600 font-sans mt-1">Reconcile system inventory with physical stock count audits while recording immutable ledger evidence.</p>
+{% block main_content %}
+<div class="max-w-3xl mx-auto space-y-8">
+    <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-md shadow-slate-200/50">
+        <div class="border-b border-slate-100 pb-5 mb-8">
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Physical Audit Count Adjustment</h1>
+            <p class="text-sm text-slate-500 mt-1">Reconcile system inventory with physical stock count audits while recording immutable ledger evidence.</p>
         </div>
 
         <form method="POST" action="{% url 'stock_adjustment' %}" class="space-y-6 text-sm">
             {% csrf_token %}
 
             <div>
-                <label class="block font-extrabold uppercase mb-2">Target Medication</label>
+                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Target Medication</label>
                 {{ form.medication }}
-                {% if form.medication.errors %}<p class="text-black font-bold text-xs mt-1">{{ form.medication.errors.0 }}</p>{% endif %}
+                {% if form.medication.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.medication.errors.0 }}</p>{% endif %}
             </div>
 
             <div>
-                <label class="block font-extrabold uppercase mb-2">Actual Physical Count Result (Units)</label>
+                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Actual Physical Count Result (Units)</label>
                 {{ form.actual_physical_count }}
-                {% if form.actual_physical_count.errors %}<p class="text-black font-bold text-xs mt-1">{{ form.actual_physical_count.errors.0 }}</p>{% endif %}
+                {% if form.actual_physical_count.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.actual_physical_count.errors.0 }}</p>{% endif %}
             </div>
 
             <div>
-                <label class="block font-extrabold uppercase mb-2">Mandatory Audit Discrepancy Reason</label>
+                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Mandatory Audit Discrepancy Reason</label>
                 {{ form.reason }}
-                {% if form.reason.errors %}<p class="text-black font-bold text-xs mt-1">{{ form.reason.errors.0 }}</p>{% endif %}
+                {% if form.reason.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.reason.errors.0 }}</p>{% endif %}
             </div>
 
-            <div class="p-5 border border-black bg-zinc-50 text-xs text-zinc-700 font-sans">
+            <div class="p-4 bg-slate-100 border border-slate-200 rounded-2xl text-xs text-slate-700">
                 Variance Calculation: Delta = Physical Count &minus; System Stock. Every adjustment generates a cryptographically hashed transaction signed by your user account.
             </div>
 
-            <div class="pt-6 border-t border-zinc-300 flex justify-end space-x-4">
-                <a href="{% url 'medications_list' %}" class="px-6 py-3 border border-black font-bold uppercase">Cancel</a>
-                <button type="submit" class="px-8 py-3 bg-black text-white font-extrabold uppercase border border-black hover:bg-zinc-800 transition flex items-center space-x-2">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            <div class="pt-6 border-t border-slate-100 flex justify-end space-x-4">
+                <a href="{% url 'medications_list' %}" class="px-5 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition">Cancel</a>
+                <button type="submit" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-md transition flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                     <span>Commit Audit Adjustment & Sign Ledger</span>
                 </button>
             </div>

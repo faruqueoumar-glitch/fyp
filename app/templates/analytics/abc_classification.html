@@ -2,89 +2,90 @@
 
 {% block title %}ABC Classification Analysis | PharmaAudit OS{% endblock %}
 
-{% block content %}
-<div class="space-y-10 font-mono">
+{% block main_content %}
+<div class="space-y-8">
 
     <!-- Header -->
-    <div class="border-b-2 border-black pb-6">
-        <span class="text-xs font-black bg-black text-white px-2.5 py-1 uppercase">FR6 AUTOMATED ABC CLASSIFICATION</span>
-        <h1 class="text-3xl font-black uppercase tracking-tight mt-2">ABC Inventory Classification Console</h1>
-        <p class="text-sm text-zinc-600 font-sans mt-1">Ranks all active drugs by Annual Consumption Value ($). Categorizes Category A (Top 75%), Category B (Next 15%), Category C (Remaining 10%).</p>
+    <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">ABC Inventory Classification Console</h1>
+        <p class="text-sm text-slate-500 font-sans mt-1">Ranks all active drugs by Annual Consumption Value (₦). Categorizes Category A (Top 75%), Category B (Next 15%), Category C (Remaining 10%).</p>
     </div>
 
     <!-- ABC Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div class="border-2 border-black p-6 bg-white brutal-shadow">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-md">
             <div class="flex justify-between items-center mb-3">
-                <span class="text-base font-black uppercase">Category A</span>
-                <span class="px-3 py-1 bg-black text-white text-xs font-bold uppercase">75% Value</span>
+                <span class="text-base font-bold text-white uppercase">Category A</span>
+                <span class="px-3 py-1 bg-zinc-700 text-white text-xs font-bold rounded-full uppercase shadow-2xs">75% Value</span>
             </div>
-            <p class="text-xs text-zinc-600 font-sans leading-relaxed">High-value inventory items requiring strict inventory control, daily cycle counts, and tight lead-time management.</p>
+            <p class="text-xs text-slate-300 font-sans leading-relaxed">High-value inventory items requiring strict inventory control, daily cycle counts, and tight lead-time management.</p>
         </div>
 
-        <div class="border-2 border-black p-6 bg-zinc-50 brutal-shadow">
+        <div class="bg-slate-800 border border-slate-700 text-white rounded-3xl p-6 shadow-md">
             <div class="flex justify-between items-center mb-3">
-                <span class="text-base font-black uppercase">Category B</span>
-                <span class="px-3 py-1 bg-zinc-800 text-white text-xs font-bold uppercase">15% Value</span>
+                <span class="text-base font-bold text-white uppercase">Category B</span>
+                <span class="px-3 py-1 bg-slate-700 text-slate-200 text-xs font-bold rounded-full uppercase shadow-2xs">15% Value</span>
             </div>
-            <p class="text-xs text-zinc-600 font-sans leading-relaxed">Moderate-value inventory items managed with standard ROP monitoring and periodic stock reviews.</p>
+            <p class="text-xs text-slate-300 font-sans leading-relaxed">Moderate-value inventory items managed with standard ROP monitoring and periodic stock reviews.</p>
         </div>
 
-        <div class="border-2 border-black p-6 bg-zinc-100 brutal-shadow">
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
             <div class="flex justify-between items-center mb-3">
-                <span class="text-base font-black uppercase">Category C</span>
-                <span class="px-3 py-1 bg-zinc-300 text-black border border-black text-xs font-bold uppercase">10% Value</span>
+                <span class="text-base font-bold text-slate-900 uppercase">Category C</span>
+                <span class="px-3 py-1 bg-slate-100 text-slate-800 text-xs font-bold rounded-full uppercase shadow-2xs">10% Value</span>
             </div>
-            <p class="text-xs text-zinc-600 font-sans leading-relaxed">Low-value, high-volume items managed with simple visual review or bulk ordering strategies.</p>
+            <p class="text-xs text-slate-600 font-sans leading-relaxed">Low-value, high-volume items managed with simple visual review or bulk ordering strategies.</p>
         </div>
     </div>
 
     <!-- ABC Classification Table -->
-    <div class="border-2 border-black bg-white brutal-shadow-lg overflow-x-auto">
-        <table class="w-full text-left text-sm border-collapse">
-            <thead>
-                <tr class="border-b-2 border-black bg-zinc-100 text-black uppercase">
-                    <th class="p-4 border-r border-zinc-300">Rank</th>
-                    <th class="p-4 border-r border-zinc-300">SKU</th>
-                    <th class="p-4 border-r border-zinc-300">Medication Name</th>
-                    <th class="p-4 border-r border-zinc-300">Annual Demand</th>
-                    <th class="p-4 border-r border-zinc-300">Unit Price ($)</th>
-                    <th class="p-4 border-r border-zinc-300">Annual Consumption Value ($)</th>
-                    <th class="p-4 border-r border-zinc-300">Cumulative %</th>
-                    <th class="p-4">ABC Category</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-200">
-                {% for item in abc_data %}
-                <tr class="hover:bg-zinc-50">
-                    <td class="p-4 border-r border-zinc-200 font-extrabold text-black">#{{ forloop.counter }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-bold text-zinc-800">{{ item.medication.sku }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-black text-base uppercase text-black">{{ item.medication.name }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-bold">{{ item.medication.annual_demand }} {{ item.medication.unit }}</td>
-                    <td class="p-4 border-r border-zinc-200">${{ item.medication.unit_cost|floatformat:2 }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-black text-base text-black">
-                        ${{ item.annual_value|floatformat:2 }}
-                    </td>
-                    <td class="p-4 border-r border-zinc-200 font-bold">
-                        {{ item.cum_pct }}%
-                    </td>
-                    <td class="p-4">
-                        {% if item.category == 'A' %}
-                        <span class="inline-block px-3 py-1 bg-black text-white text-xs font-black uppercase">Category A</span>
-                        {% elif item.category == 'B' %}
-                        <span class="inline-block px-3 py-1 bg-zinc-200 text-black border border-black text-xs font-black uppercase">Category B</span>
-                        {% else %}
-                        <span class="inline-block px-3 py-1 bg-white text-black border border-black text-xs font-black uppercase">Category C</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8" class="p-8 text-center text-zinc-500 text-sm">No active drug records to analyze.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="bg-white border border-slate-200/80 rounded-3xl shadow-sm shadow-slate-200/50 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-100/80 text-slate-700 uppercase border-b border-slate-200 font-mono">
+                        <th class="p-4 font-bold">Rank</th>
+                        <th class="p-4 font-bold">SKU</th>
+                        <th class="p-4 font-bold">Medication Name</th>
+                        <th class="p-4 font-bold">Annual Demand</th>
+                        <th class="p-4 font-bold">Unit Price (₦)</th>
+                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">Annual Value (₦)</th>
+                        <th class="p-4 font-bold">Cumulative %</th>
+                        <th class="p-4 font-bold">ABC Category</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    {% for item in abc_data %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-bold text-slate-900 font-mono">#{{ forloop.counter }}</td>
+                        <td class="p-4 font-semibold text-slate-800 font-mono">{{ item.medication.sku }}</td>
+                        <td class="p-4 font-bold text-sm text-slate-900">{{ item.medication.name }}</td>
+                        <td class="p-4 font-semibold text-slate-700 font-mono">{{ item.medication.annual_demand }} {{ item.medication.unit }}</td>
+                        <td class="p-4 text-slate-600 font-mono">₦{{ item.medication.unit_cost|floatformat:2 }}</td>
+                        <td class="p-4 bg-slate-100 font-extrabold text-slate-900 text-sm font-mono">
+                            ₦{{ item.annual_value|floatformat:2 }}
+                        </td>
+                        <td class="p-4 font-bold text-slate-800 font-mono">
+                            {{ item.cum_pct }}%
+                        </td>
+                        <td class="p-4">
+                            {% if item.category == 'A' %}
+                            <span class="inline-block px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-full uppercase shadow-2xs">Category A</span>
+                            {% elif item.category == 'B' %}
+                            <span class="inline-block px-3 py-1 bg-slate-700 text-white border border-slate-600 text-[10px] font-bold rounded-full uppercase shadow-2xs">Category B</span>
+                            {% else %}
+                            <span class="inline-block px-3 py-1 bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold rounded-full uppercase shadow-2xs">Category C</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="p-8 text-center text-slate-500 text-sm">No active drug records to analyze.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
 </div>

@@ -2,60 +2,59 @@
 
 {% block title %}Receive Goods Batch Intake | PharmaAudit OS{% endblock %}
 
-{% block content %}
-<div class="max-w-3xl mx-auto space-y-8 font-mono">
-    <div class="border-2 border-black p-8 bg-white brutal-shadow-lg">
-        <div class="border-b-2 border-black pb-5 mb-8">
-            <span class="text-xs font-bold bg-black text-white px-2.5 py-1 uppercase tracking-widest">3.2.2.1 GOODS RECEIPT MODULE</span>
-            <h1 class="text-2xl font-black uppercase tracking-tight mt-2">Receive Stock Batch Intake</h1>
-            <p class="text-sm text-zinc-600 font-sans mt-1">Captures drug identity, supplier, batch number, manufacture date, expiry date, and quantity received.</p>
+{% block main_content %}
+<div class="max-w-3xl mx-auto space-y-8">
+    <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-md shadow-slate-200/50">
+        <div class="border-b border-slate-100 pb-5 mb-8">
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Receive Stock Batch Intake</h1>
+            <p class="text-sm text-slate-500 mt-1">Captures drug identity, supplier, batch number, manufacture date, expiry date, and quantity received.</p>
         </div>
 
         <form method="POST" action="{% url 'receive_batch' %}" class="space-y-6 text-sm">
             {% csrf_token %}
 
             <div>
-                <label class="block font-extrabold uppercase mb-2">Select Medication Item</label>
+                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Select Medication Item</label>
                 {{ form.medication }}
-                {% if form.medication.errors %}<p class="text-black font-bold text-xs mt-1">{{ form.medication.errors.0 }}</p>{% endif %}
+                {% if form.medication.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.medication.errors.0 }}</p>{% endif %}
             </div>
 
             <div>
-                <label class="block font-extrabold uppercase mb-2">Supplier</label>
+                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Supplier</label>
                 {{ form.supplier }}
-                {% if form.supplier.errors %}<p class="text-black font-bold text-xs mt-1">{{ form.supplier.errors.0 }}</p>{% endif %}
+                {% if form.supplier.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.supplier.errors.0 }}</p>{% endif %}
             </div>
 
             <div>
-                <label class="block font-extrabold uppercase mb-2">Manufacturer Batch Number</label>
+                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Manufacturer Batch Number</label>
                 {{ form.batch_number }}
-                {% if form.batch_number.errors %}<p class="text-black font-bold text-xs mt-1">{{ form.batch_number.errors.0 }}</p>{% endif %}
+                {% if form.batch_number.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.batch_number.errors.0 }}</p>{% endif %}
             </div>
 
             <div>
-                <label class="block font-extrabold uppercase mb-2">Initial Received Quantity (Units)</label>
+                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Initial Received Quantity (Units)</label>
                 {{ form.initial_quantity }}
-                {% if form.initial_quantity.errors %}<p class="text-black font-bold text-xs mt-1">{{ form.initial_quantity.errors.0 }}</p>{% endif %}
+                {% if form.initial_quantity.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.initial_quantity.errors.0 }}</p>{% endif %}
             </div>
 
-            <div class="grid grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                    <label class="block font-extrabold uppercase mb-2">Manufacture Date</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Manufacture Date</label>
                     {{ form.manufacture_date }}
-                    {% if form.manufacture_date.errors %}<p class="text-black font-bold text-xs mt-1">{{ form.manufacture_date.errors.0 }}</p>{% endif %}
+                    {% if form.manufacture_date.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.manufacture_date.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label class="block font-extrabold uppercase mb-2">Expiry Date (FEFO Key)</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Expiry Date (FEFO Key)</label>
                     {{ form.expiry_date }}
-                    {% if form.expiry_date.errors %}<p class="text-black font-bold text-xs mt-1">{{ form.expiry_date.errors.0 }}</p>{% endif %}
+                    {% if form.expiry_date.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.expiry_date.errors.0 }}</p>{% endif %}
                 </div>
             </div>
 
-            <div class="pt-6 border-t border-zinc-300 flex justify-end space-x-4">
-                <a href="{% url 'medications_list' %}" class="px-6 py-3 border border-black font-bold uppercase">Cancel</a>
-                <button type="submit" class="px-8 py-3 bg-black text-white font-extrabold uppercase border border-black hover:bg-zinc-800 transition flex items-center space-x-2">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <div class="pt-6 border-t border-slate-100 flex items-center justify-end space-x-4">
+                <a href="{% url 'medications_list' %}" class="px-5 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition">Cancel</a>
+                <button type="submit" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-md transition flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                     <span>Commit Goods Receipt Intake & Sign Audit Log</span>
                 </button>
             </div>

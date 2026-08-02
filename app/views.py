@@ -13,12 +13,13 @@ from django.utils import timezone
 
 from .forms import (
     LoginForm, RegisterForm, MedicationForm, GoodsReceiptForm,
-    FEFODispenseForm, StockAdjustmentForm, PurchaseOrderForm, SupplierForm
+    FEFODispenseForm, StockAdjustmentForm, PurchaseOrderForm, SupplierForm, PharmacySectionForm
 )
 from .models import (
     PharmacySection, Medication, MedicationBatch, StockAuditLedger,
     Supplier, PurchaseOrder, PurchaseOrderItem
 )
+from notifications.notification_services import NotificationService
 
 User = get_user_model()
 
@@ -38,6 +39,116 @@ def log_audit_trail(request, action_type, affected_entity, entity_pk, before_dat
         ip_address=ip,
         reason=reason
     )
+
+
+DEFAULT_SUPPLIERS = [
+    {
+        'name': 'Fidson Healthcare Plc',
+        'contact_person': 'Dr. Alabi Williams',
+        'email': 'orders@fidson.com',
+        'phone': '+234-1-342-9100',
+        'address': '26, Kofo Abayomi Street, Victoria Island, Lagos, Nigeria'
+    },
+    {
+        'name': 'May & Baker Nigeria Plc',
+        'contact_person': 'Mrs. Chidimma Okeke',
+        'email': 'sales@may-baker.com',
+        'phone': '+234-1-280-5160',
+        'address': '1, May & Baker Avenue, Ikeja, Lagos, Nigeria'
+    },
+    {
+        'name': 'Emzor Pharmaceutical Industries',
+        'contact_person': 'Chief Emeka Nnamdi',
+        'email': 'supply@emzorpharma.com',
+        'phone': '+234-1-460-7000',
+        'address': 'Plot 3C, Block E, Isolo Industrial Estate, Lagos, Nigeria'
+    },
+    {
+        'name': 'Swiss Pharma Nigeria Limited (Swipha)',
+        'contact_person': 'Pharm. Yusuf Bello',
+        'email': 'info@swiphanigeria.com',
+        'phone': '+234-1-492-0543',
+        'address': '5, Farm Cave Road, Agege Industrial Estate, Lagos, Nigeria'
+    },
+    {
+        'name': 'GlaxoSmithKline Consumer Nigeria',
+        'contact_person': 'Pharm. Sarah Johnson',
+        'email': 'ng.orders@gsk.com',
+        'phone': '+234-1-271-8000',
+        'address': '1, Industrial Avenue, Ilupeju, Lagos, Nigeria'
+    }
+]
+
+DEFAULT_SECTIONS = [
+    {
+        'name': 'Main Central Pharmacy',
+        'code': 'SEC-MAIN',
+        'description': 'Primary inpatient and outpatient central pharmaceutical store.'
+    },
+    {
+        'name': 'Inpatient Ward Dispensary',
+        'code': 'SEC-INP',
+        'description': 'Dedicated ward medication supply and inpatient prescription processing.'
+    },
+    {
+        'name': 'Outpatient Pharmacy',
+        'code': 'SEC-OUTP',
+        'description': 'Outpatient prescription fulfillment and ambulatory drug storage.'
+    },
+    {
+        'name': 'Accident & Emergency (A&E) Pharmacy',
+        'code': 'SEC-EMERG',
+        'description': 'Emergency medicine reserve, critical injectables, and trauma kits.'
+    },
+    {
+        'name': 'Pediatric & Neonatal Pharmacy',
+        'code': 'SEC-PED',
+        'description': 'Pediatric syrup formulations, dosage adjustments, and neonatal care.'
+    },
+    {
+        'name': 'ICU & Critical Care Pharmacy',
+        'code': 'SEC-ICU',
+        'description': 'Intensive Care Unit narcotics, high-alert medications, and IV solutions.'
+    }
+]
+
+def ensure_master_defaults():
+    if PharmacySection.objects.count() == 0:
+        for s in DEFAULT_SECTIONS:
+            PharmacySection.objects.get_or_create(code=s['code'], defaults=s)
+    if Supplier.objects.count() == 0:
+        for sup in DEFAULT_SUPPLIERS:
+            Supplier.objects.get_or_create(name=sup['name'], defaults=sup)
+
+
+# Pharmacy Sections Management View
+@login_required
+def sections_list_view(request):
+    ensure_master_defaults()
+    form = PharmacySectionForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        section = form.save()
+        log_audit_trail(request, 'CONFIG_CHANGE', 'PharmacySection', section.id, {}, {'name': section.name, 'code': section.code}, 'New Pharmacy Section Created')
+        messages.success(request, f"Pharmacy Section '{section.name}' ({section.code}) created successfully.")
+        return redirect('sections_list')
+
+    sections = PharmacySection.objects.all().order_by('name')
+    return render(request, 'sections/sections_list.html', {'sections': sections, 'form': form})
+
+
+# Suppliers Management View
+@login_required
+def suppliers_list_view(request):
+    ensure_master_defaults()
+    form = SupplierForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        supplier = form.save()
+        log_audit_trail(request, 'CONFIG_CHANGE', 'Supplier', supplier.id, {}, {'name': supplier.name}, 'New Supplier Registered')
+        messages.success(request, f"Supplier '{supplier.name}' registered successfully.")
+        return redirect('suppliers_list')
+
+    suppliers = Supplier.objects.all().order_by('name')
+    return render(request, 'suppliers/suppliers_list.html', {'suppliers': suppliers, 'form': form})
 
 
 def calculate_abc_classification():
@@ -78,51 +189,6 @@ def calculate_abc_classification():
         })
     return results
 
-
-
-def seed_demo_data_if_empty():
-    """Helper to seed initial demo data if database is fresh."""
-    if PharmacySection.objects.count() == 0:
-        sec1 = PharmacySection.objects.create(name="Central Depot Store", code="DEPOT-01")
-        sec2 = PharmacySection.objects.create(name="Outpatient Pharmacy Clinic", code="OUTPAT-01")
-        sec3 = PharmacySection.objects.create(name="Inpatient Ward Pharmacy", code="INPAT-01")
-
-        sup1 = Supplier.objects.create(name="PharmaCore Global Ltd", contact_person="Sarah Jenkins", email="orders@pharmacore.com", phone="+1-800-555-0199")
-        sup2 = Supplier.objects.create(name="Apex Medical Supplies", contact_person="David Miller", email="supply@apexmed.com", phone="+1-800-555-0244")
-
-        # Create Medications with EOQ & ROP configuration
-        m1 = Medication.objects.create(
-            name="Amoxicillin 500mg Capsule", sku="MED-AMX-500", section=sec2, supplier=sup1,
-            unit="Capsules", unit_cost=4.50, annual_demand=3600, ordering_cost=40.00, holding_cost=1.50,
-            daily_consumption=25, lead_time_days=7, safety_stock=50, max_level=600
-        )
-        m2 = Medication.objects.create(
-            name="Metformin 850mg Tablet", sku="MED-MET-850", section=sec1, supplier=sup1,
-            unit="Tablets", unit_cost=2.20, annual_demand=5000, ordering_cost=30.00, holding_cost=1.00,
-            daily_consumption=35, lead_time_days=5, safety_stock=80, max_level=1000
-        )
-        m3 = Medication.objects.create(
-            name="Insulin Glargine 100IU/ml Vial", sku="MED-INS-100", section=sec3, supplier=sup2,
-            unit="Vials", unit_cost=45.00, annual_demand=600, ordering_cost=100.00, holding_cost=8.00,
-            daily_consumption=5, lead_time_days=10, safety_stock=20, max_level=150
-        )
-        m4 = Medication.objects.create(
-            name="Paracetamol 500mg Tablet", sku="MED-PCM-500", section=sec2, supplier=sup2,
-            unit="Tablets", unit_cost=0.50, annual_demand=12000, ordering_cost=20.00, holding_cost=0.20,
-            daily_consumption=80, lead_time_days=3, safety_stock=200, max_level=3000
-        )
-
-        today = timezone.now().date()
-        MedicationBatch.objects.create(medication=m1, supplier=sup1, batch_number="BAT-AMX-01", initial_quantity=400, quantity=180, manufacture_date=today - timedelta(days=90), expiry_date=today + timedelta(days=25))
-        MedicationBatch.objects.create(medication=m1, supplier=sup1, batch_number="BAT-AMX-02", initial_quantity=300, quantity=300, manufacture_date=today - timedelta(days=30), expiry_date=today + timedelta(days=180))
-        
-        MedicationBatch.objects.create(medication=m2, supplier=sup1, batch_number="BAT-MET-OLD", initial_quantity=100, quantity=40, manufacture_date=today - timedelta(days=400), expiry_date=today - timedelta(days=5)) # Expired
-        MedicationBatch.objects.create(medication=m2, supplier=sup1, batch_number="BAT-MET-NEW", initial_quantity=500, quantity=500, manufacture_date=today - timedelta(days=40), expiry_date=today + timedelta(days=120))
-
-        MedicationBatch.objects.create(medication=m3, supplier=sup2, batch_number="BAT-INS-01", initial_quantity=40, quantity=15, manufacture_date=today - timedelta(days=60), expiry_date=today + timedelta(days=60))
-
-        # Initial audit log
-        log_audit_trail(None, 'CONFIG_CHANGE', 'System', 1, {}, {'status': 'Demo data initialized'}, 'System setup completed')
 
 
 # Auth Views
@@ -174,7 +240,7 @@ def logout_view(request):
 # FR1 & Dashboard View
 @login_required
 def dashboard_view(request):
-    seed_demo_data_if_empty()
+    ensure_master_defaults()
     medications = Medication.objects.all()
 
     # FR1: Stock Status Counters
@@ -254,6 +320,14 @@ def receive_batch_view(request):
             {'medication': med.name, 'batch_number': batch.batch_number, 'received_qty': batch.quantity, 'new_stock': med.current_stock},
             f"Goods Receipt intake: Batch {batch.batch_number} received from {batch.supplier.name if batch.supplier else 'N/A'}"
         )
+        NotificationService.send_bulk_notification(
+            recipients=User.objects.all(),
+            actor=request.user,
+            title="Goods Receipt Intake",
+            message=f"Batch {batch.batch_number} ({batch.quantity} {med.unit}) added for {med.name}.",
+            target_obj=batch,
+            category='stock_receipt'
+        )
         messages.success(request, f"Goods Receipt committed! Batch {batch.batch_number} ({batch.quantity} {med.unit}) added for {med.name}.")
         return redirect('medications_list')
 
@@ -312,6 +386,26 @@ def fefo_dispense_view(request):
                 reason
             )
 
+        # Real-time alert triggers for low stock & ROP breach
+        if medication.current_stock == 0:
+            NotificationService.send_bulk_notification(
+                recipients=User.objects.all(),
+                actor=request.user,
+                title="OUT OF STOCK ALERT",
+                message=f"Critical: {medication.name} is now completely out of stock!",
+                target_obj=medication,
+                category='out_of_stock'
+            )
+        elif medication.current_stock <= medication.reorder_point:
+            NotificationService.send_bulk_notification(
+                recipients=User.objects.all(),
+                actor=request.user,
+                title="ROP BREACH ALERT",
+                message=f"Warning: {medication.name} stock ({medication.current_stock}) has dropped to/below ROP ({medication.reorder_point}).",
+                target_obj=medication,
+                category='rop_alert'
+            )
+
         details_str = " | ".join(dispensed_details)
         messages.success(request, f"FEFO Dispense Successful! {quantity_to_dispense} {medication.unit} dispensed. Batches used: {details_str}")
         return redirect('medications_list')
@@ -360,6 +454,7 @@ def stock_adjustment_view(request):
 # Medications Catalog & ROP / EOQ Optimization View
 @login_required
 def medications_list_view(request):
+    ensure_master_defaults()
     query = request.GET.get('q', '')
     section_id = request.GET.get('section', '')
 
@@ -455,6 +550,14 @@ def auto_generate_draft_po_view(request, medication_id):
         unit_price=med.unit_cost
     )
     log_audit_trail(request, 'PO_CREATE', 'PurchaseOrder', po.id, {}, {'po_number': po.po_number, 'medication': med.name}, 'Automated ROP Draft PO Generation')
+    NotificationService.send_bulk_notification(
+        recipients=User.objects.all(),
+        actor=request.user,
+        title="Draft PO Generated",
+        message=f"Draft Purchase Order {po.po_number} generated for {med.name} with EOQ recommended quantity {eoq_qty}.",
+        target_obj=po,
+        category='po_created'
+    )
     messages.success(request, f"Draft Purchase Order {po.po_number} generated for {med.name} with EOQ quantity {eoq_qty}!")
     return redirect('purchase_orders')
 
@@ -469,6 +572,14 @@ def approve_po_view(request, po_id):
     po.status = 'APPROVED'
     po.save()
     log_audit_trail(request, 'PO_APPROVE', 'PurchaseOrder', po.id, {'status': 'DRAFT'}, {'status': 'APPROVED'}, 'PO Manager Approval')
+    NotificationService.send_bulk_notification(
+        recipients=User.objects.all(),
+        actor=request.user,
+        title="Purchase Order Approved",
+        message=f"Purchase Order {po.po_number} has been approved by {request.user.first_name or request.user.email}.",
+        target_obj=po,
+        category='po_approved'
+    )
     messages.success(request, f"Purchase Order {po.po_number} Approved.")
     return redirect('purchase_orders')
 
@@ -519,6 +630,14 @@ def quarantine_batch_view(request, batch_id):
         {'quantity': before_qty},
         {'quantity': 0},
         f"Batch Quarantine: Batch {batch.batch_number} isolated (Expired: {batch.expiry_date})"
+    )
+    NotificationService.send_bulk_notification(
+        recipients=User.objects.all(),
+        actor=request.user,
+        title="Batch Quarantined",
+        message=f"Batch {batch.batch_number} for {batch.medication.name} has been quarantined.",
+        target_obj=batch,
+        category='quarantine_notice'
     )
     messages.warning(request, f"Batch {batch.batch_number} for {batch.medication.name} has been quarantined.")
     return redirect('expiries_monitoring')

@@ -2,91 +2,79 @@
 
 {% block title %}Immutable SHA-256 Cryptographic Audit Ledger | PharmaAudit OS{% endblock %}
 
-{% block content %}
-<div class="space-y-10 font-mono">
+{% block main_content %}
+<div class="space-y-8">
 
     <!-- Header & Verification Status Banner -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b-2 border-black pb-6">
+    <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-            <span class="text-xs font-black bg-black text-white px-2.5 py-1 uppercase">FR2 IMMUTABLE CRYPTOGRAPHIC LEDGER</span>
-            <h1 class="text-3xl font-black uppercase tracking-tight mt-2">Immutable SHA-256 Cryptographic Audit Ledger</h1>
-            <p class="text-sm text-zinc-600 font-sans mt-1">Maintains an immutable, tamper-evident ledger of all stock transactions with SHA-256 hash chaining.</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Immutable SHA-256 Cryptographic Audit Ledger</h1>
+            <p class="text-sm text-slate-500 font-sans mt-1">Maintains an immutable, tamper-evident ledger of all stock transactions with SHA-256 hash chaining.</p>
         </div>
 
-        <!-- Ledger Overall Chain Status -->
-        <div class="p-4 border-2 border-black bg-zinc-50 flex items-center space-x-4 brutal-shadow">
-            <div class="w-4 h-4 bg-black"></div>
-            <div>
-                <p class="text-xs font-bold uppercase tracking-wider text-black">Cryptographic Chain Integrity</p>
-                <p class="text-sm font-black text-black">
-                    {% if all_intact %}
-                    STATUS: ALL HASHES INTACT & VERIFIED
-                    {% else %}
-                    STATUS: CRYPTOGRAPHIC DISCREPANCY DETECTED
-                    {% endif %}
-                </p>
-            </div>
-        </div>
+        
     </div>
 
     <!-- Action Type Filters -->
-    <div class="flex flex-wrap gap-3 text-xs font-bold">
-        <a href="{% url 'stock_audit_ledger' %}" class="px-4 py-2.5 border-2 border-black {% if not action_filter %}bg-black text-white{% else %}bg-white text-black hover:bg-zinc-100{% endif %} uppercase">
+    <div class="flex flex-wrap gap-2.5 text-xs font-semibold">
+        <a href="{% url 'stock_audit_ledger' %}" class="px-4 py-2.5 rounded-xl border transition {% if not action_filter %}bg-slate-900 text-white border-slate-900 shadow-xs{% else %}bg-white text-slate-700 border-slate-200 hover:bg-slate-50{% endif %}">
             All Actions
         </a>
         {% for code, label in action_choices %}
-        <a href="{% url 'stock_audit_ledger' %}?action={{ code }}" class="px-4 py-2.5 border-2 border-black {% if action_filter == code %}bg-black text-white{% else %}bg-white text-black hover:bg-zinc-100{% endif %} uppercase">
+        <a href="{% url 'stock_audit_ledger' %}?action={{ code }}" class="px-4 py-2.5 rounded-xl border transition {% if action_filter == code %}bg-slate-800 text-white border-slate-800 shadow-xs{% else %}bg-white text-slate-700 border-slate-200 hover:bg-slate-50{% endif %}">
             {{ label }}
         </a>
         {% endfor %}
     </div>
 
     <!-- Audit Ledger Table -->
-    <div class="border-2 border-black bg-white brutal-shadow-lg overflow-x-auto">
-        <table class="w-full text-left text-sm border-collapse">
-            <thead>
-                <tr class="border-b-2 border-black bg-zinc-100 text-black uppercase">
-                    <th class="p-4 border-r border-zinc-300">Txn ID</th>
-                    <th class="p-4 border-r border-zinc-300">Timestamp</th>
-                    <th class="p-4 border-r border-zinc-300">User Account</th>
-                    <th class="p-4 border-r border-zinc-300">Action Type</th>
-                    <th class="p-4 border-r border-zinc-300">Entity & PK</th>
-                    <th class="p-4 border-r border-zinc-300">IP Address</th>
-                    <th class="p-4 border-r border-zinc-300">SHA-256 Current Hash</th>
-                    <th class="p-4">Integrity</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-zinc-200">
-                {% for item in verified_logs %}
-                <tr class="hover:bg-zinc-50">
-                    <td class="p-4 border-r border-zinc-200 font-extrabold text-black">{{ item.log.transaction_id }}</td>
-                    <td class="p-4 border-r border-zinc-200 text-zinc-600">{{ item.log.timestamp|date:"Y-m-d H:i:s" }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-bold text-black">{{ item.log.user_identity }}</td>
-                    <td class="p-4 border-r border-zinc-200">
-                        <span class="inline-block px-3 py-1 bg-black text-white text-xs font-bold uppercase">
-                            {{ item.log.get_action_type_display }}
-                        </span>
-                    </td>
-                    <td class="p-4 border-r border-zinc-200 font-bold text-zinc-900">{{ item.log.affected_entity }} #{{ item.log.entity_pk }}</td>
-                    <td class="p-4 border-r border-zinc-200 text-zinc-600">{{ item.log.ip_address|default:"127.0.0.1" }}</td>
-                    <td class="p-4 border-r border-zinc-200 font-mono text-xs text-zinc-600 truncate max-w-[160px]" title="{{ item.log.current_hash }}">
-                        {{ item.log.current_hash }}
-                    </td>
-                    <td class="p-4">
-                        {% if item.is_valid %}
-                        <span class="inline-block bg-white text-black border border-black px-3 py-1 font-bold uppercase text-xs">HASH INTACT</span>
-                        {% else %}
-                        <span class="inline-block bg-black text-white px-3 py-1 font-bold uppercase text-xs">INVALID</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8" class="p-8 text-center text-zinc-500 text-sm">No audit log entries recorded for this filter.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="bg-white border border-slate-200/80 rounded-3xl shadow-sm shadow-slate-200/50 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-100/80 text-slate-700 uppercase border-b border-slate-200 font-mono">
+                        <th class="p-4 font-bold">Txn ID</th>
+                        <th class="p-4 font-bold">Timestamp</th>
+                        <th class="p-4 font-bold">User Account</th>
+                        <th class="p-4 font-bold">Action Type</th>
+                        <th class="p-4 font-bold">Entity & PK</th>
+                        <th class="p-4 font-bold">IP Address</th>
+                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">SHA-256 Current Hash</th>
+                        <th class="p-4 font-bold">Integrity</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    {% for item in verified_logs %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-bold text-slate-900 font-mono">{{ item.log.transaction_id }}</td>
+                        <td class="p-4 text-slate-500 font-mono">{{ item.log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                        <td class="p-4 font-semibold text-slate-800">{{ item.log.user_identity }}</td>
+                        <td class="p-4">
+                            <span class="inline-block px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-full uppercase shadow-2xs">
+                                {{ item.log.get_action_type_display }}
+                            </span>
+                        </td>
+                        <td class="p-4 font-semibold text-slate-800 font-mono">{{ item.log.affected_entity }} #{{ item.log.entity_pk }}</td>
+                        <td class="p-4 text-slate-500 font-mono">{{ item.log.ip_address|default:"127.0.0.1" }}</td>
+                        <td class="p-4 bg-slate-100 font-mono text-[11px] text-slate-700 truncate max-w-[160px]" title="{{ item.log.current_hash }}">
+                            {{ item.log.current_hash }}
+                        </td>
+                        <td class="p-4">
+                            {% if item.is_valid %}
+                            <span class="inline-block bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1 font-bold rounded-full text-[10px] uppercase shadow-2xs">HASH INTACT</span>
+                            {% else %}
+                            <span class="inline-block bg-rose-600 text-white px-3 py-1 font-bold rounded-full text-[10px] uppercase shadow-2xs">INVALID</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="p-8 text-center text-slate-500 text-sm">No audit log entries recorded for this filter.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
 </div>

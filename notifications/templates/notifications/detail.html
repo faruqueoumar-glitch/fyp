@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}{{ notification.title }} | PharmaAudit OS{% endblock %}
+
+{% block main_content %}
+<div class="max-w-3xl mx-auto space-y-6">
+  <a href="{% url 'notifications:list' %}" class="inline-flex items-center space-x-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+    </svg>
+    <span>Back to Notifications</span>
+  </a>
+
+  <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+    <div class="flex items-start justify-between gap-4 pb-6 border-b border-slate-100">
+      <div>
+        <span class="inline-block text-[10px] font-mono font-bold uppercase px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 mb-2">
+          {{ notification.get_category_display }}
+        </span>
+        <h1 class="text-xl font-bold text-slate-900 leading-tight">{{ notification.title }}</h1>
+        <p class="text-xs text-slate-400 font-mono mt-1">Received on {{ notification.created_at|date:"F d, Y at H:i:s" }}</p>
+      </div>
+
+      <span class="px-3 py-1 text-xs font-bold rounded-full 
+        {% if notification.type == 'error' %}bg-rose-100 text-rose-700
+        {% elif notification.type == 'warning' %}bg-amber-100 text-amber-700
+        {% elif notification.type == 'success' %}bg-emerald-100 text-emerald-700
+        {% else %}bg-slate-100 text-slate-700{% endif %}">
+        {{ notification.get_type_display }}
+      </span>
+    </div>
+
+    <div class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+      {{ notification.message }}
+    </div>
+
+    {% if notification.actor %}
+    <div class="pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-mono">
+      <span>Triggered by: {{ notification.actor.first_name|default:notification.actor.email }} ({{ notification.actor.get_role_display }})</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

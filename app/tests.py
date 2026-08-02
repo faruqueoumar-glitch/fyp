@@ -123,3 +123,18 @@ class ComprehensiveFRTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/csv')
         self.assertContains(response, 'Amoxicillin 500mg')
+
+    def test_user_registration_flow(self):
+        """Test registration creates user, logs them in automatically, and redirects to dashboard."""
+        self.client.logout()
+        response = self.client.post(reverse('register'), {
+            'first_name': 'Jane',
+            'last_name': 'Doe',
+            'email': 'jane.doe@hospital.org',
+            'role': 'PHARMACIST',
+            'password': 'Password123!',
+            'confirm_password': 'Password123!'
+        })
+        self.assertRedirects(response, reverse('dashboard'))
+        self.assertTrue(User.objects.filter(email='jane.doe@hospital.org').exists())
+
