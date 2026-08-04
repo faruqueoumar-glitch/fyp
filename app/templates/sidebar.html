@@ -1,0 +1,339 @@
+<!-- Sidebar Backdrop Overlay for Mobile -->
+<div
+  id="sidebarBackdrop"
+  onclick="toggleSidebar()"
+  class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden hidden transition-opacity duration-300"
+></div>
+
+<!-- Sticky Sidebar Navigation -->
+<aside
+  id="sidebarNav"
+  class="w-full lg:w-72 bg-slate-900 text-white border-r border-slate-800 flex flex-col justify-between flex-shrink-0 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto hidden lg:flex fixed inset-y-0 left-0 z-50 lg:z-auto transition-transform duration-300 ease-in-out shadow-xl lg:shadow-none"
+>
+  <div class="flex-1">
+    <!-- Brand Header (Desktop) -->
+    <div
+      class="p-6 border-b border-slate-800/80 flex items-center space-x-3.5"
+    >
+      <div>
+        <h1 class="font-bold text-lg tracking-tight text-white">
+          PharmaAudit OS
+        </h1>
+      </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <nav class="p-4 space-y-6 text-sm font-medium">
+      <!-- Section 1: Overview -->
+      <div class="space-y-1">
+        <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
+          <span>Overview</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+        </div>
+        <!-- Real-Time Dashboard -->
+        <a
+          href="{% url 'dashboard' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'dashboard' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+            />
+          </svg>
+          <span>Dashboard</span>
+        </a>
+
+        <!-- Real-Time Alerts -->
+        <a
+          href="{% url 'notifications:list' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if request.resolver_match.namespace == 'notifications' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9"
+            />
+          </svg>
+          <span>Real-Time Alerts</span>
+        </a>
+      </div>
+
+      <!-- Section 2: Catalog & Master Data -->
+      <div class="space-y-1">
+        <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
+          <span>Catalog & Master Data</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+        </div>
+        <!-- Stock Catalog (EOQ & ROP) -->
+        <a
+          href="{% url 'medications_list' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'medications_list' or current_url == 'add_medication' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.096.176l-1.08.54a2 2 0 00-1.096 1.789v.084a2 2 0 002 2h15.228a2 2 0 002-2v-.084a2 2 0 00-1.096-1.789l-1.08-.54zM4 6h16M4 10h16"
+            />
+          </svg>
+          <span>Stock Catalog (EOQ/ROP)</span>
+        </a>
+
+        <!-- Pharmacy Sections -->
+        <a
+          href="{% url 'sections_list' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'sections_list' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0H9m1 0h4"
+            />
+          </svg>
+          <span>Pharmacy Sections</span>
+        </a>
+
+        <!-- Suppliers Directory -->
+        <a
+          href="{% url 'suppliers_list' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'suppliers_list' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            />
+          </svg>
+          <span>Suppliers Directory</span>
+        </a>
+
+        {% if user.is_admin or user.is_manager %}
+        <!-- User Management -->
+        <a
+          href="{% url 'manage_users' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'manage_users' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+            />
+          </svg>
+          <span>User Management</span>
+        </a>
+        {% endif %}
+      </div>
+
+      <!-- Section 3: Inventory Operations -->
+      <div class="space-y-1">
+        <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
+          <span>Inventory Operations</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+        </div>
+        <!-- Goods Receipt Intake -->
+        <a
+          href="{% url 'receive_batch' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'receive_batch' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+            />
+          </svg>
+          <span>Goods Receipt Intake</span>
+        </a>
+
+        <!-- Physical Stock Audit -->
+        <a
+          href="{% url 'stock_adjustment' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'stock_adjustment' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+            />
+          </svg>
+          <span>Physical Stock Audit</span>
+        </a>
+
+      </div>
+
+      <!-- Section 4: Procurement & Optimization -->
+      <div class="space-y-1">
+        <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
+          <span>Procurement & Analytics</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+        </div>
+        <!-- Purchase Orders (EOQ) -->
+        <a
+          href="{% url 'purchase_orders' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'purchase_orders' or current_url == 'auto_generate_draft_po' or current_url == 'approve_po' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+            />
+          </svg>
+          <span>Purchase Orders (EOQ)</span>
+        </a>
+
+        <!-- ABC Classification -->
+        <a
+          href="{% url 'abc_classification' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'abc_classification' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+            />
+          </svg>
+          <span>ABC Classification</span>
+        </a>
+
+        <!-- FEFO Expiry Alerts -->
+        <a
+          href="{% url 'expiries_monitoring' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'expiries_monitoring' or current_url == 'quarantine_batch' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <span>FEFO Expiry Alerts</span>
+        </a>
+      </div>
+
+      <!-- Section 5: Audit & Reporting -->
+      <div class="space-y-1">
+        <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
+          <span>Audit & Reporting</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+        </div>
+        <!-- Immutable Audit Ledger -->
+        <a
+          href="{% url 'stock_audit_ledger' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'stock_audit_ledger' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            />
+          </svg>
+          <span>Immutable Audit Trail</span>
+        </a>
+
+        <!-- Reports & CSV Export -->
+        <a
+          href="{% url 'reports' %}"
+          class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'reports' or current_url == 'export_report_csv' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
+        >
+          <svg
+            class="w-5 h-5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          <span>Reports & CSV Export</span>
+        </a>
+      </div>
+    </nav>
+  </div>
+</aside>

@@ -6,19 +6,20 @@ urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
-    path('logout/', views.logout_view, name='logout'),
+    path('signout/', views.logout_view, name='signout'),
 
-    # Master Data Management (Sections & Suppliers)
+    # Master Data & User Management (Sections, Suppliers, Users)
     path('sections/', views.sections_list_view, name='sections_list'),
     path('suppliers/', views.suppliers_list_view, name='suppliers_list'),
+    path('users/', views.manage_users_view, name='manage_users'),
 
     # Real-Time Inventory & Optimization
     path('medications/', views.medications_list_view, name='medications_list'),
     path('medications/add/', views.add_medication_view, name='add_medication'),
 
-    # Goods Receipt Intake & Dispense
+    # Goods Receipt Intake & Physical Stock Auditing
     path('inventory/receive/', views.receive_batch_view, name='receive_batch'),
-    path('inventory/dispense-fefo/', views.fefo_dispense_view, name='fefo_dispense'),
+    path('inventory/api/medication-stock/<int:medication_id>/', views.medication_stock_api, name='medication_stock_api'),
     path('inventory/adjust/', views.stock_adjustment_view, name='stock_adjustment'),
 
     # FR3 & FR4 Purchase Orders & Auto Draft PO

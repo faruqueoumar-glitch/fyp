@@ -1,52 +1,461 @@
 {% extends 'base.html' %}
 
-{% block title %}FEFO Automated Dispensing | PharmaAudit OS{% endblock %}
+{% block title %}FEFO Multi-Item Inventory Checkout | PharmaAudit OS{% endblock %}
 
 {% block main_content %}
-<div class="max-w-3xl mx-auto space-y-8">
-    <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-md shadow-slate-200/50">
-        <div class="border-b border-slate-100 pb-5 mb-8">
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">First-Expired, First-Out (FEFO) Dispenser</h1>
-            <p class="text-sm text-slate-500 mt-1">Automated batch selection engine. Prioritizes earliest expiring non-expired active stock to minimize wastage.</p>
+<div class="max-w-7xl mx-auto space-y-8">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200/80 p-6 sm:p-8 rounded-3xl shadow-sm">
+        <div>
+            <div class="flex items-center space-x-3 mb-2">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-200 uppercase tracking-wider">
+                    FEFO Algorithmic Engine
+                </span>
+                <span class="text-xs font-mono text-slate-500">• Multi-Item Inventory POS Checkout</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">First-Expired, First-Out (FEFO) Dispenser</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                Automated multi-item dispensing checkout. Prioritizes earliest expiring non-expired active stock to eliminate inventory wastage and displays real-time remaining balances.
+            </p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'medications_list' %}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-2xl transition">
+                Stock Catalog
+            </a>
+            <button onclick="resetCart()" class="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-2xl transition">
+                Reset Cart
+            </button>
+        </div>
+    </div>
+
+    {% if receipt %}
+    <!-- Dispense Checkout Digital Receipt Modal / Card -->
+    <div class="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-800 space-y-6 animate-fade-in">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-5 gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-xl border border-emerald-500/30">
+                    ✓
+                </div>
+                <div>
+                    <span class="text-xs font-mono text-emerald-400 uppercase font-bold">Transaction Confirmed • SHA-256 Signed</span>
+                    <h2 class="text-xl font-bold tracking-tight text-white">Dispense Receipt: {{ receipt.dispense_ref }}</h2>
+                </div>
+            </div>
+            <div class="text-left sm:text-right text-xs font-mono text-slate-400">
+                <p>Date: {{ receipt.timestamp|date:"Y-m-d H:i:s" }}</p>
+                <p>Dispensed By: <span class="text-white font-semibold">{{ receipt.dispensed_by }}</span></p>
+            </div>
         </div>
 
-        <form method="POST" action="{% url 'fefo_dispense' %}" class="space-y-6 text-sm">
-            {% csrf_token %}
-
+        <div class="p-4 bg-slate-800/80 rounded-2xl border border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3">
             <div>
-                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Select Medication Item</label>
-                {{ form.medication }}
-                {% if form.medication.errors %}<p class="text-rose-600 font-medium mt-1 text-xs">{{ form.medication.errors.0 }}</p>{% endif %}
+                <span class="text-slate-400 font-semibold uppercase">Prescription Ref / Patient Note:</span>
+                <p class="text-white font-bold text-sm mt-0.5">{{ receipt.patient_info }}</p>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div>
+                    <span class="text-slate-400 font-semibold uppercase">Total Units Dispensed:</span>
+                    <p class="text-emerald-400 font-extrabold text-base font-mono">{{ receipt.total_units }}</p>
+                </div>
+                <div>
+                    <span class="text-slate-400 font-semibold uppercase">Grand Total Value:</span>
+                    <p class="text-white font-extrabold text-base font-mono">${{ receipt.total_cost|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dispensed Items Table with Batches & Remaining Stock -->
+        <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/90">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-800/90 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
+                    <tr>
+                        <th class="px-5 py-3.5">Medication & SKU</th>
+                        <th class="px-5 py-3.5">Qty Dispensed</th>
+                        <th class="px-5 py-3.5">FEFO Batches Drawn</th>
+                        <th class="px-5 py-3.5">Stock Before -> Remaining</th>
+                        <th class="px-5 py-3.5 text-right">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-slate-300">
+                    {% for item in receipt.items %}
+                    <tr class="hover:bg-slate-800/40">
+                        <td class="px-5 py-4">
+                            <p class="font-bold text-white text-sm">{{ item.medication.name }}</p>
+                            <p class="font-mono text-[11px] text-slate-400">{{ item.medication.sku }} • {{ item.medication.unit }}</p>
+                        </td>
+                        <td class="px-5 py-4 font-mono font-bold text-emerald-400 text-sm">
+                            {{ item.quantity }} {{ item.medication.unit }}
+                        </td>
+                        <td class="px-5 py-4 space-y-1">
+                            {% for b in item.batch_breakdown %}
+                            <div class="inline-flex items-center space-x-2 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700 text-[11px] font-mono mr-1 mb-1">
+                                <span class="text-white font-semibold">Batch {{ b.batch_number }}</span>
+                                <span class="text-slate-400">(Exp: {{ b.expiry_date }})</span>
+                                <span class="text-emerald-400 font-bold">: -{{ b.deducted_qty }}</span>
+                            </div>
+                            {% endfor %}
+                        </td>
+                        <td class="px-5 py-4 font-mono">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-slate-400">{{ item.before_stock }}</span>
+                                <span class="text-slate-500">&rarr;</span>
+                                <span class="px-2.5 py-1 rounded-lg font-bold text-xs {% if item.remaining_stock == 0 %}bg-rose-500/20 text-rose-300 border border-rose-500/30{% elif item.remaining_stock <= item.medication.reorder_point %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% endif %}">
+                                    {{ item.remaining_stock }} units left
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-5 py-4 text-right font-mono font-bold text-white text-sm">
+                            ${{ item.line_total|floatformat:2 }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex justify-between items-center pt-2">
+            <button onclick="window.print()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                <span>Print Physical Receipt</span>
+            </button>
+            <a href="{% url 'fefo_dispense' %}" class="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition">
+                + Start New Checkout Session
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Multi-Item FEFO Checkout Main Application -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Main Checkout Cart & Drug Adder (8 cols) -->
+        <div class="lg:col-span-8 space-y-6">
+            <!-- Top Controls Card: Patient Info & Drug Selector -->
+            <div class="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-5">
+                <h3 class="font-bold text-slate-900 text-base border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <span>1. Prescription & Drug Selection</span>
+                    <span class="text-xs text-slate-400 font-mono">Select medication to add to cart</span>
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                    <div class="sm:col-span-12">
+                        <label class="block font-semibold text-slate-700 uppercase text-xs mb-1">Prescription Reference / Patient Identification</label>
+                        <input type="text" id="patientInfoInput" placeholder="e.g. Rx #10984 / Ward 4 Outpatient" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-slate-400">
+                    </div>
+
+                    <div class="sm:col-span-9">
+                        <label class="block font-semibold text-slate-700 uppercase text-xs mb-1">Select Drug from Inventory</label>
+                        <select id="drugSelect" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm font-medium focus:ring-2 focus:ring-slate-400">
+                            <option value="">-- Choose medication item --</option>
+                            {% for m in medications %}
+                            <option value="{{ m.id }}" {% if selected_med_id == m.id|stringformat:"s" %}selected{% endif %}>
+                                {{ m.name }} [{{ m.sku }}] — Available Stock: {{ m.non_expired_stock }} {{ m.unit }} (${{ m.unit_cost }}/unit)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-3 flex items-end">
+                        <button type="button" onclick="addSelectedDrug()" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-1">
+                            <span>+ Add to Cart</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div>
-                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Quantity to Dispense (Units)</label>
-                {{ form.quantity }}
-                {% if form.quantity.errors %}<p class="text-rose-600 font-medium mt-1 text-xs">{{ form.quantity.errors.0 }}</p>{% endif %}
-            </div>
+            <!-- Cart Table Card -->
+            <form id="dispenseForm" method="POST" action="{% url 'fefo_dispense' %}" class="bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden space-y-0">
+                {% csrf_token %}
+                <input type="hidden" name="items_json" id="itemsJsonInput" value="[]">
+                <input type="hidden" name="patient_info" id="hiddenPatientInfo" value="">
 
-            <div>
-                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Patient Prescription ID / Dispense Notes</label>
-                {{ form.reason }}
-                {% if form.reason.errors %}<p class="text-rose-600 font-medium mt-1 text-xs">{{ form.reason.errors.0 }}</p>{% endif %}
-            </div>
+                <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">2. Active Dispense Checkout Cart</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">FEFO auto-allocates earliest expiring batches and displays remaining stock in real-time.</p>
+                    </div>
+                    <span id="cartCountBadge" class="px-3 py-1 bg-slate-100 text-slate-700 font-bold text-xs rounded-full font-mono">0 Items</span>
+                </div>
 
-            <div class="p-5 bg-slate-100 border border-slate-200 rounded-2xl space-y-2 text-xs text-slate-700">
-                <p class="font-bold text-slate-900 uppercase text-xs font-mono">&bull; FEFO Algorithmic Execution Rules:</p>
-                <p>1. Filters out all expired batches automatically.</p>
-                <p>2. Sorts active batches by Expiry Date in Ascending order (<code>expiry_date ASC</code>).</p>
-                <p>3. Deducts required quantity from earliest expiring batch first before moving to subsequent batches.</p>
-                <p>4. Generates cryptographic SHA-256 ledger transactions for every batch deduction.</p>
-            </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-100">
+                            <tr>
+                                <th class="px-6 py-3.5">Medication</th>
+                                <th class="px-6 py-3.5 w-32">Dispense Qty</th>
+                                <th class="px-6 py-3.5">FEFO Allocation & Remaining Stock</th>
+                                <th class="px-6 py-3.5 text-right w-28">Subtotal</th>
+                                <th class="px-4 py-3.5 text-center w-12">&nbsp;</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cartTableBody" class="divide-y divide-slate-100 text-slate-700">
+                            <tr id="emptyCartRow">
+                                <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                                    <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                    <p class="font-semibold text-slate-600 text-sm">Your checkout cart is empty</p>
+                                    <p class="text-xs text-slate-400 mt-1">Select a medication above to begin dispensing checkout.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-            <div class="pt-5 border-t border-slate-100 flex justify-end space-x-4">
-                <a href="{% url 'medications_list' %}" class="px-5 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition">Cancel</a>
-                <button type="submit" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-md transition flex items-center space-x-2">
-                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <span>Execute FEFO Dispense & Sign Audit Log</span>
-                </button>
+                <div class="p-6 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="text-xs text-slate-500 font-mono">
+                        <span>• FEFO Rules: Earliest non-expired batches allocated first.</span>
+                    </div>
+                    <button type="submit" id="submitCheckoutBtn" disabled class="px-8 py-3.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold text-sm rounded-2xl shadow-lg transition flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span>Execute FEFO Multi-Dispense Checkout</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Sidebar Order Summary & Rules Card (4 cols) -->
+        <div class="lg:col-span-4 space-y-6">
+            <!-- Checkout Summary Card -->
+            <div class="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-6">
+                <h3 class="font-bold text-slate-900 text-base border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <span>Checkout Summary</span>
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                </h3>
+
+                <div class="space-y-4 text-xs">
+                    <div class="flex justify-between items-center py-1 border-b border-slate-100">
+                        <span class="text-slate-500">Total Unique Items:</span>
+                        <span id="summaryItemCount" class="font-bold font-mono text-slate-900 text-sm">0</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1 border-b border-slate-100">
+                        <span class="text-slate-500">Total Quantity (Units):</span>
+                        <span id="summaryTotalUnits" class="font-bold font-mono text-emerald-600 text-sm">0</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1 border-b border-slate-100">
+                        <span class="text-slate-500">Estimated Order Cost:</span>
+                        <span id="summaryGrandTotal" class="font-extrabold font-mono text-slate-900 text-base">$0.00</span>
+                    </div>
+                </div>
+
+                <div id="checkoutWarnings" class="hidden p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 space-y-1">
+                    <p class="font-bold uppercase text-[10px] text-amber-900 font-mono">⚠️ Inventory Alert Notice:</p>
+                    <div id="warningList" class="space-y-1"></div>
+                </div>
+
+                <div class="p-4 bg-slate-900 text-white rounded-2xl space-y-2 text-xs">
+                    <p class="font-bold text-emerald-400 uppercase text-[10px] font-mono tracking-wider">🔒 Cryptographic Audit Assurance</p>
+                    <p class="text-slate-300 leading-relaxed">
+                        Every dispensed batch transaction generates an immutable SHA-256 hash ledger record linking user identity, timestamp, and stock balance changes.
+                    </p>
+                </div>
             </div>
-        </form>
+        </div>
     </div>
 </div>
+
+<script>
+    // Catalog data injected from Django View
+    const CATALOG = {{ catalog_json|safe }};
+    let cart = []; // Array of { med_id, quantity }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectedMedId = "{{ selected_med_id }}";
+        if (selectedMedId && CATALOG[selectedMedId]) {
+            addToCart(parseInt(selectedMedId), 1);
+        }
+    });
+
+    function addSelectedDrug() {
+        const select = document.getElementById('drugSelect');
+        const medId = parseInt(select.value);
+        if (!medId || !CATALOG[medId]) {
+            alert("Please select a valid medication item from the list.");
+            return;
+        }
+        addToCart(medId, 1);
+        select.value = "";
+    }
+
+    function addToCart(medId, defaultQty = 1) {
+        const existing = cart.find(item => item.med_id === medId);
+        const itemInfo = CATALOG[medId];
+
+        if (!itemInfo || itemInfo.non_expired_stock <= 0) {
+            alert(`Cannot dispense ${itemInfo ? itemInfo.name : 'item'}: No non-expired stock available.`);
+            return;
+        }
+
+        if (existing) {
+            if (existing.quantity + defaultQty <= itemInfo.non_expired_stock) {
+                existing.quantity += defaultQty;
+            } else {
+                alert(`Cannot exceed total available non-expired stock (${itemInfo.non_expired_stock} units).`);
+            }
+        } else {
+            cart.push({ med_id: medId, quantity: defaultQty });
+        }
+        renderCart();
+    }
+
+    function removeFromCart(medId) {
+        cart = cart.filter(item => item.med_id !== medId);
+        renderCart();
+    }
+
+    function updateQuantity(medId, newQty) {
+        const item = cart.find(i => i.med_id === medId);
+        const itemInfo = CATALOG[medId];
+        if (!item || !itemInfo) return;
+
+        let qty = parseInt(newQty);
+        if (isNaN(qty) || qty < 1) qty = 1;
+
+        if (qty > itemInfo.non_expired_stock) {
+            alert(`Requested quantity (${qty}) exceeds available non-expired stock (${itemInfo.non_expired_stock}).`);
+            qty = itemInfo.non_expired_stock;
+        }
+
+        item.quantity = qty;
+        renderCart();
+    }
+
+    function resetCart() {
+        cart = [];
+        renderCart();
+    }
+
+    function renderCart() {
+        const tbody = document.getElementById('cartTableBody');
+        const submitBtn = document.getElementById('submitCheckoutBtn');
+        const cartCountBadge = document.getElementById('cartCountBadge');
+        const summaryItemCount = document.getElementById('summaryItemCount');
+        const summaryTotalUnits = document.getElementById('summaryTotalUnits');
+        const summaryGrandTotal = document.getElementById('summaryGrandTotal');
+        const warningsBox = document.getElementById('checkoutWarnings');
+        const warningList = document.getElementById('warningList');
+        const itemsJsonInput = document.getElementById('itemsJsonInput');
+
+        if (cart.length === 0) {
+            tbody.innerHTML = `
+                <tr id="emptyCartRow">
+                    <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                        <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        <p class="font-semibold text-slate-600 text-sm">Your checkout cart is empty</p>
+                        <p class="text-xs text-slate-400 mt-1">Select a medication above to begin dispensing checkout.</p>
+                    </td>
+                </tr>`;
+            submitBtn.disabled = true;
+            cartCountBadge.textContent = "0 Items";
+            summaryItemCount.textContent = "0";
+            summaryTotalUnits.textContent = "0";
+            summaryGrandTotal.textContent = "$0.00";
+            warningsBox.classList.add('hidden');
+            itemsJsonInput.value = "[]";
+            return;
+        }
+
+        submitBtn.disabled = false;
+        cartCountBadge.textContent = `${cart.length} Item${cart.length > 1 ? 's' : ''}`;
+        summaryItemCount.textContent = cart.length;
+
+        let totalUnits = 0;
+        let grandTotal = 0;
+        let warnings = [];
+        let html = '';
+
+        cart.forEach(item => {
+            const info = CATALOG[item.med_id];
+            if (!info) return;
+
+            const qty = item.quantity;
+            totalUnits += qty;
+            const lineSubtotal = qty * info.unit_cost;
+            grandTotal += lineSubtotal;
+
+            const remainingStock = info.non_expired_stock - qty;
+
+            if (remainingStock === 0) {
+                warnings.push(`<strong>${info.name}</strong> stock will be completely depleted (0 units remaining).`);
+            } else if (remainingStock <= info.reorder_point) {
+                warnings.push(`<strong>${info.name}</strong> will drop to ${remainingStock} units (Below ROP threshold of ${info.reorder_point}).`);
+            }
+
+            // FEFO batch allocation preview
+            let needed = qty;
+            let batchBadgesHtml = '';
+            info.batches.forEach(b => {
+                if (needed <= 0) return;
+                const deduct = Math.min(b.quantity, needed);
+                needed -= deduct;
+                batchBadgesHtml += `
+                    <div class="inline-flex items-center space-x-1.5 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-mono mb-1 mr-1">
+                        <span class="font-bold text-slate-800">Batch ${b.batch_number}</span>
+                        <span class="text-slate-500">(Exp: ${b.expiry_date})</span>
+                        <span class="font-bold text-emerald-700">: -${deduct}</span>
+                    </div>`;
+            });
+
+            // Remaining stock badge styling
+            let stockBadgeClass = "bg-emerald-100 text-emerald-900 border-emerald-200";
+            if (remainingStock === 0) {
+                stockBadgeClass = "bg-rose-100 text-rose-900 border-rose-200 font-extrabold";
+            } else if (remainingStock <= info.reorder_point) {
+                stockBadgeClass = "bg-amber-100 text-amber-900 border-amber-200 font-bold";
+            }
+
+            html += `
+                <tr class="hover:bg-slate-50/80 transition">
+                    <td class="px-6 py-4">
+                        <p class="font-bold text-slate-900 text-sm">${info.name}</p>
+                        <p class="text-xs font-mono text-slate-500">${info.sku} • ${info.section} • $${info.unit_cost.toFixed(2)}/${info.unit}</p>
+                        <div class="text-[11px] text-slate-400 mt-0.5">Avail: ${info.non_expired_stock} ${info.unit}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-1">
+                            <button type="button" onclick="updateQuantity(${item.med_id}, ${qty - 1})" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition">-</button>
+                            <input type="number" min="1" max="${info.non_expired_stock}" value="${qty}" onchange="updateQuantity(${item.med_id}, this.value)" class="w-16 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-sm font-mono font-bold focus:ring-2 focus:ring-slate-400">
+                            <button type="button" onclick="updateQuantity(${item.med_id}, ${qty + 1})" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition">+</button>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 space-y-1.5">
+                        <div class="flex flex-wrap">${batchBadgesHtml}</div>
+                        <div class="flex items-center space-x-2 text-xs font-mono mt-1">
+                            <span class="text-slate-500 font-semibold uppercase text-[10px]">Stock Balance:</span>
+                            <span class="text-slate-400">${info.non_expired_stock}</span>
+                            <span class="text-slate-400">&rarr;</span>
+                            <span class="px-2.5 py-0.5 rounded-full border text-xs ${stockBadgeClass}">
+                                Remaining: ${remainingStock} ${info.unit}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-right font-mono font-bold text-slate-900 text-sm">
+                        $${lineSubtotal.toFixed(2)}
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <button type="button" onclick="removeFromCart(${item.med_id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition text-base font-bold" title="Remove item">
+                            &times;
+                        </button>
+                    </td>
+                </tr>`;
+        });
+
+        tbody.innerHTML = html;
+        summaryTotalUnits.textContent = totalUnits;
+        summaryGrandTotal.textContent = `$${grandTotal.toFixed(2)}`;
+
+        if (warnings.length > 0) {
+            warningList.innerHTML = warnings.map(w => `<p>• ${w}</p>`).join('');
+            warningsBox.classList.remove('hidden');
+        } else {
+            warningsBox.classList.add('hidden');
+        }
+
+        // Prepare hidden input data
+        const payload = cart.map(i => ({ medication_id: i.med_id, quantity: i.quantity }));
+        itemsJsonInput.value = JSON.stringify(payload);
+    }
+
+    document.getElementById('dispenseForm').addEventListener('submit', function(e) {
+        const patientInput = document.getElementById('patientInfoInput').value.trim();
+        document.getElementById('hiddenPatientInfo').value = patientInput || "Patient Prescription FEFO Dispense";
+    });
+</script>
 {% endblock %}

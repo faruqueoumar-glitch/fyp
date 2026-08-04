@@ -91,8 +91,8 @@
                         </td>
                         <td class="p-4">
                             <div class="flex items-center space-x-2">
-                                <a href="{% url 'fefo_dispense' %}?medication={{ med.id }}" class="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-2xs transition">
-                                    Dispense
+                                <a href="{% url 'stock_adjustment' %}?medication={{ med.id }}" class="inline-flex items-center px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl shadow-2xs transition">
+                                    Audit Stock
                                 </a>
                                 {% if med.current_stock <= med.reorder_point and med.supplier %}
                                 <a href="{% url 'auto_generate_draft_po' med.id %}" class="inline-flex items-center px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-2xs transition">

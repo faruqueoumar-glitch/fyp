@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}User Management & Access Control | PharmaAudit OS{% endblock %}
+
+{% block main_content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200/80 p-6 sm:p-8 rounded-3xl shadow-sm">
+        <div>
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 uppercase tracking-wider mb-2">
+                System Administration
+            </span>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Manage System Users & Roles</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                Configure user roles (Admin, Pharmacist, Manager) and provision staff accounts with immutable audit logging.
+            </p>
+        </div>
+        <button onclick="document.getElementById('createUserModal').classList.remove('hidden')" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-2xl shadow-md transition flex items-center space-x-2">
+            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            <span>+ Provision New User</span>
+        </button>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 text-base">Registered System Users ({{ users_list|length }})</h3>
+            <span class="text-xs font-mono text-slate-500">Security Audit Level: High</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-4">User Identity</th>
+                        <th class="px-6 py-4">Role</th>
+                        <th class="px-6 py-4">Status / Privileges</th>
+                        <th class="px-6 py-4">Date Registered</th>
+                        <th class="px-6 py-4 text-right">Role Assignment</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+                    {% for u in users_list %}
+                    <tr class="hover:bg-slate-50/70 transition">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-9 h-9 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center text-sm shadow-xs">
+                                    {{ u.first_name|default:u.email|slice:":1"|upper }}
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-900">{{ u.first_name }} {{ u.last_name }}</p>
+                                    <p class="text-xs font-mono text-slate-500">{{ u.email }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 font-semibold">
+                            {% if u.role == 'ADMIN' or u.is_superuser %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold bg-purple-100 text-purple-900 border border-purple-200">
+                                System Administrator
+                            </span>
+                            {% elif u.role == 'MANAGER' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                                Inventory Manager
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+                                Pharmacist
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-xs font-mono">
+                            {% if u.is_superuser %}
+                            <span class="text-purple-700 font-bold">Superuser (Full Control)</span>
+                            {% elif u.role == 'MANAGER' %}
+                            <span class="text-amber-700 font-medium">PO Approval & Analytics</span>
+                            {% else %}
+                            <span class="text-emerald-700 font-medium">FEFO Dispense & Intake</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-xs text-slate-500 font-mono">
+                            {{ u.date_joined|date:"M d, Y H:i" }}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <form method="POST" action="{% url 'manage_users' %}" class="inline-flex items-center space-x-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="update_role">
+                                <input type="hidden" name="user_id" value="{{ u.id }}">
+                                <select name="role" onchange="this.form.submit()" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-900 font-medium text-xs rounded-xl focus:ring-2 focus:ring-slate-400">
+                                    {% for r_code, r_label in role_choices %}
+                                    <option value="{{ r_code }}" {% if u.role == r_code %}selected{% endif %}>{{ r_label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-slate-400">No registered users found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Create New User -->
+<div id="createUserModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <h3 class="text-xl font-bold text-slate-900">Provision New User Account</h3>
+            <button onclick="document.getElementById('createUserModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 text-2xl font-bold">&times;</button>
+        </div>
+
+        <form method="POST" action="{% url 'manage_users' %}" class="space-y-4 text-sm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_user">
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-semibold text-slate-700 text-xs uppercase mb-1">First Name</label>
+                    {{ register_form.first_name }}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 text-xs uppercase mb-1">Last Name</label>
+                    {{ register_form.last_name }}
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 text-xs uppercase mb-1">Email Address</label>
+                {{ register_form.email }}
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 text-xs uppercase mb-1">Assigned Role</label>
+                {{ register_form.role }}
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-semibold text-slate-700 text-xs uppercase mb-1">Password</label>
+                    {{ register_form.password }}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 text-xs uppercase mb-1">Confirm Password</label>
+                    {{ register_form.confirm_password }}
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
+                <button type="button" onclick="document.getElementById('createUserModal').classList.add('hidden')" class="px-4 py-2 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100">Cancel</button>
+                <button type="submit" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-md">Create User</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

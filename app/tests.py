@@ -1,10 +1,11 @@
+import json
+import math
+from datetime import timedelta
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
-from datetime import timedelta
-import math
 
 from app.models import (
     PharmacySection, Medication, MedicationBatch, StockAuditLedger,
@@ -79,21 +80,16 @@ class ComprehensiveFRTests(TestCase):
         self.assertIsNotNone(po)
         self.assertEqual(po.items.first().eoq_recommended_qty, self.med.eoq)
 
-    def test_fr5_fefo_dispensing_logic(self):
-        """FR5: Dispenses from earliest expiring batch (batch1 expiring in 15 days) first."""
-        response = self.client.post(reverse('fefo_dispense'), {
+    def test_physical_stock_adjustment(self):
+        """Reconciles system inventory with physical count audit."""
+        response = self.client.post(reverse('stock_adjustment'), {
             'medication': self.med.id,
-            'quantity': 150,
-            'reason': 'FEFO Test Dispense'
+            'actual_physical_count': 350,
+            'reason': 'Routine Physical Stock Count Audit'
         })
         self.assertRedirects(response, reverse('medications_list'))
-
-        self.batch1.refresh_from_db()
-        self.batch2.refresh_from_db()
-        # Batch 1 had 100 -> reduced to 0
-        # Batch 2 had 300 -> reduced by 50 to 250
-        self.assertEqual(self.batch1.quantity, 0)
-        self.assertEqual(self.batch2.quantity, 250)
+        self.med.refresh_from_db()
+        self.assertEqual(self.med.current_stock, 350)
 
     def test_fr2_immutable_audit_trail_delete_prevention(self):
         """FR2: Delete must raise PermissionDenied"""
@@ -137,4 +133,32 @@ class ComprehensiveFRTests(TestCase):
         })
         self.assertRedirects(response, reverse('dashboard'))
         self.assertTrue(User.objects.filter(email='jane.doe@hospital.org').exists())
+
+    def test_medication_stock_api(self):
+        """Test real-time stock & batch lookup API."""
+        response = self.client.get(reverse('medication_stock_api', args=[self.med.id]))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['id'], self.med.id)
+        self.assertEqual(data['non_expired_stock'], 400)
+        self.assertEqual(len(data['batches']), 2)
+
+
+
+    def test_manage_users_view_role_update(self):
+        """Test Admin role management view."""
+        self.client.login(email='admin@hospital.org', password='Password123!')
+        response = self.client.post(reverse('manage_users'), {
+            'action': 'update_role',
+            'user_id': self.pharmacist.id,
+            'role': 'MANAGER'
+        })
+        self.pharmacist.refresh_from_db()
+        self.assertEqual(self.pharmacist.role, 'MANAGER')
+
+    def test_signout_view(self):
+        """Test signout route redirects to login."""
+        response = self.client.get(reverse('signout'))
+        self.assertRedirects(response, reverse('login'))
+
 

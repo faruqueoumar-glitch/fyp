@@ -237,6 +237,90 @@ def logout_view(request):
     return redirect('login')
 
 
+@login_required
+def manage_users_view(request):
+    if not request.user.is_admin:
+        messages.error(request, "Access denied. Only Administrators can manage users.")
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'create_user':
+            form = RegisterForm(request.POST)
+            if form.is_valid():
+                u = form.save(commit=False)
+                u.set_password(form.cleaned_data['password'])
+                u.save()
+                log_audit_trail(request, 'USER_CREATE', 'User', u.id, {}, {'user': u.email, 'role': u.role}, 'User account provisioned by admin')
+                messages.success(request, f"User account {u.email} provisioned successfully.")
+            else:
+                for err in form.errors.values():
+                    messages.error(request, err.as_text())
+            return redirect('manage_users')
+
+        user_id = request.POST.get('user_id')
+        target_user = get_object_or_404(User, id=user_id)
+
+        if action == 'update_role':
+            new_role = request.POST.get('role')
+            if new_role in dict(User.ROLE_CHOICES):
+                old_role = target_user.role
+                target_user.role = new_role
+                target_user.save()
+                log_audit_trail(
+                    request, 'ROLE_CHANGE', 'User', target_user.id,
+                    {'old_role': old_role}, {'new_role': new_role},
+                    f"Updated role for {target_user.email} to {new_role}"
+                )
+                messages.success(request, f"Updated role for {target_user.email} to {target_user.get_role_display()}.")
+
+        elif action == 'toggle_active':
+            target_user.is_active = not target_user.is_active
+            target_user.save()
+            status_text = "activated" if target_user.is_active else "deactivated"
+            log_audit_trail(
+                request, 'USER_UPDATE', 'User', target_user.id,
+                {}, {'is_active': target_user.is_active},
+                f"User account {status_text} for {target_user.email}"
+            )
+            messages.success(request, f"User account {target_user.email} has been {status_text}.")
+
+        return redirect('manage_users')
+
+    users = User.objects.all().order_by('-date_joined')
+    context = {
+        'users_list': users,
+        'role_choices': User.ROLE_CHOICES,
+        'register_form': RegisterForm(),
+    }
+    return render(request, 'users/users_list.html', context)
+
+
+@login_required
+def medication_stock_api(request, medication_id):
+    medication = get_object_or_404(Medication, id=medication_id)
+    today = timezone.now().date()
+    valid_batches = medication.batches.filter(expiry_date__gt=today).order_by('expiry_date')
+    
+    batches_data = []
+    for batch in valid_batches:
+        batches_data.append({
+            'batch_number': batch.batch_number,
+            'quantity': batch.quantity,
+            'expiry_date': batch.expiry_date.strftime('%Y-%m-%d'),
+            'days_to_expiry': batch.days_to_expiry
+        })
+
+    return JsonResponse({
+        'id': medication.id,
+        'name': medication.name,
+        'sku': medication.sku,
+        'non_expired_stock': medication.current_stock,
+        'batches': batches_data
+    })
+
+
 # FR1 & Dashboard View
 @login_required
 def dashboard_view(request):
