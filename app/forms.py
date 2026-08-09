@@ -129,7 +129,7 @@ class MedicationForm(forms.ModelForm):
     class Meta:
         model = Medication
         fields = [
-            'name', 'sku', 'section', 'supplier', 'unit', 'unit_cost',
+            'name', 'sku', 'section', 'supplier', 'unit', 'unit_cost', 'selling_price_per_unit',
             'annual_demand', 'ordering_cost', 'holding_cost',
             'daily_consumption', 'lead_time_days', 'safety_stock', 'max_level'
         ]
@@ -138,14 +138,18 @@ class MedicationForm(forms.ModelForm):
             'sku': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'e.g. SKU-AMX-500'}),
             'section': forms.Select(attrs={'class': SELECT_CLASS}),
             'supplier': forms.Select(attrs={'class': SELECT_CLASS}),
-            'unit_cost': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01', 'placeholder': '0.00'}),
+            'unit_cost': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01', 'placeholder': '100.00', 'min': '10'}),
+            'selling_price_per_unit': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01', 'placeholder': '200.00', 'min': '50'}),
             'annual_demand': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': '3600'}),
-            'ordering_cost': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01', 'placeholder': '50.00'}),
-            'holding_cost': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01', 'placeholder': '2.00'}),
+            'ordering_cost': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01', 'placeholder': '500.00'}),
+            'holding_cost': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01', 'placeholder': '20.00'}),
             'daily_consumption': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': '10'}),
             'lead_time_days': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': '7'}),
             'safety_stock': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': '50'}),
             'max_level': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': '500'}),
+        }
+        help_texts = {
+            'selling_price_per_unit': 'Price in Nigerian Naira (₦). Standard prices: ₦50, ₦100, ₦200, ₦500, etc.'
         }
 
 

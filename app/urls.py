@@ -22,6 +22,16 @@ urlpatterns = [
     path('inventory/api/medication-stock/<int:medication_id>/', views.medication_stock_api, name='medication_stock_api'),
     path('inventory/adjust/', views.stock_adjustment_view, name='stock_adjustment'),
 
+    # FEFO Dispense & Point of Sale (POS) Cart System
+    path('dispense/', views.fefo_dispense_view, name='fefo_dispense'),
+    path('dispense/cart/add/', views.cart_add_item, name='cart_add_item'),
+    path('dispense/cart/update/', views.cart_update_item, name='cart_update_item'),
+    path('dispense/cart/remove/', views.cart_remove_item, name='cart_remove_item'),
+    path('dispense/cart/contents/', views.cart_get_contents, name='cart_get_contents'),
+    path('dispense/cart/clear/', views.cart_clear, name='cart_clear'),
+    path('dispense/checkout/', views.checkout_and_dispense, name='checkout_and_dispense'),
+    path('dispense/receipt/<str:transaction_ref>/', views.sales_receipt_view, name='sales_receipt'),
+
     # FR3 & FR4 Purchase Orders & Auto Draft PO
     path('orders/', views.purchase_orders_view, name='purchase_orders'),
     path('orders/auto-po/<int:medication_id>/', views.auto_generate_draft_po_view, name='auto_generate_draft_po'),

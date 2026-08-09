@@ -161,4 +161,74 @@ class ComprehensiveFRTests(TestCase):
         response = self.client.get(reverse('signout'))
         self.assertRedirects(response, reverse('login'))
 
+    def test_multi_item_fefo_cart_and_pos_checkout_naira(self):
+        """Test multi-item dispensing with cart system, Nigerian Naira pricing, and payment method selection."""
+        # Create second medication with Naira pricing
+        med2 = Medication.objects.create(
+            name="Paracetamol 500mg", sku="MED-PCM-500", section=self.section, supplier=self.supplier,
+            unit="Tablets", unit_cost=50.00, selling_price_per_unit=100.00, annual_demand=12000,
+            ordering_cost=500.00, holding_cost=10.00, daily_consumption=40, lead_time_days=5, safety_stock=200, max_level=2500
+        )
+        today = timezone.now().date()
+        MedicationBatch.objects.create(
+            medication=med2, supplier=self.supplier, batch_number="PCM-001",
+            initial_quantity=500, quantity=500, manufacture_date=today - timedelta(days=10), expiry_date=today + timedelta(days=200)
+        )
+
+        # 1. Add Amoxicillin to Cart (150 units -> should consume 100 from batch1 and 50 from batch2)
+        res1 = self.client.post(
+            reverse('cart_add_item'),
+            data=json.dumps({'medication_id': self.med.id, 'quantity': 150}),
+            content_type='application/json'
+        )
+        self.assertEqual(res1.status_code, 200)
+        self.assertTrue(res1.json()['success'])
+
+        # 2. Add Paracetamol to Cart (200 units @ ₦100 = ₦20,000)
+        res2 = self.client.post(
+            reverse('cart_add_item'),
+            data=json.dumps({'medication_id': med2.id, 'quantity': 200}),
+            content_type='application/json'
+        )
+        self.assertEqual(res2.status_code, 200)
+
+        # 3. Check Cart contents
+        res_cart = self.client.get(reverse('cart_get_contents'))
+        self.assertEqual(res_cart.status_code, 200)
+        cart_data = res_cart.json()
+        self.assertEqual(cart_data['item_count'], 2)
+        self.assertEqual(cart_data['total_units'], 350)
+        # Amox selling price default 200.00 * 150 = 30,000; PCM 100.00 * 200 = 20,000 -> Total = 50,000
+        expected_total = (150 * float(self.med.selling_price_per_unit)) + (200 * float(med2.selling_price_per_unit))
+        self.assertEqual(cart_data['total_naira'], expected_total)
+
+        # 4. Finalize Checkout with POS payment method
+        res_checkout = self.client.post(
+            reverse('checkout_and_dispense'),
+            data=json.dumps({
+                'patient_info': 'Chioma Adeleke / Rx #8892',
+                'payment_method': 'POS',
+                'notes': 'Dispensed with dosage instructions.'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_checkout.status_code, 200)
+        checkout_data = res_checkout.json()
+        self.assertTrue(checkout_data['success'])
+        self.assertEqual(checkout_data['total_amount_naira'], expected_total)
+        self.assertEqual(checkout_data['payment_method'], 'POS / Debit Card (₦)')
+
+        # 5. Verify FEFO batch allocation on Amoxicillin
+        self.batch1.refresh_from_db()
+        self.batch2.refresh_from_db()
+        self.assertEqual(self.batch1.quantity, 0) # 100 exhausted
+        self.assertEqual(self.batch2.quantity, 250) # 300 - 50 = 250
+
+        # 6. Verify Sales Receipt View
+        receipt_res = self.client.get(reverse('sales_receipt', args=[checkout_data['transaction_ref']]))
+        self.assertEqual(receipt_res.status_code, 200)
+        self.assertContains(receipt_res, 'Chioma Adeleke')
+        self.assertContains(receipt_res, checkout_data['transaction_ref'])
+
+
 

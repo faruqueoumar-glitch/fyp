@@ -1,461 +1,916 @@
 {% extends 'base.html' %}
 
-{% block title %}FEFO Multi-Item Inventory Checkout | PharmaAudit OS{% endblock %}
+{% block title %}Dispense & Sales POS (₦) | PharmaAudit OS{% endblock %}
 
 {% block main_content %}
-<div class="max-w-7xl mx-auto space-y-8">
-    <!-- Header Section -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200/80 p-6 sm:p-8 rounded-3xl shadow-sm">
+<div class="max-w-7xl mx-auto space-y-8 animate-fade-in">
+    <!-- Top Header -->
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white border border-slate-200/80 p-6 sm:p-8 rounded-3xl shadow-xs">
         <div>
-            <div class="flex items-center space-x-3 mb-2">
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-200 uppercase tracking-wider">
-                    FEFO Algorithmic Engine
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-900 border border-emerald-300 uppercase tracking-wider">
+                    POS Dispensing Engine
                 </span>
-                <span class="text-xs font-mono text-slate-500">• Multi-Item Inventory POS Checkout</span>
+                <span class="text-xs font-mono font-bold text-slate-500">• Multi-Medication Cart • Nigerian Naira (₦)</span>
             </div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">First-Expired, First-Out (FEFO) Dispenser</h1>
-            <p class="text-sm text-slate-500 mt-1">
-                Automated multi-item dispensing checkout. Prioritizes earliest expiring non-expired active stock to eliminate inventory wastage and displays real-time remaining balances.
+            <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">Dispense & Sales Point-of-Sale (POS)</h1>
+            <p class="text-sm font-medium text-slate-600 mt-1 max-w-3xl">
+                Select medications from active inventory, adjust quantities, process point-of-sale transactions in Nigerian Naira (₦), and log verified audit records.
             </p>
         </div>
         <div class="flex items-center space-x-3">
-            <a href="{% url 'medications_list' %}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-2xl transition">
-                Stock Catalog
+            <a href="{% url 'medications_list' %}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-2xl transition flex items-center space-x-1.5 shadow-xs">
+                <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                <span>Stock Catalog</span>
             </a>
-            <button onclick="resetCart()" class="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-2xl transition">
-                Reset Cart
+            <button onclick="clearCart()" class="px-4 py-2.5 border border-slate-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-slate-700 font-bold text-xs rounded-2xl transition flex items-center space-x-1.5 shadow-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                <span>Reset Cart</span>
             </button>
         </div>
     </div>
 
-    {% if receipt %}
-    <!-- Dispense Checkout Digital Receipt Modal / Card -->
-    <div class="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-800 space-y-6 animate-fade-in">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-5 gap-4">
-            <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-xl border border-emerald-500/30">
-                    ✓
-                </div>
-                <div>
-                    <span class="text-xs font-mono text-emerald-400 uppercase font-bold">Transaction Confirmed • SHA-256 Signed</span>
-                    <h2 class="text-xl font-bold tracking-tight text-white">Dispense Receipt: {{ receipt.dispense_ref }}</h2>
-                </div>
+    <!-- Quick Stats Cards Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <!-- Today's Total Sales -->
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs flex items-center space-x-4">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center justify-center flex-shrink-0 font-black text-xl">
+                ₦
             </div>
-            <div class="text-left sm:text-right text-xs font-mono text-slate-400">
-                <p>Date: {{ receipt.timestamp|date:"Y-m-d H:i:s" }}</p>
-                <p>Dispensed By: <span class="text-white font-semibold">{{ receipt.dispensed_by }}</span></p>
-            </div>
-        </div>
-
-        <div class="p-4 bg-slate-800/80 rounded-2xl border border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3">
             <div>
-                <span class="text-slate-400 font-semibold uppercase">Prescription Ref / Patient Note:</span>
-                <p class="text-white font-bold text-sm mt-0.5">{{ receipt.patient_info }}</p>
-            </div>
-            <div class="flex items-center space-x-6">
-                <div>
-                    <span class="text-slate-400 font-semibold uppercase">Total Units Dispensed:</span>
-                    <p class="text-emerald-400 font-extrabold text-base font-mono">{{ receipt.total_units }}</p>
-                </div>
-                <div>
-                    <span class="text-slate-400 font-semibold uppercase">Grand Total Value:</span>
-                    <p class="text-white font-extrabold text-base font-mono">${{ receipt.total_cost|floatformat:2 }}</p>
-                </div>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Today's Sales</span>
+                <h4 class="text-2xl font-black text-slate-900 font-mono">₦{{ today_sales_total|floatformat:2 }}</h4>
+                <p class="text-xs font-bold text-slate-400 font-mono">{{ today_tx_count }} sale{{ today_tx_count|pluralize }} recorded</p>
             </div>
         </div>
 
-        <!-- Dispensed Items Table with Batches & Remaining Stock -->
-        <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/90">
-            <table class="w-full text-left text-xs">
-                <thead class="bg-slate-800/90 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
-                    <tr>
-                        <th class="px-5 py-3.5">Medication & SKU</th>
-                        <th class="px-5 py-3.5">Qty Dispensed</th>
-                        <th class="px-5 py-3.5">FEFO Batches Drawn</th>
-                        <th class="px-5 py-3.5">Stock Before -> Remaining</th>
-                        <th class="px-5 py-3.5 text-right">Subtotal</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-800 text-slate-300">
-                    {% for item in receipt.items %}
-                    <tr class="hover:bg-slate-800/40">
-                        <td class="px-5 py-4">
-                            <p class="font-bold text-white text-sm">{{ item.medication.name }}</p>
-                            <p class="font-mono text-[11px] text-slate-400">{{ item.medication.sku }} • {{ item.medication.unit }}</p>
-                        </td>
-                        <td class="px-5 py-4 font-mono font-bold text-emerald-400 text-sm">
-                            {{ item.quantity }} {{ item.medication.unit }}
-                        </td>
-                        <td class="px-5 py-4 space-y-1">
-                            {% for b in item.batch_breakdown %}
-                            <div class="inline-flex items-center space-x-2 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700 text-[11px] font-mono mr-1 mb-1">
-                                <span class="text-white font-semibold">Batch {{ b.batch_number }}</span>
-                                <span class="text-slate-400">(Exp: {{ b.expiry_date }})</span>
-                                <span class="text-emerald-400 font-bold">: -{{ b.deducted_qty }}</span>
-                            </div>
-                            {% endfor %}
-                        </td>
-                        <td class="px-5 py-4 font-mono">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-slate-400">{{ item.before_stock }}</span>
-                                <span class="text-slate-500">&rarr;</span>
-                                <span class="px-2.5 py-1 rounded-lg font-bold text-xs {% if item.remaining_stock == 0 %}bg-rose-500/20 text-rose-300 border border-rose-500/30{% elif item.remaining_stock <= item.medication.reorder_point %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% endif %}">
-                                    {{ item.remaining_stock }} units left
-                                </span>
-                            </div>
-                        </td>
-                        <td class="px-5 py-4 text-right font-mono font-bold text-white text-sm">
-                            ${{ item.line_total|floatformat:2 }}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- Today's Units Dispensed -->
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs flex items-center space-x-4">
+            <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-800 border border-blue-300 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </div>
+            <div>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Units Dispensed</span>
+                <h4 class="text-2xl font-black text-slate-900 font-mono">{{ today_units_total }}</h4>
+                <p class="text-xs font-bold text-emerald-700 font-mono">Active inventory</p>
+            </div>
         </div>
 
-        <div class="flex justify-between items-center pt-2">
-            <button onclick="window.print()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition flex items-center space-x-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                <span>Print Physical Receipt</span>
-            </button>
-            <a href="{% url 'fefo_dispense' %}" class="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition">
-                + Start New Checkout Session
-            </a>
+        <!-- Available Medications -->
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs flex items-center space-x-4">
+            <div class="w-12 h-12 rounded-2xl bg-violet-100 text-violet-800 border border-violet-300 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.096.176l-1.08.54a2 2 0 00-1.096 1.789v.084a2 2 0 002 2h15.228a2 2 0 002-2v-.084a2 2 0 00-1.096-1.789l-1.08-.54zM4 6h16M4 10h16"/></svg>
+            </div>
+            <div>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Medications Catalog</span>
+                <h4 class="text-2xl font-black text-slate-900 font-mono">{{ medications|length }}</h4>
+                <p class="text-xs font-bold text-slate-400">Priced in Naira (₦)</p>
+            </div>
+        </div>
+
+        <!-- Audit Engine -->
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs flex items-center space-x-4">
+            <div class="w-12 h-12 rounded-2xl bg-slate-900 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            </div>
+            <div>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Audit Security</span>
+                <h4 class="text-base font-black text-slate-900">SHA-256 Ledger</h4>
+                <p class="text-xs font-bold text-emerald-600 font-mono">Immutable Tracking</p>
+            </div>
         </div>
     </div>
-    {% endif %}
 
-    <!-- Multi-Item FEFO Checkout Main Application -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <!-- Main Checkout Cart & Drug Adder (8 cols) -->
+    <!-- Main POS Grid: 8 Cols Cart & Item Selector, 4 Cols Order Summary & Checkout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Left Column: Patient Info, Drug Selector & Active Cart (8 cols) -->
         <div class="lg:col-span-8 space-y-6">
-            <!-- Top Controls Card: Patient Info & Drug Selector -->
-            <div class="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-5">
-                <h3 class="font-bold text-slate-900 text-base border-b border-slate-100 pb-3 flex items-center justify-between">
-                    <span>1. Prescription & Drug Selection</span>
-                    <span class="text-xs text-slate-400 font-mono">Select medication to add to cart</span>
-                </h3>
+            
+            <!-- Step 1: Patient & Transaction Details Card -->
+            <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-7 shadow-xs space-y-5">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-7 h-7 rounded-xl bg-slate-900 text-white text-xs font-black flex items-center justify-center font-mono">1</span>
+                        <h3 class="font-black text-slate-900 text-base sm:text-lg">Patient & Payment Information</h3>
+                    </div>
+                    <span class="text-xs font-bold text-slate-400 font-mono">POS Checkout</span>
+                </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                    <div class="sm:col-span-12">
-                        <label class="block font-semibold text-slate-700 uppercase text-xs mb-1">Prescription Reference / Patient Identification</label>
-                        <input type="text" id="patientInfoInput" placeholder="e.g. Rx #10984 / Ward 4 Outpatient" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-slate-400">
+                    <!-- Patient / Prescription Input -->
+                    <div class="sm:col-span-6">
+                        <label class="block font-black text-slate-800 uppercase text-[11px] mb-1.5">
+                            Patient Name / Prescription Reference <span class="text-rose-600 font-black">*</span>
+                        </label>
+                        <input type="text" id="patientInfoInput" placeholder="e.g. Adebayo Ibrahim / Rx #4089" 
+                               class="w-full px-4 py-3 bg-white border border-slate-300 rounded-2xl text-slate-900 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition shadow-xs">
                     </div>
 
-                    <div class="sm:col-span-9">
-                        <label class="block font-semibold text-slate-700 uppercase text-xs mb-1">Select Drug from Inventory</label>
-                        <select id="drugSelect" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm font-medium focus:ring-2 focus:ring-slate-400">
-                            <option value="">-- Choose medication item --</option>
+                    <!-- Payment Method Selector -->
+                    <div class="sm:col-span-6">
+                        <label class="block font-black text-slate-800 uppercase text-[11px] mb-1.5">
+                            Payment Method <span class="text-rose-600 font-black">*</span>
+                        </label>
+                        <select id="paymentMethodSelect" class="w-full px-4 py-3 bg-white border border-slate-300 rounded-2xl text-slate-900 text-sm font-black focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition shadow-xs">
+                            <option value="CASH" selected>💵 Cash Payment (₦)</option>
+                            <option value="POS_CARD">💳 POS / Debit Card (₦)</option>
+                            <option value="TRANSFER">🏦 Instant Bank Transfer (₦)</option>
+                            <option value="INSURANCE">🏥 Health Insurance / HMO</option>
+                        </select>
+                    </div>
+
+                    <!-- Clinical / Pharmacist Notes -->
+                    <div class="sm:col-span-12">
+                        <label class="block font-black text-slate-800 uppercase text-[11px] mb-1.5">
+                            Clinical Notes / Prescription Dispense Instructions (Optional)
+                        </label>
+                        <input type="text" id="transactionNotesInput" placeholder="e.g. Standard 5-day dosage counseling given to patient." 
+                               class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-2xl text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition shadow-xs">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Select Medication from Stock Card (Clean, Bold, Stock Count Beside Qty) -->
+            <div class="bg-white border-2 border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xs space-y-5">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-7 h-7 rounded-xl bg-slate-900 text-white text-xs font-black flex items-center justify-center font-mono">2</span>
+                        <h3 class="font-black text-slate-900 text-base sm:text-lg">Select Medication from Stock</h3>
+                    </div>
+                    <span class="text-xs font-black text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 uppercase tracking-wider">
+                        Live Stock Active
+                    </span>
+                </div>
+
+                <!-- Drug Selector Row with Bold Available Stock & Quantity -->
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+                    
+                    <!-- Medication Dropdown -->
+                    <div class="sm:col-span-6">
+                        <label class="block font-black text-slate-800 uppercase text-[11px] mb-1.5">
+                            Medication Catalog Item
+                        </label>
+                        <select id="medicationSelect" onchange="onMedicationSelectChange()" 
+                                class="w-full px-4 py-3 bg-white border-2 border-slate-300 rounded-2xl text-slate-900 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition shadow-xs">
+                            <option value="">-- Choose medication --</option>
                             {% for m in medications %}
                             <option value="{{ m.id }}" {% if selected_med_id == m.id|stringformat:"s" %}selected{% endif %}>
-                                {{ m.name }} [{{ m.sku }}] — Available Stock: {{ m.non_expired_stock }} {{ m.unit }} (${{ m.unit_cost }}/unit)
+                                {{ m.name }} [{{ m.sku }}] — ₦{{ m.selling_price_per_unit|floatformat:2 }} (Stock: {{ m.non_expired_stock }} {{ m.unit }})
                             </option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <div class="sm:col-span-3 flex items-end">
-                        <button type="button" onclick="addSelectedDrug()" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-1">
-                            <span>+ Add to Cart</span>
+                    <!-- Available Stock Pill (Prominently displayed beside Quantity) -->
+                    <div class="sm:col-span-2">
+                        <label class="block font-black text-slate-800 uppercase text-[11px] mb-1.5 text-center">
+                            In Stock
+                        </label>
+                        <div id="stockBadgeContainer" class="w-full py-2.5 px-2 bg-slate-100 border-2 border-slate-300 rounded-2xl flex flex-col items-center justify-center text-center shadow-xs">
+                            <span id="stockCountNumber" class="text-base font-black text-slate-900 font-mono">0</span>
+                            <span id="stockCountUnit" class="text-[10px] font-black text-slate-500 uppercase tracking-tight">Units</span>
+                        </div>
+                    </div>
+
+                    <!-- Quantity Input with Stepper -->
+                    <div class="sm:col-span-2">
+                        <label class="block font-black text-slate-800 uppercase text-[11px] mb-1.5 text-center">
+                            Dispense Qty
+                        </label>
+                        <div class="flex items-center space-x-1">
+                            <button type="button" onclick="adjustQuickQty(-1)" class="w-8 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-black text-base flex items-center justify-center border border-slate-300 transition">-</button>
+                            <input type="number" id="quantityInput" min="1" value="1" oninput="onQuantityInputChange()" 
+                                   class="w-full h-11 px-2 bg-white border-2 border-slate-300 rounded-xl text-slate-900 text-base font-black font-mono focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition shadow-xs text-center">
+                            <button type="button" onclick="adjustQuickQty(1)" class="w-8 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-black text-base flex items-center justify-center border border-slate-300 transition">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Add Button -->
+                    <div class="sm:col-span-2">
+                        <button type="button" onclick="addSelectedDrugToCart()" 
+                                class="w-full h-11 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-black text-sm rounded-2xl shadow-md transition-all flex items-center justify-center space-x-1.5">
+                            <svg class="w-5 h-5 text-emerald-400 font-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                            <span>+ Add</span>
                         </button>
+                    </div>
+
+                </div>
+
+                <!-- Clean Selected Item Pricing Banner -->
+                <div id="selectedDrugInfo" class="hidden p-4 bg-emerald-50/80 border-2 border-emerald-200 rounded-2xl text-xs space-y-2">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                            <span id="previewMedName" class="font-black text-slate-900 text-sm"></span>
+                            <span id="previewMedSku" class="font-mono font-bold text-slate-600 text-xs px-2 py-0.5 bg-white rounded-lg border border-slate-200"></span>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-slate-700 font-bold">Unit Price: <span id="previewMedPrice" class="text-slate-900 font-black font-mono text-sm"></span></span>
+                            <span class="text-slate-700 font-bold">Line Total: <span id="previewMedSubtotal" class="text-emerald-800 font-black font-mono text-sm"></span></span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Cart Table Card -->
-            <form id="dispenseForm" method="POST" action="{% url 'fefo_dispense' %}" class="bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden space-y-0">
-                {% csrf_token %}
-                <input type="hidden" name="items_json" id="itemsJsonInput" value="[]">
-                <input type="hidden" name="patient_info" id="hiddenPatientInfo" value="">
-
-                <div class="p-6 border-b border-slate-100 flex items-center justify-between">
-                    <div>
-                        <h3 class="font-bold text-slate-900 text-base">2. Active Dispense Checkout Cart</h3>
-                        <p class="text-xs text-slate-500 mt-0.5">FEFO auto-allocates earliest expiring batches and displays remaining stock in real-time.</p>
+            <!-- Step 3: Shopping Cart Table Card -->
+            <div class="bg-white border-2 border-slate-200 rounded-3xl shadow-xs overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-7 h-7 rounded-xl bg-slate-900 text-white text-xs font-black flex items-center justify-center font-mono">3</span>
+                        <div>
+                            <h3 class="font-black text-slate-900 text-base sm:text-lg">Dispense Cart</h3>
+                            <p class="text-xs font-bold text-slate-500">Medications to be dispensed and billed.</p>
+                        </div>
                     </div>
-                    <span id="cartCountBadge" class="px-3 py-1 bg-slate-100 text-slate-700 font-bold text-xs rounded-full font-mono">0 Items</span>
+                    <div class="flex items-center space-x-2">
+                        <span id="cartItemCountBadge" class="px-3.5 py-1 bg-slate-900 text-white font-black text-xs rounded-full font-mono">0 Items</span>
+                        <button type="button" onclick="clearCart()" class="text-xs text-rose-600 hover:text-rose-800 font-black uppercase px-2 py-1 tracking-wider">Clear</button>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] tracking-wider border-b border-slate-100">
+                        <thead class="bg-slate-100 text-slate-700 font-black uppercase text-[11px] tracking-wider border-b border-slate-200">
                             <tr>
-                                <th class="px-6 py-3.5">Medication</th>
-                                <th class="px-6 py-3.5 w-32">Dispense Qty</th>
-                                <th class="px-6 py-3.5">FEFO Allocation & Remaining Stock</th>
-                                <th class="px-6 py-3.5 text-right w-28">Subtotal</th>
-                                <th class="px-4 py-3.5 text-center w-12">&nbsp;</th>
+                                <th class="px-6 py-4">Medication</th>
+                                <th class="px-6 py-4 text-center w-32">Available Stock</th>
+                                <th class="px-6 py-4 w-36 text-center">Dispense Qty</th>
+                                <th class="px-6 py-4 w-32 text-right">Unit Price (₦)</th>
+                                <th class="px-6 py-4 text-right w-36">Subtotal (₦)</th>
+                                <th class="px-4 py-4 text-center w-12">&nbsp;</th>
                             </tr>
                         </thead>
-                        <tbody id="cartTableBody" class="divide-y divide-slate-100 text-slate-700">
+                        <tbody id="cartTableBody" class="divide-y divide-slate-100 text-slate-800">
                             <tr id="emptyCartRow">
-                                <td colspan="5" class="px-6 py-12 text-center text-slate-400">
-                                    <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                                    <p class="font-semibold text-slate-600 text-sm">Your checkout cart is empty</p>
-                                    <p class="text-xs text-slate-400 mt-1">Select a medication above to begin dispensing checkout.</p>
+                                <td colspan="6" class="px-6 py-14 text-center text-slate-400">
+                                    <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+                                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                    </div>
+                                    <p class="font-black text-slate-800 text-base">Your dispense cart is empty</p>
+                                    <p class="text-xs font-bold text-slate-400 mt-1 max-w-sm mx-auto">Select a medication from the stock list above and click <strong>+ Add</strong> to dispense.</p>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <div class="p-6 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div class="text-xs text-slate-500 font-mono">
-                        <span>• FEFO Rules: Earliest non-expired batches allocated first.</span>
+                <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs font-bold text-slate-600 font-mono gap-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span class="font-bold text-slate-700">FEFO Engine: Earliest-expiring active batches are automatically consumed upon checkout.</span>
                     </div>
-                    <button type="submit" id="submitCheckoutBtn" disabled class="px-8 py-3.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold text-sm rounded-2xl shadow-lg transition flex items-center justify-center space-x-2">
-                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        <span>Execute FEFO Multi-Dispense Checkout</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Sidebar Order Summary & Rules Card (4 cols) -->
-        <div class="lg:col-span-4 space-y-6">
-            <!-- Checkout Summary Card -->
-            <div class="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm space-y-6">
-                <h3 class="font-bold text-slate-900 text-base border-b border-slate-100 pb-3 flex items-center justify-between">
-                    <span>Checkout Summary</span>
-                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                </h3>
-
-                <div class="space-y-4 text-xs">
-                    <div class="flex justify-between items-center py-1 border-b border-slate-100">
-                        <span class="text-slate-500">Total Unique Items:</span>
-                        <span id="summaryItemCount" class="font-bold font-mono text-slate-900 text-sm">0</span>
-                    </div>
-                    <div class="flex justify-between items-center py-1 border-b border-slate-100">
-                        <span class="text-slate-500">Total Quantity (Units):</span>
-                        <span id="summaryTotalUnits" class="font-bold font-mono text-emerald-600 text-sm">0</span>
-                    </div>
-                    <div class="flex justify-between items-center py-1 border-b border-slate-100">
-                        <span class="text-slate-500">Estimated Order Cost:</span>
-                        <span id="summaryGrandTotal" class="font-extrabold font-mono text-slate-900 text-base">$0.00</span>
-                    </div>
-                </div>
-
-                <div id="checkoutWarnings" class="hidden p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 space-y-1">
-                    <p class="font-bold uppercase text-[10px] text-amber-900 font-mono">⚠️ Inventory Alert Notice:</p>
-                    <div id="warningList" class="space-y-1"></div>
-                </div>
-
-                <div class="p-4 bg-slate-900 text-white rounded-2xl space-y-2 text-xs">
-                    <p class="font-bold text-emerald-400 uppercase text-[10px] font-mono tracking-wider">🔒 Cryptographic Audit Assurance</p>
-                    <p class="text-slate-300 leading-relaxed">
-                        Every dispensed batch transaction generates an immutable SHA-256 hash ledger record linking user identity, timestamp, and stock balance changes.
-                    </p>
+                    <span id="cartUnitsCounter" class="font-black text-slate-900 bg-white px-3 py-1 rounded-xl border border-slate-200">0 Total Units</span>
                 </div>
             </div>
+
+            <!-- Recent Completed Sales Transactions Card -->
+            {% if recent_sales %}
+            <div class="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xs space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                        <h3 class="font-black text-slate-900 text-base">Recent Sales Transactions</h3>
+                        <p class="text-xs font-medium text-slate-500">Latest completed point-of-sale checkout records.</p>
+                    </div>
+                    <span class="text-xs font-mono font-bold text-slate-400">Last 10 Records</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 text-slate-600 font-black uppercase tracking-wider text-[10px] border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3">Transaction Ref</th>
+                                <th class="px-4 py-3">Patient / Note</th>
+                                <th class="px-4 py-3">Payment Method</th>
+                                <th class="px-4 py-3">Pharmacist</th>
+                                <th class="px-4 py-3 text-right">Total (₦)</th>
+                                <th class="px-4 py-3 text-center">Receipt</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                            {% for sale in recent_sales %}
+                            <tr class="hover:bg-slate-50/80 transition">
+                                <td class="px-4 py-3 font-mono font-black text-slate-900">
+                                    {{ sale.transaction_ref }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="font-black text-slate-900">{{ sale.patient_info|default:"Walk-in Patient" }}</span>
+                                    <p class="text-[10px] font-bold text-slate-400 font-mono">{{ sale.created_at|date:"M d, Y H:i" }}</p>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg font-black text-[11px] {% if sale.payment_method == 'CASH' %}bg-emerald-100 text-emerald-900{% elif sale.payment_method == 'POS_CARD' or sale.payment_method == 'POS' %}bg-blue-100 text-blue-900{% elif sale.payment_method == 'TRANSFER' %}bg-violet-100 text-violet-900{% else %}bg-amber-100 text-amber-900{% endif %}">
+                                        {{ sale.get_payment_method_display }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 font-bold text-slate-700">
+                                    {{ sale.pharmacist.first_name|default:sale.pharmacist.email }}
+                                </td>
+                                <td class="px-4 py-3 text-right font-mono font-black text-slate-900 text-sm">
+                                    ₦{{ sale.total_amount_naira|floatformat:2 }}
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <a href="{% url 'sales_receipt' sale.transaction_ref %}" class="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl text-[11px] transition shadow-xs">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- Right Column: Order Summary, Change Calculator & Checkout Console (4 cols) -->
+        <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
+            
+            <!-- Order Summary Card -->
+            <div class="bg-white border-2 border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
+                <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <h3 class="font-black text-slate-900 text-lg">Checkout Summary</h3>
+                    <span class="text-xs font-mono font-black text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300">
+                        ₦ NGN
+                    </span>
+                </div>
+
+                <!-- Financial Breakdown -->
+                <div class="space-y-3.5 text-xs">
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-slate-600 font-bold">Distinct Line Items:</span>
+                        <span id="summaryItemCount" class="font-black text-sm text-slate-900 font-mono">0</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-slate-600 font-bold">Total Medication Units:</span>
+                        <span id="summaryTotalUnits" class="font-black text-sm text-emerald-700 font-mono">0 units</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1">
+                        <span class="text-slate-600 font-bold">Subtotal (₦):</span>
+                        <span id="summarySubtotal" class="font-black text-sm text-slate-900 font-mono">₦0.00</span>
+                    </div>
+
+                    <!-- Grand Total Banner -->
+                    <div class="p-5 bg-slate-900 text-white rounded-3xl space-y-1.5 mt-3 shadow-md">
+                        <span class="text-[11px] font-mono text-emerald-400 uppercase font-black tracking-wider">Total Amount Due</span>
+                        <div class="flex items-baseline justify-between">
+                            <span id="summaryGrandTotal" class="text-3xl font-black text-white font-mono tracking-tight">₦0.00</span>
+                            <span class="text-xs text-slate-400 font-mono font-black">NGN</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cash Tender & Change Helper -->
+                <div class="p-4 bg-slate-50 border border-slate-300 rounded-2xl space-y-3 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="font-black text-slate-800 uppercase text-[11px] tracking-wider">Cash Tender / Change Helper</span>
+                        <span class="text-[10px] text-slate-400 font-mono font-bold">Optional</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Amount Tendered (₦)</label>
+                            <input type="number" id="cashTenderInput" oninput="calculateChange()" placeholder="e.g. 5000" 
+                                   class="w-full px-3 py-2 bg-white border-2 border-slate-300 rounded-xl text-slate-900 font-mono text-xs font-black focus:outline-none focus:ring-2 focus:ring-slate-900">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 mb-1">Change Due (₦)</label>
+                            <div id="changeDueDisplay" class="px-3 py-2 bg-white border-2 border-slate-200 rounded-xl font-mono text-xs font-black text-slate-800 flex items-center justify-center">
+                                ₦0.00
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Complete Sale & Dispense Button -->
+                <button type="button" id="btnCheckout" onclick="processCheckout()" disabled 
+                        class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-base rounded-2xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                    <span>Finalize Sale & Dispense Stock</span>
+                </button>
+
+                <!-- FEFO & Security Guarantee -->
+                <div class="space-y-2 pt-2 border-t border-slate-100 text-xs font-medium text-slate-500">
+                    <div class="flex items-start space-x-2">
+                        <svg class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Inventory deducted automatically via FEFO.</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <svg class="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        <span>SHA-256 verified immutable stock ledger logging.</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- Checkout Success Modal / Printable Digital Receipt (Clutter Free) -->
+<div id="receiptModal" class="hidden fixed inset-0 bg-slate-950/75 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8 animate-fade-in">
+        <!-- Modal Header -->
+        <div class="bg-slate-900 text-white p-6 sm:p-8 flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-2xl border border-emerald-500/30">
+                    ✓
+                </div>
+                <div>
+                    <span class="text-xs font-mono text-emerald-400 uppercase font-black tracking-widest">Sale Completed • Verified</span>
+                    <h2 class="text-xl font-black tracking-tight text-white" id="modalReceiptRef">Dispense Receipt</h2>
+                </div>
+            </div>
+            <button onclick="closeReceiptModal()" class="w-9 h-9 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-black text-xl flex items-center justify-center transition">
+                &times;
+            </button>
+        </div>
+
+        <!-- Receipt Content -->
+        <div class="p-6 sm:p-8 space-y-6 text-slate-800 text-xs" id="printableReceiptArea">
+            
+            <!-- Metadata Row -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-100 rounded-2xl border border-slate-200 font-bold">
+                <div>
+                    <span class="text-slate-500 uppercase text-[10px] font-black">Transaction Ref:</span>
+                    <p class="font-mono font-black text-slate-900 mt-0.5 text-xs" id="modalReceiptRefText">-</p>
+                </div>
+                <div>
+                    <span class="text-slate-500 uppercase text-[10px] font-black">Date & Time:</span>
+                    <p class="font-bold text-slate-900 mt-0.5 text-xs" id="modalReceiptDate">-</p>
+                </div>
+                <div>
+                    <span class="text-slate-500 uppercase text-[10px] font-black">Payment Method:</span>
+                    <p class="font-black text-emerald-700 mt-0.5 text-xs" id="modalReceiptPayment">-</p>
+                </div>
+                <div>
+                    <span class="text-slate-500 uppercase text-[10px] font-black">Pharmacist:</span>
+                    <p class="font-bold text-slate-900 mt-0.5 text-xs" id="modalReceiptPharmacist">-</p>
+                </div>
+            </div>
+
+            <!-- Patient / Prescription Info -->
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
+                <div>
+                    <span class="text-slate-500 uppercase text-[10px] font-black">Patient / Prescription Ref:</span>
+                    <p class="font-black text-slate-900 text-sm mt-0.5" id="modalReceiptPatient">-</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-slate-500 uppercase text-[10px] font-black">Status:</span>
+                    <p class="font-black text-emerald-700 text-xs mt-0.5">Dispensed & Paid</p>
+                </div>
+            </div>
+
+            <!-- Dispensed Items Table (Clean, bold, no batch clutter) -->
+            <div class="overflow-x-auto rounded-2xl border border-slate-200">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-700 font-black uppercase tracking-wider text-[11px] border-b border-slate-200">
+                        <tr>
+                            <th class="px-5 py-3.5">Medication</th>
+                            <th class="px-5 py-3.5 text-center">Qty Dispensed</th>
+                            <th class="px-5 py-3.5 text-right">Unit Price (₦)</th>
+                            <th class="px-5 py-3.5 text-right">Subtotal (₦)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalReceiptItemsBody" class="divide-y divide-slate-100 text-slate-800 font-bold"></tbody>
+                    <tfoot class="bg-slate-100 border-t-2 border-slate-200 font-black">
+                        <tr>
+                            <td colspan="3" class="px-5 py-4 text-right uppercase text-slate-700 text-xs">Grand Total Paid:</td>
+                            <td class="px-5 py-4 text-right font-mono text-base text-slate-900" id="modalReceiptGrandTotal">₦0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Audit Confirmation -->
+            <div class="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-bold text-emerald-900 flex items-center space-x-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                <span>Stock ledgers updated and verified in compliance with Nigerian Pharmacy regulations.</span>
+            </div>
+
+        </div>
+
+        <!-- Modal Actions Footer -->
+        <div class="p-6 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+            <button type="button" onclick="printReceiptArea()" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs rounded-xl shadow-md transition flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                <span>Print Receipt</span>
+            </button>
+            <button type="button" onclick="closeReceiptModal()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition">
+                + Start Next Sale
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner Overlay -->
+<div id="loadingOverlay" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-50">
+    <div class="bg-white rounded-3xl p-8 text-center space-y-4 shadow-2xl border border-slate-200 max-w-sm w-full mx-4">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-800">
+            <svg class="w-8 h-8 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </div>
+        <div>
+            <h4 class="font-black text-slate-900 text-base">Processing Sale...</h4>
+            <p class="text-xs font-bold text-slate-500 mt-1">Deducting inventory and logging audit hash...</p>
         </div>
     </div>
 </div>
 
 <script>
-    // Catalog data injected from Django View
+    // Client-side catalog cache injected from backend
     const CATALOG = {{ catalog_json|safe }};
-    let cart = []; // Array of { med_id, quantity }
+    let currentGrandTotal = 0;
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const selectedMedId = "{{ selected_med_id }}";
-        if (selectedMedId && CATALOG[selectedMedId]) {
-            addToCart(parseInt(selectedMedId), 1);
+    // Initialize cart on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchCartContents();
+        if (document.getElementById('medicationSelect').value) {
+            onMedicationSelectChange();
         }
     });
 
-    function addSelectedDrug() {
-        const select = document.getElementById('drugSelect');
-        const medId = parseInt(select.value);
+    function formatNaira(amount) {
+        return '₦' + parseFloat(amount).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function onMedicationSelectChange() {
+        const medId = document.getElementById('medicationSelect').value;
+        const infoDiv = document.getElementById('selectedDrugInfo');
+        const stockNumberEl = document.getElementById('stockCountNumber');
+        const stockUnitEl = document.getElementById('stockCountUnit');
+        const stockContainer = document.getElementById('stockBadgeContainer');
+        const qtyInput = document.getElementById('quantityInput');
+        
         if (!medId || !CATALOG[medId]) {
-            alert("Please select a valid medication item from the list.");
-            return;
-        }
-        addToCart(medId, 1);
-        select.value = "";
-    }
-
-    function addToCart(medId, defaultQty = 1) {
-        const existing = cart.find(item => item.med_id === medId);
-        const itemInfo = CATALOG[medId];
-
-        if (!itemInfo || itemInfo.non_expired_stock <= 0) {
-            alert(`Cannot dispense ${itemInfo ? itemInfo.name : 'item'}: No non-expired stock available.`);
+            infoDiv.classList.add('hidden');
+            stockNumberEl.textContent = '0';
+            stockUnitEl.textContent = 'Units';
+            stockContainer.className = 'w-full py-2.5 px-2 bg-slate-100 border-2 border-slate-300 rounded-2xl flex flex-col items-center justify-center text-center shadow-xs';
             return;
         }
 
-        if (existing) {
-            if (existing.quantity + defaultQty <= itemInfo.non_expired_stock) {
-                existing.quantity += defaultQty;
-            } else {
-                alert(`Cannot exceed total available non-expired stock (${itemInfo.non_expired_stock} units).`);
-            }
+        const med = CATALOG[medId];
+        const availableStock = med.non_expired_stock || 0;
+        
+        // Update Stock Counter Box beside Quantity
+        stockNumberEl.textContent = availableStock;
+        stockUnitEl.textContent = med.unit;
+
+        if (availableStock === 0) {
+            stockContainer.className = 'w-full py-2.5 px-2 bg-rose-50 border-2 border-rose-400 text-rose-900 rounded-2xl flex flex-col items-center justify-center text-center shadow-xs';
+            stockNumberEl.className = 'text-base font-black text-rose-700 font-mono';
+        } else if (availableStock <= med.reorder_point) {
+            stockContainer.className = 'w-full py-2.5 px-2 bg-amber-50 border-2 border-amber-400 text-amber-900 rounded-2xl flex flex-col items-center justify-center text-center shadow-xs';
+            stockNumberEl.className = 'text-base font-black text-amber-700 font-mono';
         } else {
-            cart.push({ med_id: medId, quantity: defaultQty });
-        }
-        renderCart();
-    }
-
-    function removeFromCart(medId) {
-        cart = cart.filter(item => item.med_id !== medId);
-        renderCart();
-    }
-
-    function updateQuantity(medId, newQty) {
-        const item = cart.find(i => i.med_id === medId);
-        const itemInfo = CATALOG[medId];
-        if (!item || !itemInfo) return;
-
-        let qty = parseInt(newQty);
-        if (isNaN(qty) || qty < 1) qty = 1;
-
-        if (qty > itemInfo.non_expired_stock) {
-            alert(`Requested quantity (${qty}) exceeds available non-expired stock (${itemInfo.non_expired_stock}).`);
-            qty = itemInfo.non_expired_stock;
+            stockContainer.className = 'w-full py-2.5 px-2 bg-emerald-50 border-2 border-emerald-400 text-emerald-900 rounded-2xl flex flex-col items-center justify-center text-center shadow-xs';
+            stockNumberEl.className = 'text-base font-black text-emerald-800 font-mono';
         }
 
-        item.quantity = qty;
-        renderCart();
+        // Update clean preview banner
+        document.getElementById('previewMedName').textContent = med.name;
+        document.getElementById('previewMedSku').textContent = `${med.sku} • ${med.section}`;
+        document.getElementById('previewMedPrice').textContent = formatNaira(med.selling_price);
+        
+        const qty = parseInt(qtyInput.value) || 1;
+        document.getElementById('previewMedSubtotal').textContent = formatNaira(med.selling_price * qty);
+
+        infoDiv.classList.remove('hidden');
     }
 
-    function resetCart() {
-        cart = [];
-        renderCart();
+    function onQuantityInputChange() {
+        const medId = document.getElementById('medicationSelect').value;
+        const qtyInput = document.getElementById('quantityInput');
+        if (medId && CATALOG[medId]) {
+            const med = CATALOG[medId];
+            const qty = parseInt(qtyInput.value) || 1;
+            document.getElementById('previewMedSubtotal').textContent = formatNaira(med.selling_price * qty);
+        }
     }
 
-    function renderCart() {
+    function adjustQuickQty(delta) {
+        const qtyInput = document.getElementById('quantityInput');
+        let current = parseInt(qtyInput.value) || 1;
+        current += delta;
+        if (current < 1) current = 1;
+        qtyInput.value = current;
+        onQuantityInputChange();
+    }
+
+    async function fetchCartContents() {
+        try {
+            const res = await fetch("{% url 'cart_get_contents' %}", {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await res.json();
+            renderCart(data);
+        } catch (e) {
+            console.error('Error fetching cart:', e);
+        }
+    }
+
+    function renderCart(cartData) {
         const tbody = document.getElementById('cartTableBody');
-        const submitBtn = document.getElementById('submitCheckoutBtn');
-        const cartCountBadge = document.getElementById('cartCountBadge');
-        const summaryItemCount = document.getElementById('summaryItemCount');
-        const summaryTotalUnits = document.getElementById('summaryTotalUnits');
+        const countBadge = document.getElementById('cartItemCountBadge');
+        const unitsCounter = document.getElementById('cartUnitsCounter');
+        const btnCheckout = document.getElementById('btnCheckout');
+        
+        const summaryItems = document.getElementById('summaryItemCount');
+        const summaryUnits = document.getElementById('summaryTotalUnits');
+        const summarySubtotal = document.getElementById('summarySubtotal');
         const summaryGrandTotal = document.getElementById('summaryGrandTotal');
-        const warningsBox = document.getElementById('checkoutWarnings');
-        const warningList = document.getElementById('warningList');
-        const itemsJsonInput = document.getElementById('itemsJsonInput');
 
-        if (cart.length === 0) {
+        if (!cartData.items || cartData.items.length === 0) {
             tbody.innerHTML = `
                 <tr id="emptyCartRow">
-                    <td colspan="5" class="px-6 py-12 text-center text-slate-400">
-                        <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                        <p class="font-semibold text-slate-600 text-sm">Your checkout cart is empty</p>
-                        <p class="text-xs text-slate-400 mt-1">Select a medication above to begin dispensing checkout.</p>
+                    <td colspan="6" class="px-6 py-14 text-center text-slate-400">
+                        <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        </div>
+                        <p class="font-black text-slate-800 text-base">Your dispense cart is empty</p>
+                        <p class="text-xs font-bold text-slate-400 mt-1 max-w-sm mx-auto">Select a medication from the stock list above and click <strong>+ Add</strong> to dispense.</p>
                     </td>
-                </tr>`;
-            submitBtn.disabled = true;
-            cartCountBadge.textContent = "0 Items";
-            summaryItemCount.textContent = "0";
-            summaryTotalUnits.textContent = "0";
-            summaryGrandTotal.textContent = "$0.00";
-            warningsBox.classList.add('hidden');
-            itemsJsonInput.value = "[]";
+                </tr>
+            `;
+            
+            countBadge.textContent = '0 Items';
+            unitsCounter.textContent = '0 Total Units';
+            summaryItems.textContent = '0';
+            summaryUnits.textContent = '0';
+            summarySubtotal.textContent = '₦0.00';
+            summaryGrandTotal.textContent = '₦0.00';
+            currentGrandTotal = 0;
+            btnCheckout.disabled = true;
+            calculateChange();
             return;
         }
 
-        submitBtn.disabled = false;
-        cartCountBadge.textContent = `${cart.length} Item${cart.length > 1 ? 's' : ''}`;
-        summaryItemCount.textContent = cart.length;
+        tbody.innerHTML = '';
 
-        let totalUnits = 0;
-        let grandTotal = 0;
-        let warnings = [];
-        let html = '';
+        cartData.items.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition';
 
-        cart.forEach(item => {
-            const info = CATALOG[item.med_id];
-            if (!info) return;
-
-            const qty = item.quantity;
-            totalUnits += qty;
-            const lineSubtotal = qty * info.unit_cost;
-            grandTotal += lineSubtotal;
-
-            const remainingStock = info.non_expired_stock - qty;
-
-            if (remainingStock === 0) {
-                warnings.push(`<strong>${info.name}</strong> stock will be completely depleted (0 units remaining).`);
-            } else if (remainingStock <= info.reorder_point) {
-                warnings.push(`<strong>${info.name}</strong> will drop to ${remainingStock} units (Below ROP threshold of ${info.reorder_point}).`);
-            }
-
-            // FEFO batch allocation preview
-            let needed = qty;
-            let batchBadgesHtml = '';
-            info.batches.forEach(b => {
-                if (needed <= 0) return;
-                const deduct = Math.min(b.quantity, needed);
-                needed -= deduct;
-                batchBadgesHtml += `
-                    <div class="inline-flex items-center space-x-1.5 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-mono mb-1 mr-1">
-                        <span class="font-bold text-slate-800">Batch ${b.batch_number}</span>
-                        <span class="text-slate-500">(Exp: ${b.expiry_date})</span>
-                        <span class="font-bold text-emerald-700">: -${deduct}</span>
-                    </div>`;
-            });
-
-            // Remaining stock badge styling
-            let stockBadgeClass = "bg-emerald-100 text-emerald-900 border-emerald-200";
-            if (remainingStock === 0) {
-                stockBadgeClass = "bg-rose-100 text-rose-900 border-rose-200 font-extrabold";
-            } else if (remainingStock <= info.reorder_point) {
-                stockBadgeClass = "bg-amber-100 text-amber-900 border-amber-200 font-bold";
-            }
-
-            html += `
-                <tr class="hover:bg-slate-50/80 transition">
-                    <td class="px-6 py-4">
-                        <p class="font-bold text-slate-900 text-sm">${info.name}</p>
-                        <p class="text-xs font-mono text-slate-500">${info.sku} • ${info.section} • $${info.unit_cost.toFixed(2)}/${info.unit}</p>
-                        <div class="text-[11px] text-slate-400 mt-0.5">Avail: ${info.non_expired_stock} ${info.unit}</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="flex items-center space-x-1">
-                            <button type="button" onclick="updateQuantity(${item.med_id}, ${qty - 1})" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition">-</button>
-                            <input type="number" min="1" max="${info.non_expired_stock}" value="${qty}" onchange="updateQuantity(${item.med_id}, this.value)" class="w-16 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-sm font-mono font-bold focus:ring-2 focus:ring-slate-400">
-                            <button type="button" onclick="updateQuantity(${item.med_id}, ${qty + 1})" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition">+</button>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 space-y-1.5">
-                        <div class="flex flex-wrap">${batchBadgesHtml}</div>
-                        <div class="flex items-center space-x-2 text-xs font-mono mt-1">
-                            <span class="text-slate-500 font-semibold uppercase text-[10px]">Stock Balance:</span>
-                            <span class="text-slate-400">${info.non_expired_stock}</span>
-                            <span class="text-slate-400">&rarr;</span>
-                            <span class="px-2.5 py-0.5 rounded-full border text-xs ${stockBadgeClass}">
-                                Remaining: ${remainingStock} ${info.unit}
-                            </span>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 text-right font-mono font-bold text-slate-900 text-sm">
-                        $${lineSubtotal.toFixed(2)}
-                    </td>
-                    <td class="px-4 py-4 text-center">
-                        <button type="button" onclick="removeFromCart(${item.med_id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition text-base font-bold" title="Remove item">
-                            &times;
-                        </button>
-                    </td>
-                </tr>`;
+            tr.innerHTML = `
+                <td class="px-6 py-4">
+                    <p class="font-black text-slate-900 text-sm">${item.name}</p>
+                    <p class="font-mono font-bold text-[11px] text-slate-500">${item.sku} • ${item.unit}</p>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-xl bg-emerald-100 border border-emerald-300 font-mono font-black text-emerald-900 text-xs">
+                        ${item.available_stock} ${item.unit}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex items-center justify-center space-x-1.5">
+                        <button type="button" onclick="updateCartItemQty(${item.medication_id}, ${item.quantity - 1})" class="w-7 h-7 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-900 font-black flex items-center justify-center transition shadow-xs">-</button>
+                        <input type="number" min="1" value="${item.quantity}" onchange="updateCartItemQty(${item.medication_id}, parseInt(this.value))" class="w-14 px-2 py-1 bg-white border-2 border-slate-300 rounded-lg text-center font-mono font-black text-xs text-slate-900 focus:ring-1 focus:ring-slate-900">
+                        <button type="button" onclick="updateCartItemQty(${item.medication_id}, ${item.quantity + 1})" class="w-7 h-7 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-900 font-black flex items-center justify-center transition shadow-xs">+</button>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-right font-mono font-black text-slate-900 text-xs">
+                    ${formatNaira(item.unit_price)}
+                </td>
+                <td class="px-6 py-4 text-right font-mono font-black text-emerald-700 text-sm">
+                    ${formatNaira(item.subtotal)}
+                </td>
+                <td class="px-4 py-4 text-center">
+                    <button type="button" onclick="removeCartItem(${item.medication_id})" class="w-8 h-8 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-100 flex items-center justify-center transition" title="Remove item">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
         });
 
-        tbody.innerHTML = html;
-        summaryTotalUnits.textContent = totalUnits;
-        summaryGrandTotal.textContent = `$${grandTotal.toFixed(2)}`;
-
-        if (warnings.length > 0) {
-            warningList.innerHTML = warnings.map(w => `<p>• ${w}</p>`).join('');
-            warningsBox.classList.remove('hidden');
-        } else {
-            warningsBox.classList.add('hidden');
-        }
-
-        // Prepare hidden input data
-        const payload = cart.map(i => ({ medication_id: i.med_id, quantity: i.quantity }));
-        itemsJsonInput.value = JSON.stringify(payload);
+        countBadge.textContent = `${cartData.item_count} Item${cartData.item_count > 1 ? 's' : ''}`;
+        unitsCounter.textContent = `${cartData.total_units} Total Units`;
+        summaryItems.textContent = cartData.item_count;
+        summaryUnits.textContent = `${cartData.total_units} units`;
+        summarySubtotal.textContent = formatNaira(cartData.total_naira);
+        summaryGrandTotal.textContent = formatNaira(cartData.total_naira);
+        currentGrandTotal = cartData.total_naira;
+        btnCheckout.disabled = false;
+        calculateChange();
     }
 
-    document.getElementById('dispenseForm').addEventListener('submit', function(e) {
-        const patientInput = document.getElementById('patientInfoInput').value.trim();
-        document.getElementById('hiddenPatientInfo').value = patientInput || "Patient Prescription FEFO Dispense";
-    });
+    async function addSelectedDrugToCart() {
+        const select = document.getElementById('medicationSelect');
+        const qtyInput = document.getElementById('quantityInput');
+        const medId = parseInt(select.value);
+        const qty = parseInt(qtyInput.value) || 1;
+
+        if (!medId) {
+            alert('Please select a medication from the catalog first.');
+            return;
+        }
+
+        if (qty <= 0) {
+            alert('Quantity must be greater than zero.');
+            return;
+        }
+
+        try {
+            const res = await fetch("{% url 'cart_add_item' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ medication_id: medId, quantity: qty })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                qtyInput.value = 1;
+                await fetchCartContents();
+            } else {
+                alert(data.error || 'Failed to add medication to cart.');
+            }
+        } catch (e) {
+            console.error('Error adding to cart:', e);
+            alert('A network error occurred while adding to cart.');
+        }
+    }
+
+    async function updateCartItemQty(medicationId, newQty) {
+        try {
+            const res = await fetch("{% url 'cart_update_item' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ medication_id: medicationId, quantity: newQty })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                await fetchCartContents();
+            } else {
+                alert(data.error || 'Unable to update item quantity.');
+                await fetchCartContents();
+            }
+        } catch (e) {
+            console.error('Error updating cart:', e);
+        }
+    }
+
+    async function removeCartItem(medicationId) {
+        try {
+            const res = await fetch("{% url 'cart_remove_item' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ medication_id: medicationId })
+            });
+            if (res.ok) {
+                await fetchCartContents();
+            }
+        } catch (e) {
+            console.error('Error removing item:', e);
+        }
+    }
+
+    async function clearCart() {
+        try {
+            const res = await fetch("{% url 'cart_clear' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            if (res.ok) {
+                await fetchCartContents();
+            }
+        } catch (e) {
+            console.error('Error clearing cart:', e);
+        }
+    }
+
+    function calculateChange() {
+        const tenderInput = document.getElementById('cashTenderInput');
+        const changeDisplay = document.getElementById('changeDueDisplay');
+        const tender = parseFloat(tenderInput.value) || 0;
+
+        if (tender <= 0 || currentGrandTotal <= 0) {
+            changeDisplay.textContent = '₦0.00';
+            changeDisplay.className = 'px-3 py-2 bg-white border-2 border-slate-200 rounded-xl font-mono text-xs font-black text-slate-800 flex items-center justify-center';
+            return;
+        }
+
+        const change = tender - currentGrandTotal;
+        if (change >= 0) {
+            changeDisplay.textContent = formatNaira(change);
+            changeDisplay.className = 'px-3 py-2 bg-emerald-50 border-2 border-emerald-400 rounded-xl font-mono text-xs font-black text-emerald-800 flex items-center justify-center';
+        } else {
+            changeDisplay.textContent = 'Short: ' + formatNaira(Math.abs(change));
+            changeDisplay.className = 'px-3 py-2 bg-rose-50 border-2 border-rose-400 rounded-xl font-mono text-xs font-black text-rose-800 flex items-center justify-center';
+        }
+    }
+
+    async function processCheckout() {
+        const patientInfo = document.getElementById('patientInfoInput').value.trim();
+        const paymentMethod = document.getElementById('paymentMethodSelect').value;
+        const notes = document.getElementById('transactionNotesInput').value.trim();
+
+        if (!patientInfo) {
+            alert('Please enter the Patient Name or Prescription Reference before completing checkout.');
+            document.getElementById('patientInfoInput').focus();
+            return;
+        }
+
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        loadingOverlay.classList.remove('hidden');
+
+        try {
+            const res = await fetch("{% url 'checkout_and_dispense' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    patient_info: patientInfo,
+                    payment_method: paymentMethod,
+                    notes: notes
+                })
+            });
+
+            const data = await res.json();
+            loadingOverlay.classList.add('hidden');
+
+            if (res.ok && data.success) {
+                // Clear fields
+                document.getElementById('patientInfoInput').value = '';
+                document.getElementById('transactionNotesInput').value = '';
+                document.getElementById('cashTenderInput').value = '';
+                
+                // Show receipt modal
+                showReceiptModal(data);
+                
+                // Refresh cart UI
+                fetchCartContents();
+            } else {
+                alert(data.error || 'Failed to complete checkout transaction.');
+            }
+        } catch (e) {
+            loadingOverlay.classList.add('hidden');
+            console.error('Checkout error:', e);
+            alert('An unexpected network error occurred during checkout.');
+        }
+    }
+
+    function showReceiptModal(saleData) {
+        document.getElementById('modalReceiptRef').textContent = `Receipt: ${saleData.transaction_ref}`;
+        document.getElementById('modalReceiptRefText').textContent = saleData.transaction_ref;
+        document.getElementById('modalReceiptDate').textContent = saleData.created_at;
+        document.getElementById('modalReceiptPayment').textContent = saleData.payment_method;
+        document.getElementById('modalReceiptPharmacist').textContent = saleData.pharmacist;
+        document.getElementById('modalReceiptPatient').textContent = saleData.patient_info || 'Walk-in Patient';
+        document.getElementById('modalReceiptGrandTotal').textContent = formatNaira(saleData.total_amount_naira);
+
+        const tbody = document.getElementById('modalReceiptItemsBody');
+        tbody.innerHTML = '';
+
+        if (saleData.dispensed_items) {
+            saleData.dispensed_items.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-5 py-3.5">
+                        <p class="font-black text-slate-900">${item.name}</p>
+                        <p class="font-mono font-bold text-[10px] text-slate-500">${item.sku} • Stock remaining: ${item.remaining_stock} ${item.unit}</p>
+                    </td>
+                    <td class="px-5 py-3.5 text-center font-mono font-black text-emerald-700">
+                        ${item.quantity} ${item.unit}
+                    </td>
+                    <td class="px-5 py-3.5 text-right font-mono text-slate-700 font-bold">
+                        ${formatNaira(item.unit_price)}
+                    </td>
+                    <td class="px-5 py-3.5 text-right font-mono font-black text-slate-900">
+                        ${formatNaira(item.subtotal)}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('receiptModal').classList.remove('hidden');
+    }
+
+    function closeReceiptModal() {
+        document.getElementById('receiptModal').classList.add('hidden');
+        window.location.reload();
+    }
+
+    function printReceiptArea() {
+        window.print();
+    }
 </script>
 {% endblock %}

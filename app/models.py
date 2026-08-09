@@ -98,12 +98,13 @@ class Medication(models.Model):
     section = models.ForeignKey(PharmacySection, on_delete=models.CASCADE, related_name='medications')
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True, related_name='medications')
     unit = models.CharField(max_length=50, default='Tablets')
-    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, default=5.00, help_text="Unit purchase price")
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, default=100.00, help_text="Unit purchase price in Nigerian Naira")
+    selling_price_per_unit = models.DecimalField(max_digits=10, decimal_places=2, default=200.00, help_text="Selling price per unit in Nigerian Naira")
 
     # FR3: Economic Order Quantity (EOQ) Parameters
     annual_demand = models.PositiveIntegerField(default=3600, help_text="Configured annual demand units")
-    ordering_cost = models.DecimalField(max_digits=10, decimal_places=2, default=50.00, help_text="Ordering cost S per PO")
-    holding_cost = models.DecimalField(max_digits=10, decimal_places=2, default=2.00, help_text="Annual holding cost H per unit")
+    ordering_cost = models.DecimalField(max_digits=10, decimal_places=2, default=500.00, help_text="Ordering cost S per PO in Nigerian Naira")
+    holding_cost = models.DecimalField(max_digits=10, decimal_places=2, default=20.00, help_text="Annual holding cost H per unit in Nigerian Naira")
 
     # FR4: Min-Max & ROP Parameters
     daily_consumption = models.PositiveIntegerField(default=10, help_text="Average daily usage units")
@@ -320,3 +321,62 @@ class StockAuditLedger(models.Model):
         payload = f"{self.transaction_id}:{self.user_identity}:{self.action_type}:{self.affected_entity}:{self.entity_pk}:{self.before_data}:{self.after_data}:{self.previous_hash}"
         computed = hashlib.sha256(payload.encode('utf-8')).hexdigest()
         return computed == self.current_hash
+
+
+class SalesTransaction(models.Model):
+    """Sales transaction record for medications dispensed and sold."""
+    PAYMENT_METHODS = (
+        ('CASH', 'Cash (₦)'),
+        ('POS_CARD', 'POS / Debit Card (₦)'),
+        ('TRANSFER', 'Bank Transfer (₦)'),
+        ('INSURANCE', 'Health Insurance / HMO'),
+    )
+
+    transaction_ref = models.CharField(max_length=50, unique=True, editable=False)
+    pharmacist = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
+    total_amount_naira = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default='CASH')
+    
+    patient_info = models.CharField(max_length=255, blank=True, help_text="Patient name or prescription reference")
+    notes = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.transaction_ref:
+            self.transaction_ref = f"SALE-{timezone.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.transaction_ref} - ₦{self.total_amount_naira:,.2f}"
+
+    @property
+    def total_units_sold(self):
+        return self.items.aggregate(models.Sum('quantity_sold'))['quantity_sold__sum'] or 0
+
+    @property
+    def item_count(self):
+        return self.items.count()
+
+
+class SalesTransactionItem(models.Model):
+    """Individual medication items in a sales transaction."""
+    sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE, related_name='items')
+    medication = models.ForeignKey(Medication, on_delete=models.SET_NULL, null=True)
+    quantity_sold = models.PositiveIntegerField()
+    unit_price_naira = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal_naira = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        ordering = ['-sales_transaction__created_at', 'medication__name']
+
+    def save(self, *args, **kwargs):
+        self.subtotal_naira = self.quantity_sold * self.unit_price_naira
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.medication.name} x{self.quantity_sold} @ ₦{self.unit_price_naira}"

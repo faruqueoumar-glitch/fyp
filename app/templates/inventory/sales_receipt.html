@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Sales Receipt {{ transaction.transaction_ref }} | PharmaAudit OS{% endblock %}
+
+{% block main_content %}
+<div class="max-w-3xl mx-auto space-y-6 animate-fade-in">
+    <!-- Top Action Bar (hidden when printing) -->
+    <div class="flex items-center justify-between no-print bg-white border border-slate-200/80 p-4 sm:p-6 rounded-3xl shadow-xs">
+        <a href="{% url 'fefo_dispense' %}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition flex items-center space-x-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            <span>Back to Dispense POS</span>
+        </a>
+        <button onclick="window.print()" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            <span>Print Official Receipt</span>
+        </button>
+    </div>
+
+    <!-- Official Printable Receipt Card -->
+    <div class="bg-white border-2 border-slate-200 rounded-3xl p-6 sm:p-10 shadow-sm space-y-8 print:border-none print:shadow-none print:p-0">
+        
+        <!-- Pharmacy Header -->
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-slate-200 pb-6 gap-4">
+            <div>
+                <div class="flex items-center space-x-2 mb-1">
+                    <span class="w-7 h-7 rounded-xl bg-emerald-600 text-white font-black text-sm flex items-center justify-center">₦</span>
+                    <h1 class="text-xl sm:text-2xl font-black tracking-tight text-slate-900">PharmaAudit OS</h1>
+                </div>
+                <p class="text-xs font-bold text-slate-600">Central Pharmacy Dispensing & Stock Audit Console</p>
+                <p class="text-xs text-slate-400 font-mono mt-0.5">Licensed Pharmaceutical Hospital Operations (Nigeria)</p>
+            </div>
+            <div class="sm:text-right">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono font-black bg-emerald-100 text-emerald-900 border border-emerald-300 uppercase">
+                    Paid & Dispensed
+                </span>
+                <h3 class="text-base font-black font-mono text-slate-900 mt-1">{{ transaction.transaction_ref }}</h3>
+                <p class="text-xs font-bold text-slate-500 font-mono">{{ transaction.created_at|date:"Y-m-d H:i:s" }}</p>
+            </div>
+        </div>
+
+        <!-- Transaction Meta Info Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-100 rounded-2xl border border-slate-200 text-xs font-bold">
+            <div>
+                <span class="text-slate-500 uppercase text-[10px] font-black">Patient / Rx Ref:</span>
+                <p class="font-black text-slate-900 mt-0.5 text-sm">{{ transaction.patient_info|default:"Walk-in Patient" }}</p>
+            </div>
+            <div>
+                <span class="text-slate-500 uppercase text-[10px] font-black">Payment Method:</span>
+                <p class="font-black text-emerald-700 mt-0.5 text-xs">{{ transaction.get_payment_method_display }}</p>
+            </div>
+            <div>
+                <span class="text-slate-500 uppercase text-[10px] font-black">Dispensing Staff:</span>
+                <p class="font-bold text-slate-900 mt-0.5 text-xs">{{ transaction.pharmacist.first_name|default:transaction.pharmacist.email }}</p>
+            </div>
+            <div>
+                <span class="text-slate-500 uppercase text-[10px] font-black">Currency:</span>
+                <p class="font-mono font-black text-slate-900 mt-0.5 text-xs">NGN (₦)</p>
+            </div>
+        </div>
+
+        {% if transaction.notes %}
+        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+            <span class="text-slate-500 uppercase text-[10px] font-black">Clinical Notes:</span>
+            <p class="text-slate-800 mt-0.5 font-bold">{{ transaction.notes }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Line Items Table -->
+        <div class="overflow-x-auto rounded-2xl border-2 border-slate-200">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-700 font-black uppercase tracking-wider text-[11px] border-b-2 border-slate-200">
+                    <tr>
+                        <th class="px-5 py-3.5">#</th>
+                        <th class="px-5 py-3.5">Medication & SKU</th>
+                        <th class="px-5 py-3.5 text-center">Qty</th>
+                        <th class="px-5 py-3.5 text-right">Unit Price (₦)</th>
+                        <th class="px-5 py-3.5 text-right">Subtotal (₦)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-800 font-bold">
+                    {% for item in transaction.items.all %}
+                    <tr class="hover:bg-slate-50/50">
+                        <td class="px-5 py-4 font-mono text-slate-400 font-bold">{{ forloop.counter }}</td>
+                        <td class="px-5 py-4">
+                            <p class="font-black text-slate-900 text-sm">{{ item.medication.name }}</p>
+                            <p class="font-mono text-[11px] text-slate-500 font-bold">{{ item.medication.sku }} • {{ item.medication.unit }}</p>
+                        </td>
+                        <td class="px-5 py-4 text-center font-mono font-black text-emerald-700 text-sm">
+                            {{ item.quantity_sold }} {{ item.medication.unit }}
+                        </td>
+                        <td class="px-5 py-4 text-right font-mono font-bold text-slate-700">
+                            ₦{{ item.unit_price_naira|floatformat:2 }}
+                        </td>
+                        <td class="px-5 py-4 text-right font-mono font-black text-slate-900 text-sm">
+                            ₦{{ item.subtotal_naira|floatformat:2 }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-slate-100 border-t-2 border-slate-200 font-black text-xs">
+                    <tr>
+                        <td colspan="4" class="px-5 py-4 text-right uppercase text-slate-700 font-black">Grand Total Paid:</td>
+                        <td class="px-5 py-4 text-right font-mono text-xl text-slate-900 font-black">
+                            ₦{{ transaction.total_amount_naira|floatformat:2 }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Footer / Certification -->
+        <div class="border-t-2 border-slate-200 pt-6 text-center space-y-2 text-slate-500 text-xs font-bold">
+            <p class="text-slate-700">Thank you for your visit. Please store medications in a cool, dry place as directed.</p>
+            <p class="font-mono text-[10px] text-slate-400">Audit Verification Hash: SHA-256 Verified in StockAuditLedger • Ref: {{ transaction.transaction_ref }}</p>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -17,7 +17,7 @@ from .forms import (
 )
 from .models import (
     PharmacySection, Medication, MedicationBatch, StockAuditLedger,
-    Supplier, PurchaseOrder, PurchaseOrderItem
+    Supplier, PurchaseOrder, PurchaseOrderItem, SalesTransaction, SalesTransactionItem
 )
 from notifications.notification_services import NotificationService
 
@@ -112,6 +112,117 @@ DEFAULT_SECTIONS = [
     }
 ]
 
+DEFAULT_MEDICATIONS = [
+    {
+        'name': 'Paracetamol 500mg',
+        'sku': 'MED-PCM-500',
+        'section_code': 'SEC-OUTP',
+        'supplier_name': 'Emzor Pharmaceutical Industries',
+        'unit': 'Tablets',
+        'unit_cost': 50.00,
+        'selling_price_per_unit': 100.00,
+        'annual_demand': 12000,
+        'ordering_cost': 500.00,
+        'holding_cost': 10.00,
+        'daily_consumption': 40,
+        'lead_time_days': 5,
+        'safety_stock': 200,
+        'max_level': 2500,
+        'batch_qty': 800,
+        'exp_days': 365,
+    },
+    {
+        'name': 'Amoxicillin 500mg',
+        'sku': 'MED-AMX-500',
+        'section_code': 'SEC-MAIN',
+        'supplier_name': 'Fidson Healthcare Plc',
+        'unit': 'Capsules',
+        'unit_cost': 150.00,
+        'selling_price_per_unit': 250.00,
+        'annual_demand': 4800,
+        'ordering_cost': 500.00,
+        'holding_cost': 20.00,
+        'daily_consumption': 15,
+        'lead_time_days': 7,
+        'safety_stock': 100,
+        'max_level': 1000,
+        'batch_qty': 450,
+        'exp_days': 180,
+    },
+    {
+        'name': 'Artemether/Lumefantrine 80/480mg',
+        'sku': 'MED-ACT-80480',
+        'section_code': 'SEC-MAIN',
+        'supplier_name': 'Swiss Pharma Nigeria Limited (Swipha)',
+        'unit': 'Tablets',
+        'unit_cost': 800.00,
+        'selling_price_per_unit': 1200.00,
+        'annual_demand': 3600,
+        'ordering_cost': 500.00,
+        'holding_cost': 50.00,
+        'daily_consumption': 12,
+        'lead_time_days': 7,
+        'safety_stock': 80,
+        'max_level': 800,
+        'batch_qty': 300,
+        'exp_days': 240,
+    },
+    {
+        'name': 'Ciprofloxacin 500mg',
+        'sku': 'MED-CIP-500',
+        'section_code': 'SEC-MAIN',
+        'supplier_name': 'May & Baker Nigeria Plc',
+        'unit': 'Tablets',
+        'unit_cost': 200.00,
+        'selling_price_per_unit': 350.00,
+        'annual_demand': 3000,
+        'ordering_cost': 500.00,
+        'holding_cost': 25.00,
+        'daily_consumption': 10,
+        'lead_time_days': 7,
+        'safety_stock': 60,
+        'max_level': 600,
+        'batch_qty': 250,
+        'exp_days': 300,
+    },
+    {
+        'name': 'Metronidazole 400mg',
+        'sku': 'MED-FLG-400',
+        'section_code': 'SEC-OUTP',
+        'supplier_name': 'Emzor Pharmaceutical Industries',
+        'unit': 'Tablets',
+        'unit_cost': 60.00,
+        'selling_price_per_unit': 120.00,
+        'annual_demand': 6000,
+        'ordering_cost': 500.00,
+        'holding_cost': 12.00,
+        'daily_consumption': 20,
+        'lead_time_days': 5,
+        'safety_stock': 120,
+        'max_level': 1200,
+        'batch_qty': 500,
+        'exp_days': 400,
+    },
+    {
+        'name': 'Omeprazole 20mg',
+        'sku': 'MED-OMP-20',
+        'section_code': 'SEC-OUTP',
+        'supplier_name': 'Fidson Healthcare Plc',
+        'unit': 'Capsules',
+        'unit_cost': 180.00,
+        'selling_price_per_unit': 300.00,
+        'annual_demand': 2400,
+        'ordering_cost': 500.00,
+        'holding_cost': 30.00,
+        'daily_consumption': 8,
+        'lead_time_days': 7,
+        'safety_stock': 50,
+        'max_level': 500,
+        'batch_qty': 200,
+        'exp_days': 210,
+    }
+]
+
 def ensure_master_defaults():
     if PharmacySection.objects.count() == 0:
         for s in DEFAULT_SECTIONS:
@@ -119,6 +230,21 @@ def ensure_master_defaults():
     if Supplier.objects.count() == 0:
         for sup in DEFAULT_SUPPLIERS:
             Supplier.objects.get_or_create(name=sup['name'], defaults=sup)
+            
+    # Normalize legacy low prices to standard Nigerian Naira if any exist below ₦20
+    for med in Medication.objects.all():
+        updated = False
+        if med.unit_cost < 20:
+            med.unit_cost = 100.00
+            updated = True
+        if med.selling_price_per_unit < 50:
+            med.selling_price_per_unit = 200.00
+            updated = True
+        if med.ordering_cost < 100:
+            med.ordering_cost = 500.00
+            updated = True
+        if updated:
+            med.save()
 
 
 # Pharmacy Sections Management View
@@ -418,83 +544,8 @@ def receive_batch_view(request):
     return render(request, 'inventory/receive_batch.html', {'form': form})
 
 
-# FR5: FEFO Dispensing Logic
-@login_required
-def fefo_dispense_view(request):
-    """Enforces FEFO dispensing logic at point of transaction."""
-    med_id = request.GET.get('medication')
-    initial_data = {}
-    if med_id:
-        initial_data['medication'] = med_id
 
-    form = FEFODispenseForm(request.POST or None, initial=initial_data)
-    if request.method == 'POST' and form.is_valid():
-        medication = form.cleaned_data['medication']
-        quantity_to_dispense = form.cleaned_data['quantity']
-        reason = form.cleaned_data.get('reason') or "Patient Prescription FEFO Dispense"
 
-        today = timezone.now().date()
-        # FEFO: Active non-expired batches ordered by earliest expiry date first
-        active_batches = medication.batches.filter(quantity__gt=0, expiry_date__gt=today).order_by('expiry_date')
-
-        total_available = sum(b.quantity for b in active_batches)
-        if quantity_to_dispense > total_available:
-            messages.error(request, f"Cannot dispense {quantity_to_dispense} units. Only {total_available} non-expired units available.")
-            return render(request, 'inventory/fefo_dispense.html', {'form': form})
-
-        remaining_needed = quantity_to_dispense
-        dispensed_details = []
-
-        with transaction.atomic():
-            before_stock = medication.current_stock
-            for batch in active_batches:
-                if remaining_needed <= 0:
-                    break
-
-                deduct = min(batch.quantity, remaining_needed)
-                batch.quantity -= deduct
-                batch.save()
-                remaining_needed -= deduct
-
-                dispensed_details.append(f"Batch {batch.batch_number} (Exp: {batch.expiry_date}): {deduct} units")
-
-            after_stock = medication.current_stock
-
-            log_audit_trail(
-                request,
-                'DISPENSE_FEFO',
-                'Medication',
-                medication.id,
-                {'stock': before_stock},
-                {'stock': after_stock, 'dispensed_qty': quantity_to_dispense, 'batches': dispensed_details},
-                reason
-            )
-
-        # Real-time alert triggers for low stock & ROP breach
-        if medication.current_stock == 0:
-            NotificationService.send_bulk_notification(
-                recipients=User.objects.all(),
-                actor=request.user,
-                title="OUT OF STOCK ALERT",
-                message=f"Critical: {medication.name} is now completely out of stock!",
-                target_obj=medication,
-                category='out_of_stock'
-            )
-        elif medication.current_stock <= medication.reorder_point:
-            NotificationService.send_bulk_notification(
-                recipients=User.objects.all(),
-                actor=request.user,
-                title="ROP BREACH ALERT",
-                message=f"Warning: {medication.name} stock ({medication.current_stock}) has dropped to/below ROP ({medication.reorder_point}).",
-                target_obj=medication,
-                category='rop_alert'
-            )
-
-        details_str = " | ".join(dispensed_details)
-        messages.success(request, f"FEFO Dispense Successful! {quantity_to_dispense} {medication.unit} dispensed. Batches used: {details_str}")
-        return redirect('medications_list')
-
-    return render(request, 'inventory/fefo_dispense.html', {'form': form})
 
 
 # Physical Stock Count Adjustment View
@@ -785,7 +836,7 @@ def export_report_csv(request):
             writer.writerow([med.sku, med.name, med.section.name, med.current_stock, med.reorder_point, med.min_level, med.max_level, med.eoq, med.stock_status])
 
     elif report_type == 'abc_classification':
-        writer.writerow(['SKU', 'Medication Name', 'Annual Demand', 'Unit Cost ($)', 'Annual Consumption Value ($)', 'Cumulative %', 'ABC Category'])
+        writer.writerow(['SKU', 'Medication Name', 'Annual Demand', 'Unit Cost (₦)', 'Annual Consumption Value (₦)', 'Cumulative %', 'ABC Category'])
         abc_list = calculate_abc_classification()
         for item in abc_list:
             m = item['medication']
@@ -802,3 +853,470 @@ def export_report_csv(request):
             writer.writerow([a.transaction_id, a.timestamp, a.user_identity, a.action_type, a.affected_entity, a.entity_pk, a.ip_address, a.current_hash])
 
     return response
+
+
+# FR5+: FEFO Dispensing with Cart System and Sales Transactions
+@login_required
+def fefo_dispense_view(request):
+    """Multi-item FEFO dispensing and POS sales management view."""
+    ensure_master_defaults()
+    today = timezone.now().date()
+    
+    medications = Medication.objects.all().select_related('section', 'supplier').prefetch_related('batches').order_by('name')
+    
+    catalog = {}
+    for med in medications:
+        active_batches = med.batches.filter(quantity__gt=0, expiry_date__gt=today).order_by('expiry_date')
+        batches_list = [{
+            'id': b.id,
+            'batch_number': b.batch_number,
+            'quantity': b.quantity,
+            'expiry_date': b.expiry_date.strftime('%Y-%m-%d'),
+            'days_to_expiry': b.days_to_expiry,
+        } for b in active_batches]
+        
+        catalog[str(med.id)] = {
+            'id': med.id,
+            'name': med.name,
+            'sku': med.sku,
+            'unit': med.unit,
+            'section': med.section.name if med.section else 'General',
+            'supplier': med.supplier.name if med.supplier else 'N/A',
+            'unit_cost': float(med.unit_cost),
+            'selling_price': float(med.selling_price_per_unit),
+            'non_expired_stock': med.non_expired_stock,
+            'reorder_point': med.reorder_point,
+            'min_level': med.min_level,
+            'batches': batches_list,
+        }
+        
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_sales_qs = SalesTransaction.objects.filter(created_at__gte=today_start)
+    today_sales_total = today_sales_qs.aggregate(Sum('total_amount_naira'))['total_amount_naira__sum'] or 0.00
+    today_tx_count = today_sales_qs.count()
+    today_units_total = SalesTransactionItem.objects.filter(sales_transaction__created_at__gte=today_start).aggregate(Sum('quantity_sold'))['quantity_sold__sum'] or 0
+    
+    recent_sales = SalesTransaction.objects.all().prefetch_related('items__medication', 'pharmacist').order_by('-created_at')[:15]
+    
+    context = {
+        'medications': medications,
+        'catalog_json': json.dumps(catalog),
+        'today_sales_total': float(today_sales_total),
+        'today_tx_count': today_tx_count,
+        'today_units_total': today_units_total,
+        'recent_sales': recent_sales,
+        'payment_methods': SalesTransaction.PAYMENT_METHODS,
+        'selected_med_id': request.GET.get('medication', '')
+    }
+    return render(request, 'inventory/fefo_dispense.html', context)
+
+
+@login_required
+def cart_add_item(request):
+    """AJAX endpoint to add medication to cart."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        medication_id = data.get('medication_id')
+        quantity = int(data.get('quantity', 1))
+
+        if quantity <= 0:
+            return JsonResponse({'error': 'Quantity must be greater than zero'}, status=400)
+
+        medication = get_object_or_404(Medication, id=medication_id)
+
+        # Validate available stock (non-expired)
+        today = timezone.now().date()
+        available_stock = medication.batches.filter(quantity__gt=0, expiry_date__gt=today).aggregate(Sum('quantity'))['quantity__sum'] or 0
+
+        # Initialize cart in session if not exists
+        if 'cart' not in request.session:
+            request.session['cart'] = {}
+
+        cart = request.session['cart']
+        med_id_str = str(medication_id)
+        current_in_cart = cart.get(med_id_str, {}).get('quantity', 0)
+        new_total_qty = current_in_cart + quantity
+
+        if new_total_qty > available_stock:
+            return JsonResponse({
+                'error': f'Cannot add {quantity} units. Only {available_stock} non-expired units available in inventory (currently in cart: {current_in_cart}).',
+                'available': available_stock
+            }, status=400)
+
+        if med_id_str in cart:
+            cart[med_id_str]['quantity'] = new_total_qty
+        else:
+            cart[med_id_str] = {
+                'medication_id': medication.id,
+                'name': medication.name,
+                'sku': medication.sku,
+                'unit': medication.unit,
+                'quantity': quantity,
+                'unit_price': float(medication.selling_price_per_unit)
+            }
+
+        request.session['cart'] = cart
+        request.session.modified = True
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Added {quantity} {medication.unit} of {medication.name} to cart',
+            'cart_count': sum(item['quantity'] for item in cart.values()),
+            'unique_items': len(cart)
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+def cart_update_item(request):
+    """AJAX endpoint to update cart item quantity."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        medication_id = data.get('medication_id')
+        quantity = int(data.get('quantity', 0))
+
+        if 'cart' not in request.session:
+            return JsonResponse({'error': 'Cart is empty'}, status=400)
+
+        cart = request.session['cart']
+        med_id_str = str(medication_id)
+
+        if med_id_str not in cart:
+            return JsonResponse({'error': 'Item not in cart'}, status=404)
+
+        if quantity <= 0:
+            del cart[med_id_str]
+            request.session['cart'] = cart
+            request.session.modified = True
+            return JsonResponse({
+                'success': True,
+                'message': 'Item removed from cart',
+                'cart_count': sum(item['quantity'] for item in cart.values()),
+                'unique_items': len(cart)
+            })
+
+        medication = get_object_or_404(Medication, id=medication_id)
+
+        # Validate available stock
+        today = timezone.now().date()
+        available_stock = medication.batches.filter(quantity__gt=0, expiry_date__gt=today).aggregate(Sum('quantity'))['quantity__sum'] or 0
+
+        if quantity > available_stock:
+            return JsonResponse({
+                'error': f'Cannot set quantity to {quantity}. Only {available_stock} non-expired units available.',
+                'available': available_stock
+            }, status=400)
+
+        cart[med_id_str]['quantity'] = quantity
+        request.session['cart'] = cart
+        request.session.modified = True
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Cart updated successfully',
+            'cart_count': sum(item['quantity'] for item in cart.values()),
+            'unique_items': len(cart)
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+def cart_remove_item(request):
+    """AJAX endpoint to remove item from cart."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        medication_id = data.get('medication_id')
+
+        if 'cart' not in request.session:
+            return JsonResponse({'error': 'Cart is empty'}, status=400)
+
+        cart = request.session['cart']
+        med_id_str = str(medication_id)
+
+        if med_id_str in cart:
+            med_name = cart[med_id_str]['name']
+            del cart[med_id_str]
+            request.session['cart'] = cart
+            request.session.modified = True
+
+            return JsonResponse({
+                'success': True,
+                'message': f'Removed {med_name} from cart',
+                'cart_count': sum(item['quantity'] for item in cart.values()),
+                'unique_items': len(cart)
+            })
+
+        return JsonResponse({'error': 'Item not found in cart'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+def cart_get_contents(request):
+    """AJAX endpoint to get current cart contents and totals with live stock counts."""
+    if 'cart' not in request.session:
+        return JsonResponse({
+            'items': [],
+            'total_units': 0,
+            'total_naira': 0.00,
+            'item_count': 0
+        })
+
+    cart = request.session['cart']
+    items = []
+    total_naira = 0
+    total_units = 0
+    today = timezone.now().date()
+
+    for med_id_str, item in cart.items():
+        qty = item['quantity']
+        price = item['unit_price']
+        subtotal = qty * price
+        total_naira += subtotal
+        total_units += qty
+
+        # Get fresh available stock
+        med = Medication.objects.filter(id=item['medication_id']).first()
+        available_stock = med.batches.filter(quantity__gt=0, expiry_date__gt=today).aggregate(Sum('quantity'))['quantity__sum'] or 0 if med else 0
+
+        items.append({
+            'medication_id': item['medication_id'],
+            'name': item['name'],
+            'sku': item['sku'],
+            'unit': item['unit'],
+            'quantity': qty,
+            'unit_price': price,
+            'subtotal': subtotal,
+            'available_stock': available_stock
+        })
+
+    return JsonResponse({
+        'items': items,
+        'total_units': total_units,
+        'total_naira': float(total_naira),
+        'item_count': len(items)
+    })
+
+
+@login_required
+def cart_clear(request):
+    """AJAX endpoint to clear entire cart."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+    request.session['cart'] = {}
+    request.session.modified = True
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Cart cleared',
+        'cart_count': 0,
+        'unique_items': 0
+    })
+
+
+@login_required
+def checkout_and_dispense(request):
+    """Finalize sale: create SalesTransaction, perform FEFO dispensing, update stock, log immutable audit trail."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+    if 'cart' not in request.session or not request.session['cart']:
+        return JsonResponse({'error': 'Cart is currently empty. Please add medications before checkout.'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        patient_info = data.get('patient_info', '').strip()
+        payment_method = data.get('payment_method', 'CASH').strip()
+        if payment_method == 'POS':
+            payment_method = 'POS_CARD'
+        notes = data.get('notes', '').strip()
+
+        cart = request.session['cart']
+        today = timezone.now().date()
+
+        with transaction.atomic():
+            # Create sales transaction
+            sales_tx = SalesTransaction.objects.create(
+                pharmacist=request.user,
+                patient_info=patient_info,
+                payment_method=payment_method,
+                notes=notes
+            )
+
+            total_amount = 0
+            dispensed_summary = []
+
+            for med_id_str, cart_item in cart.items():
+                medication_id = cart_item['medication_id']
+                quantity_to_dispense = int(cart_item['quantity'])
+                unit_price = float(cart_item['unit_price'])
+
+                medication = get_object_or_404(Medication, id=medication_id)
+
+                # FEFO: Get active non-expired batches ordered by earliest expiry date first
+                active_batches = medication.batches.filter(quantity__gt=0, expiry_date__gt=today).order_by('expiry_date')
+
+                total_available = sum(b.quantity for b in active_batches)
+                if quantity_to_dispense > total_available:
+                    raise ValueError(f"Insufficient stock for {medication.name}. Available non-expired: {total_available}, Requested: {quantity_to_dispense}")
+
+                # Perform FEFO deduction
+                remaining_needed = quantity_to_dispense
+                batch_details = []
+                before_stock = medication.current_stock
+
+                for batch in active_batches:
+                    if remaining_needed <= 0:
+                        break
+
+                    deduct = min(batch.quantity, remaining_needed)
+                    batch.quantity -= deduct
+                    batch.save()
+                    remaining_needed -= deduct
+
+                    batch_details.append({
+                        'batch_number': batch.batch_number,
+                        'expiry_date': str(batch.expiry_date),
+                        'deducted_qty': deduct
+                    })
+
+                after_stock = medication.current_stock
+
+                # Create sales transaction item
+                subtotal = quantity_to_dispense * unit_price
+                total_amount += subtotal
+
+                SalesTransactionItem.objects.create(
+                    sales_transaction=sales_tx,
+                    medication=medication,
+                    quantity_sold=quantity_to_dispense,
+                    unit_price_naira=unit_price,
+                    subtotal_naira=subtotal
+                )
+
+                dispensed_summary.append({
+                    'medication_id': medication.id,
+                    'name': medication.name,
+                    'sku': medication.sku,
+                    'unit': medication.unit,
+                    'quantity': quantity_to_dispense,
+                    'unit_price': unit_price,
+                    'subtotal': subtotal,
+                    'batches': batch_details,
+                    'before_stock': before_stock,
+                    'remaining_stock': after_stock
+                })
+
+                # Log immutable StockAuditLedger entry
+                batch_str_list = [f"Batch {b['batch_number']} (Exp: {b['expiry_date']}): -{b['deducted_qty']}" for b in batch_details]
+                log_audit_trail(
+                    request,
+                    'DISPENSE_FEFO',
+                    'Medication',
+                    medication.id,
+                    {'stock': before_stock},
+                    {
+                        'stock': after_stock,
+                        'dispensed_qty': quantity_to_dispense,
+                        'batches': batch_str_list,
+                        'unit_price_naira': float(unit_price),
+                        'subtotal_naira': float(subtotal),
+                        'transaction_ref': sales_tx.transaction_ref
+                    },
+                    f"POS Sale #{sales_tx.transaction_ref}: Dispensed {quantity_to_dispense} {medication.unit} @ ₦{unit_price:,.2f} ({sales_tx.get_payment_method_display()})"
+                )
+
+                # Real-time alert notifications for low stock & ROP breach
+                if after_stock == 0:
+                    NotificationService.send_bulk_notification(
+                        recipients=User.objects.all(),
+                        actor=request.user,
+                        title="OUT OF STOCK ALERT",
+                        message=f"Critical: {medication.name} is now completely out of stock!",
+                        target_obj=medication,
+                        category='out_of_stock'
+                    )
+                elif after_stock <= medication.reorder_point:
+                    NotificationService.send_bulk_notification(
+                        recipients=User.objects.all(),
+                        actor=request.user,
+                        title="ROP BREACH ALERT",
+                        message=f"Warning: {medication.name} stock ({after_stock}) has reached or dropped below ROP ({medication.reorder_point}).",
+                        target_obj=medication,
+                        category='rop_alert'
+                    )
+
+            # Update transaction total
+            sales_tx.total_amount_naira = total_amount
+            sales_tx.save()
+
+            # Clear cart session
+            request.session['cart'] = {}
+            request.session.modified = True
+
+            return JsonResponse({
+                'success': True,
+                'transaction_ref': sales_tx.transaction_ref,
+                'total_amount_naira': float(total_amount),
+                'payment_method': sales_tx.get_payment_method_display(),
+                'patient_info': sales_tx.patient_info,
+                'notes': sales_tx.notes,
+                'pharmacist': request.user.first_name or request.user.email,
+                'created_at': sales_tx.created_at.strftime('%b %d, %Y %I:%M %p'),
+                'total_units': sum(s['quantity'] for s in dispensed_summary),
+                'items_count': len(dispensed_summary),
+                'dispensed_items': dispensed_summary,
+                'message': f'Dispense and Sale completed successfully! Ref: {sales_tx.transaction_ref}'
+            })
+
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'Checkout error: {str(e)}'}, status=500)
+
+
+@login_required
+def sales_receipt_view(request, transaction_ref):
+    """View / print / download a sales receipt."""
+    sales_tx = get_object_or_404(SalesTransaction.objects.prefetch_related('items__medication'), transaction_ref=transaction_ref)
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+        items_data = [{
+            'medication_name': item.medication.name if item.medication else 'Unknown Item',
+            'sku': item.medication.sku if item.medication else 'N/A',
+            'unit': item.medication.unit if item.medication else 'unit',
+            'quantity': item.quantity_sold,
+            'unit_price': float(item.unit_price_naira),
+            'subtotal': float(item.subtotal_naira)
+        } for item in sales_tx.items.all()]
+        
+        return JsonResponse({
+            'transaction_ref': sales_tx.transaction_ref,
+            'created_at': sales_tx.created_at.strftime('%b %d, %Y %I:%M %p'),
+            'pharmacist': sales_tx.pharmacist.email if sales_tx.pharmacist else 'System',
+            'patient_info': sales_tx.patient_info,
+            'payment_method': sales_tx.get_payment_method_display(),
+            'notes': sales_tx.notes,
+            'total_amount_naira': float(sales_tx.total_amount_naira),
+            'items': items_data
+        })
+        
+    return render(request, 'inventory/sales_receipt.html', {'transaction': sales_tx})
+
+
+
