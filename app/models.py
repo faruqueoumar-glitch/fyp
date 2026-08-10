@@ -1,10 +1,38 @@
 import hashlib
 import math
 import uuid
-from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.models import AbstractUser, BaseUserManager, Group
 from django.core.exceptions import PermissionDenied
 from django.db import models
 from django.utils import timezone
+
+ROLE_PERMISSIONS = {
+    'ADMIN': {
+        'manage_users',
+        'configure_system',
+        'manage_suppliers',
+        'view_stock_dashboard',
+        'search_drug_records',
+        'view_audit_trail',
+    },
+    'PHARMACIST': {
+        'view_stock_dashboard',
+        'record_stock_receipt',
+        'dispense_stock',
+        'acknowledge_rop',
+        'record_stock_adjustment',
+        'search_drug_records',
+    },
+    'MANAGER': {
+        'view_stock_dashboard',
+        'acknowledge_rop',
+        'search_drug_records',
+        'generate_reports',
+        'approve_purchase_orders',
+        'review_abc_classification',
+        'view_audit_trail',
+    },
+}
 
 
 class CustomUserManager(BaseUserManager):
@@ -51,17 +79,99 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return f"{self.email} [{self.get_role_display()}]"
 
+    def has_permission(self, permission_name):
+        """Explicit permission verification based on defined RBAC matrix."""
+        if not self.is_authenticated:
+            return False
+        if self.is_superuser:
+            return True
+        allowed_perms = ROLE_PERMISSIONS.get(self.role, set())
+        return permission_name in allowed_perms
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        try:
+            role_to_group = {
+                'ADMIN': 'Admin',
+                'PHARMACIST': 'Pharmacist',
+                'MANAGER': 'Manager',
+            }
+            group_name = role_to_group.get(self.role)
+            if group_name:
+                group, _ = Group.objects.get_or_create(name=group_name)
+                for other_name in role_to_group.values():
+                    if other_name != group_name:
+                        other_g = Group.objects.filter(name=other_name).first()
+                        if other_g:
+                            self.groups.remove(other_g)
+                self.groups.add(group)
+        except Exception:
+            pass
+
     @property
     def is_admin(self):
         return self.role == 'ADMIN' or self.is_superuser
 
     @property
     def is_pharmacist(self):
-        return self.role in ['PHARMACIST', 'ADMIN'] or self.is_superuser
+        return self.role == 'PHARMACIST' or self.is_superuser
 
     @property
     def is_manager(self):
-        return self.role in ['MANAGER', 'ADMIN'] or self.is_superuser
+        return self.role == 'MANAGER' or self.is_superuser
+
+    # Explicit granular permission properties
+    @property
+    def can_manage_users(self):
+        return self.has_permission('manage_users')
+
+    @property
+    def can_configure_system(self):
+        return self.has_permission('configure_system')
+
+    @property
+    def can_manage_suppliers(self):
+        return self.has_permission('manage_suppliers')
+
+    @property
+    def can_view_stock_dashboard(self):
+        return self.has_permission('view_stock_dashboard')
+
+    @property
+    def can_search_drug_records(self):
+        return self.has_permission('search_drug_records')
+
+    @property
+    def can_view_audit_trail(self):
+        return self.has_permission('view_audit_trail')
+
+    @property
+    def can_record_stock_receipt(self):
+        return self.has_permission('record_stock_receipt')
+
+    @property
+    def can_dispense_stock(self):
+        return self.has_permission('dispense_stock')
+
+    @property
+    def can_acknowledge_rop(self):
+        return self.has_permission('acknowledge_rop')
+
+    @property
+    def can_record_stock_adjustment(self):
+        return self.has_permission('record_stock_adjustment')
+
+    @property
+    def can_generate_reports(self):
+        return self.has_permission('generate_reports')
+
+    @property
+    def can_approve_purchase_orders(self):
+        return self.has_permission('approve_purchase_orders')
+
+    @property
+    def can_review_abc_classification(self):
+        return self.has_permission('review_abc_classification')
 
 
 class Supplier(models.Model):

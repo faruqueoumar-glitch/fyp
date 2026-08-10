@@ -30,6 +30,7 @@
           <span>Overview</span>
           <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
         </div>
+        {% if user.can_view_stock_dashboard %}
         <!-- Real-Time Dashboard -->
         <a
           href="{% url 'dashboard' %}"
@@ -50,6 +51,7 @@
           </svg>
           <span>Dashboard</span>
         </a>
+        {% endif %}
 
         <!-- Real-Time Alerts -->
         <a
@@ -79,6 +81,7 @@
           <span>Catalog & Master Data</span>
           <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
         </div>
+        {% if user.can_search_drug_records %}
         <!-- Stock Catalog (EOQ & ROP) -->
         <a
           href="{% url 'medications_list' %}"
@@ -99,7 +102,9 @@
           </svg>
           <span>Stock Catalog (EOQ/ROP)</span>
         </a>
+        {% endif %}
 
+        {% if user.can_configure_system %}
         <!-- Pharmacy Sections -->
         <a
           href="{% url 'sections_list' %}"
@@ -120,7 +125,9 @@
           </svg>
           <span>Pharmacy Sections</span>
         </a>
+        {% endif %}
 
+        {% if user.can_manage_suppliers %}
         <!-- Suppliers Directory -->
         <a
           href="{% url 'suppliers_list' %}"
@@ -141,8 +148,9 @@
           </svg>
           <span>Suppliers Directory</span>
         </a>
+        {% endif %}
 
-        {% if user.is_admin or user.is_manager %}
+        {% if user.can_manage_users %}
         <!-- User Management -->
         <a
           href="{% url 'manage_users' %}"
@@ -166,12 +174,14 @@
         {% endif %}
       </div>
 
+      {% if user.can_dispense_stock or user.can_record_stock_receipt or user.can_record_stock_adjustment %}
       <!-- Section 3: Inventory Operations -->
       <div class="space-y-1">
         <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
           <span>Inventory Operations</span>
           <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
         </div>
+        {% if user.can_dispense_stock %}
         <!-- Dispense & POS Sales -->
         <a
           href="{% url 'fefo_dispense' %}"
@@ -192,7 +202,9 @@
           </svg>
           <span>Dispense & Sales POS</span>
         </a>
+        {% endif %}
 
+        {% if user.can_record_stock_receipt %}
         <!-- Goods Receipt Intake -->
         <a
           href="{% url 'receive_batch' %}"
@@ -213,7 +225,9 @@
           </svg>
           <span>Goods Receipt Intake</span>
         </a>
+        {% endif %}
 
+        {% if user.can_record_stock_adjustment %}
         <!-- Physical Stock Audit -->
         <a
           href="{% url 'stock_adjustment' %}"
@@ -234,15 +248,18 @@
           </svg>
           <span>Physical Stock Audit</span>
         </a>
-
+        {% endif %}
       </div>
+      {% endif %}
 
-      <!-- Section 4: Procurement & Optimization -->
+      {% if user.can_approve_purchase_orders or user.can_review_abc_classification or user.can_acknowledge_rop %}
+      <!-- Section 4: Procurement & Analytics -->
       <div class="space-y-1">
         <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
           <span>Procurement & Analytics</span>
           <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
         </div>
+        {% if user.can_approve_purchase_orders %}
         <!-- Purchase Orders (EOQ) -->
         <a
           href="{% url 'purchase_orders' %}"
@@ -263,7 +280,9 @@
           </svg>
           <span>Purchase Orders (EOQ)</span>
         </a>
+        {% endif %}
 
+        {% if user.can_review_abc_classification %}
         <!-- ABC Classification -->
         <a
           href="{% url 'abc_classification' %}"
@@ -284,7 +303,9 @@
           </svg>
           <span>ABC Classification</span>
         </a>
+        {% endif %}
 
+        {% if user.can_acknowledge_rop %}
         <!-- FEFO Expiry Alerts -->
         <a
           href="{% url 'expiries_monitoring' %}"
@@ -305,14 +326,18 @@
           </svg>
           <span>FEFO Expiry Alerts</span>
         </a>
+        {% endif %}
       </div>
+      {% endif %}
 
+      {% if user.can_view_audit_trail or user.can_generate_reports %}
       <!-- Section 5: Audit & Reporting -->
       <div class="space-y-1">
         <div class="px-3 pb-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-800/80 mb-1.5">
           <span>Audit & Reporting</span>
           <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
         </div>
+        {% if user.can_view_audit_trail %}
         <!-- Immutable Audit Ledger -->
         <a
           href="{% url 'stock_audit_ledger' %}"
@@ -333,7 +358,9 @@
           </svg>
           <span>Immutable Audit Trail</span>
         </a>
+        {% endif %}
 
+        {% if user.can_generate_reports %}
         <!-- Reports & CSV Export -->
         <a
           href="{% url 'reports' %}"
@@ -354,7 +381,9 @@
           </svg>
           <span>Reports & CSV Export</span>
         </a>
+        {% endif %}
       </div>
+      {% endif %}
     </nav>
   </div>
 </aside>

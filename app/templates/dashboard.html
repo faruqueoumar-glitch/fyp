@@ -96,6 +96,29 @@ PharmaAudit OS{% endblock %} {% block main_content %}
 
   <!-- Quick Action Bar -->
   <div class="flex flex-wrap gap-3.5 text-sm font-semibold">
+    {% if user.can_dispense_stock %}
+    <a
+      href="{% url 'fefo_dispense' %}"
+      class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md flex items-center space-x-2 transition-all duration-200"
+    >
+      <svg
+        class="w-4 h-4 text-white"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+        />
+      </svg>
+      <span>Dispense & Sales POS</span>
+    </a>
+    {% endif %}
+
+    {% if user.can_record_stock_adjustment %}
     <a
       href="{% url 'stock_adjustment' %}"
       class="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-md flex items-center space-x-2 transition-all duration-200"
@@ -115,7 +138,9 @@ PharmaAudit OS{% endblock %} {% block main_content %}
       </svg>
       <span>Physical Stock Audit</span>
     </a>
+    {% endif %}
 
+    {% if user.can_record_stock_receipt %}
     <a
       href="{% url 'receive_batch' %}"
       class="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl shadow-md flex items-center space-x-2 transition-all duration-200"
@@ -135,7 +160,9 @@ PharmaAudit OS{% endblock %} {% block main_content %}
       </svg>
       <span>Goods Receipt Intake</span>
     </a>
+    {% endif %}
 
+    {% if user.can_approve_purchase_orders %}
     <a
       href="{% url 'purchase_orders' %}"
       class="px-5 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl shadow-md flex items-center space-x-2 transition-all duration-200"
@@ -155,7 +182,9 @@ PharmaAudit OS{% endblock %} {% block main_content %}
       </svg>
       <span>Purchase Orders (EOQ)</span>
     </a>
+    {% endif %}
 
+    {% if user.can_review_abc_classification %}
     <a
       href="{% url 'abc_classification' %}"
       class="px-5 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl shadow-md flex items-center space-x-2 transition-all duration-200"
@@ -175,7 +204,9 @@ PharmaAudit OS{% endblock %} {% block main_content %}
       </svg>
       <span>ABC Classification</span>
     </a>
+    {% endif %}
 
+    {% if user.can_generate_reports %}
     <a
       href="{% url 'reports' %}"
       class="px-5 py-3 bg-zinc-100 hover:bg-zinc-200 text-slate-800 border border-slate-300 rounded-xl shadow-sm flex items-center space-x-2 transition-all duration-200"
@@ -195,6 +226,7 @@ PharmaAudit OS{% endblock %} {% block main_content %}
       </svg>
       <span>Generate Reports & CSV</span>
     </a>
+    {% endif %}
   </div>
 
   <!-- Main Grid: FR4 ROP Engine & FR6 ABC & FR7 Expiry Module -->
@@ -259,14 +291,14 @@ PharmaAudit OS{% endblock %} {% block main_content %}
           </div>
 
           <div class="flex-shrink-0">
-            {% if med.supplier %}
+            {% if med.supplier and user.can_acknowledge_rop %}
             <a
               href="{% url 'auto_generate_draft_po' med.id %}"
               class="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-sm transition"
             >
               <span>+ Draft PO</span>
             </a>
-            {% else %}
+            {% elif not med.supplier %}
             <span class="text-xs text-slate-400 font-medium italic"
               >No Supplier Configured</span
             >
@@ -395,6 +427,7 @@ PharmaAudit OS{% endblock %} {% block main_content %}
                 }} | Qty: {{ batch.quantity }}
               </p>
             </div>
+            {% if user.can_acknowledge_rop %}
             <form method="POST" action="{% url 'quarantine_batch' batch.id %}">
               {% csrf_token %}
               <button
@@ -404,6 +437,7 @@ PharmaAudit OS{% endblock %} {% block main_content %}
                 Quarantine
               </button>
             </form>
+            {% endif %}
           </div>
           {% endfor %} {% endif %} {% if critical_30_batches %} {% for batch in critical_30_batches %}
           <div
@@ -440,6 +474,7 @@ PharmaAudit OS{% endblock %} {% block main_content %}
     </div>
   </div>
 
+  {% if user.can_view_audit_trail %}
   <!-- FR2: Immutable Audit Trail Table Feed -->
   <div
     class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50"
@@ -515,5 +550,6 @@ PharmaAudit OS{% endblock %} {% block main_content %}
       </table>
     </div>
   </div>
+  {% endif %}
 </div>
 {% endblock %}

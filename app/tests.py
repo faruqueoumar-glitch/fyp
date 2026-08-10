@@ -72,13 +72,20 @@ class ComprehensiveFRTests(TestCase):
 
         self.assertLessEqual(self.med.current_stock, self.med.reorder_point)
 
-        # Trigger auto draft PO
+        # Trigger auto draft PO as Pharmacist (who has acknowledge_rop)
         response = self.client.get(reverse('auto_generate_draft_po', args=[self.med.id]))
-        self.assertRedirects(response, reverse('purchase_orders'))
+        # Pharmacist redirected to medications_list because they cannot approve POs
+        self.assertRedirects(response, reverse('medications_list'))
 
         po = PurchaseOrder.objects.filter(supplier=self.supplier, status='DRAFT').first()
         self.assertIsNotNone(po)
         self.assertEqual(po.items.first().eoq_recommended_qty, self.med.eoq)
+
+        # Trigger auto draft PO as Manager (who has acknowledge_rop AND can_approve_purchase_orders)
+        self.client.login(email='manager@hospital.org', password='Password123!')
+        response_mgr = self.client.get(reverse('auto_generate_draft_po', args=[self.med.id]))
+        self.assertRedirects(response_mgr, reverse('purchase_orders'))
+        self.client.login(email='pharmacist@hospital.org', password='Password123!')
 
     def test_physical_stock_adjustment(self):
         """Reconciles system inventory with physical count audit."""
@@ -114,11 +121,87 @@ class ComprehensiveFRTests(TestCase):
         self.assertEqual(abc_data[0]['category'], 'A')
 
     def test_fr9_csv_export(self):
-        """FR9: Exports CSV report"""
+        """FR9: Exports CSV report (Authorized for Manager with generate_reports)"""
+        # Pharmacist should be denied
+        res_pharma = self.client.get(reverse('export_report_csv') + '?type=stock_status')
+        self.assertNotEqual(res_pharma.status_code, 200)
+
+        # Manager is authorized
+        self.client.login(email='manager@hospital.org', password='Password123!')
         response = self.client.get(reverse('export_report_csv') + '?type=stock_status')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/csv')
         self.assertContains(response, 'Amoxicillin 500mg')
+        self.client.login(email='pharmacist@hospital.org', password='Password123!')
+
+    def test_explicit_role_permissions_matrix(self):
+        """Explicitly test the granular RBAC permissions matrix for Admin, Pharmacist, and Manager."""
+        # Admin Group
+        admin_perms = {
+            'manage_users': True,
+            'configure_system': True,
+            'manage_suppliers': True,
+            'view_stock_dashboard': True,
+            'search_drug_records': True,
+            'view_audit_trail': True,
+            'dispense_stock': False,
+            'record_stock_receipt': False,
+            'record_stock_adjustment': False,
+            'approve_purchase_orders': False,
+            'generate_reports': False,
+        }
+        for perm, expected in admin_perms.items():
+            self.assertEqual(
+                self.admin.has_permission(perm),
+                expected,
+                f"Admin permission mismatch for {perm}: expected {expected}"
+            )
+
+        # Pharmacist Group
+        pharmacist_perms = {
+            'view_stock_dashboard': True,
+            'record_stock_receipt': True,
+            'dispense_stock': True,
+            'acknowledge_rop': True,
+            'record_stock_adjustment': True,
+            'search_drug_records': True,
+            'manage_users': False,
+            'configure_system': False,
+            'manage_suppliers': False,
+            'approve_purchase_orders': False,
+            'generate_reports': False,
+            'review_abc_classification': False,
+            'view_audit_trail': False,
+        }
+        for perm, expected in pharmacist_perms.items():
+            self.assertEqual(
+                self.pharmacist.has_permission(perm),
+                expected,
+                f"Pharmacist permission mismatch for {perm}: expected {expected}"
+            )
+
+        # Manager Group
+        manager_perms = {
+            'view_stock_dashboard': True,
+            'acknowledge_rop': True,
+            'search_drug_records': True,
+            'generate_reports': True,
+            'approve_purchase_orders': True,
+            'review_abc_classification': True,
+            'view_audit_trail': True,
+            'manage_users': False,
+            'configure_system': False,
+            'manage_suppliers': False,
+            'dispense_stock': False,
+            'record_stock_receipt': False,
+            'record_stock_adjustment': False,
+        }
+        for perm, expected in manager_perms.items():
+            self.assertEqual(
+                self.manager.has_permission(perm),
+                expected,
+                f"Manager permission mismatch for {perm}: expected {expected}"
+            )
 
     def test_user_registration_flow(self):
         """Test registration creates user, logs them in automatically, and redirects to dashboard."""

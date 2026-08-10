@@ -73,13 +73,15 @@
                             {% endif %}
                         </td>
                         <td class="p-4">
-                            {% if batch.quantity > 0 %}
+                            {% if batch.quantity > 0 and user.can_acknowledge_rop %}
                             <form method="POST" action="{% url 'quarantine_batch' batch.id %}" onsubmit="return confirm('Quarantine batch {{ batch.batch_number }}? Quantity will be set to 0 and logged in audit ledger.');">
                                 {% csrf_token %}
                                 <button type="submit" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-2xs transition">
                                     Quarantine Batch
                                 </button>
                             </form>
+                            {% elif batch.quantity > 0 %}
+                            <span class="text-xs text-slate-400 font-semibold uppercase">Active (Locked)</span>
                             {% else %}
                             <span class="text-xs text-slate-400 font-semibold uppercase">Quarantined / Depleted</span>
                             {% endif %}

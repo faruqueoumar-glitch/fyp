@@ -12,10 +12,12 @@
             <p class="text-sm text-slate-500 font-sans mt-1">Reorder Point $ROP = (Daily \times Lead) + Safety$, Economic Order Quantity $EOQ = \sqrt{\frac{2DS}{H}}$</p>
         </div>
 
+        {% if user.can_configure_system %}
         <button onclick="document.getElementById('addMedModal').classList.remove('hidden')" class="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl shadow-md transition-all duration-200 flex items-center space-x-2 flex-shrink-0">
             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
             <span>Register New Drug Item</span>
         </button>
+        {% endif %}
     </div>
 
     <!-- Filter & Search Bar -->
@@ -91,13 +93,18 @@
                         </td>
                         <td class="p-4">
                             <div class="flex items-center space-x-2">
+                                {% if user.can_record_stock_adjustment %}
                                 <a href="{% url 'stock_adjustment' %}?medication={{ med.id }}" class="inline-flex items-center px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl shadow-2xs transition">
                                     Audit Stock
                                 </a>
-                                {% if med.current_stock <= med.reorder_point and med.supplier %}
+                                {% endif %}
+                                {% if user.can_acknowledge_rop and med.current_stock <= med.reorder_point and med.supplier %}
                                 <a href="{% url 'auto_generate_draft_po' med.id %}" class="inline-flex items-center px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-2xs transition">
                                     + Auto PO
                                 </a>
+                                {% endif %}
+                                {% if not user.can_record_stock_adjustment and not user.can_acknowledge_rop %}
+                                <span class="text-slate-400 text-xs italic">Read-only</span>
                                 {% endif %}
                             </div>
                         </td>
@@ -114,6 +121,7 @@
 
 </div>
 
+{% if user.can_configure_system %}
 <!-- Modal: Register New Medication -->
 <div id="addMedModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="max-w-2xl w-full border border-slate-200 bg-white p-6 sm:p-8 rounded-3xl shadow-2xl text-sm max-h-[90vh] overflow-y-auto">
@@ -208,4 +216,5 @@
         </form>
     </div>
 </div>
+{% endif %}
 {% endblock %}

@@ -1,4 +1,5 @@
 import csv
+from functools import wraps
 import json
 from datetime import datetime, timedelta
 from django.contrib import messages
@@ -22,6 +23,30 @@ from .models import (
 from notifications.notification_services import NotificationService
 
 User = get_user_model()
+
+
+def require_permission(permission_name):
+    """Decorator to explicitly enforce role-based access permissions."""
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                return redirect('login')
+            if not request.user.has_permission(permission_name):
+                # If AJAX request, return JsonResponse with 403 status
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+                    return JsonResponse({
+                        'success': False,
+                        'error': f"Access Denied. You do not have the required permission: '{permission_name}'."
+                    }, status=403)
+                messages.error(
+                    request,
+                    f"Access Denied. Your role ({request.user.get_role_display()}) does not have permission to access this resource ({permission_name})."
+                )
+                return redirect('dashboard')
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
+    return decorator
 
 
 def log_audit_trail(request, action_type, affected_entity, entity_pk, before_data, after_data, reason=""):
@@ -248,7 +273,7 @@ def ensure_master_defaults():
 
 
 # Pharmacy Sections Management View
-@login_required
+@require_permission('configure_system')
 def sections_list_view(request):
     ensure_master_defaults()
     form = PharmacySectionForm(request.POST or None)
@@ -263,7 +288,7 @@ def sections_list_view(request):
 
 
 # Suppliers Management View
-@login_required
+@require_permission('manage_suppliers')
 def suppliers_list_view(request):
     ensure_master_defaults()
     form = SupplierForm(request.POST or None)
@@ -363,7 +388,7 @@ def logout_view(request):
     return redirect('login')
 
 
-@login_required
+@require_permission('manage_users')
 def manage_users_view(request):
     if not request.user.is_admin:
         messages.error(request, "Access denied. Only Administrators can manage users.")
@@ -448,7 +473,7 @@ def medication_stock_api(request, medication_id):
 
 
 # FR1 & Dashboard View
-@login_required
+@require_permission('view_stock_dashboard')
 def dashboard_view(request):
     ensure_master_defaults()
     medications = Medication.objects.all()
@@ -510,7 +535,7 @@ def dashboard_view(request):
 
 
 # 3.2.2.1 Goods Receipt Intake View
-@login_required
+@require_permission('record_stock_receipt')
 def receive_batch_view(request):
     """Capturing drug identity, supplier, batch number, manufacture date, expiry date, and quantity received."""
     form = GoodsReceiptForm(request.POST or None)
@@ -549,7 +574,7 @@ def receive_batch_view(request):
 
 
 # Physical Stock Count Adjustment View
-@login_required
+@require_permission('record_stock_adjustment')
 def stock_adjustment_view(request):
     form = StockAdjustmentForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
@@ -587,7 +612,7 @@ def stock_adjustment_view(request):
 
 
 # Medications Catalog & ROP / EOQ Optimization View
-@login_required
+@require_permission('search_drug_records')
 def medications_list_view(request):
     ensure_master_defaults()
     query = request.GET.get('q', '')
@@ -614,7 +639,7 @@ def medications_list_view(request):
     return render(request, 'medications/list.html', context)
 
 
-@login_required
+@require_permission('configure_system')
 def add_medication_view(request):
     form = MedicationForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
@@ -625,7 +650,7 @@ def add_medication_view(request):
 
 
 # FR3 & FR4: Purchase Orders & Automated Draft PO Generation
-@login_required
+@require_permission('approve_purchase_orders')
 def purchase_orders_view(request):
     orders = PurchaseOrder.objects.all()
     form = PurchaseOrderForm(request.POST or None)
@@ -662,7 +687,7 @@ def purchase_orders_view(request):
     return render(request, 'orders/purchase_orders.html', context)
 
 
-@login_required
+@require_permission('acknowledge_rop')
 def auto_generate_draft_po_view(request, medication_id):
     """FR4: Automatically generates a draft purchase order using supplier and EOQ guidance."""
     med = get_object_or_404(Medication, id=medication_id)
@@ -694,15 +719,13 @@ def auto_generate_draft_po_view(request, medication_id):
         category='po_created'
     )
     messages.success(request, f"Draft Purchase Order {po.po_number} generated for {med.name} with EOQ quantity {eoq_qty}!")
-    return redirect('purchase_orders')
-
-
-@login_required
-def approve_po_view(request, po_id):
-    if not request.user.is_manager:
-        messages.error(request, "Only Manager or Administrator roles can approve purchase orders.")
+    if request.user.can_approve_purchase_orders:
         return redirect('purchase_orders')
+    return redirect('medications_list')
 
+
+@require_permission('approve_purchase_orders')
+def approve_po_view(request, po_id):
     po = get_object_or_404(PurchaseOrder, id=po_id)
     po.status = 'APPROVED'
     po.save()
@@ -720,7 +743,7 @@ def approve_po_view(request, po_id):
 
 
 # FR6: ABC Classification Console View
-@login_required
+@require_permission('review_abc_classification')
 def abc_classification_view(request):
     abc_data = calculate_abc_classification()
     context = {
@@ -730,7 +753,7 @@ def abc_classification_view(request):
 
 
 # FR7: Expiry Monitoring & Quarantine View
-@login_required
+@require_permission('acknowledge_rop')
 def expiries_monitoring_view(request):
     status_filter = request.GET.get('status', '')
     today = timezone.now().date()
@@ -750,7 +773,7 @@ def expiries_monitoring_view(request):
     return render(request, 'inventory/expiries.html', context)
 
 
-@login_required
+@require_permission('acknowledge_rop')
 def quarantine_batch_view(request, batch_id):
     batch = get_object_or_404(MedicationBatch, id=batch_id)
     before_qty = batch.quantity
@@ -779,7 +802,7 @@ def quarantine_batch_view(request, batch_id):
 
 
 # FR2: Immutable Audit Ledger View
-@login_required
+@require_permission('view_audit_trail')
 def stock_audit_ledger_view(request):
     action_filter = request.GET.get('action', '')
     audits = StockAuditLedger.objects.all()
@@ -805,7 +828,7 @@ def stock_audit_ledger_view(request):
 
 
 # FR9: Comprehensive Reporting Console & Export Engine
-@login_required
+@require_permission('generate_reports')
 def reports_view(request):
     report_type = request.GET.get('type', 'stock_status')
     medications = Medication.objects.all()
@@ -821,7 +844,7 @@ def reports_view(request):
     return render(request, 'reports/reports.html', context)
 
 
-@login_required
+@require_permission('generate_reports')
 def export_report_csv(request):
     """FR9: Exports requested report in CSV format."""
     report_type = request.GET.get('type', 'stock_status')
@@ -856,7 +879,7 @@ def export_report_csv(request):
 
 
 # FR5+: FEFO Dispensing with Cart System and Sales Transactions
-@login_required
+@require_permission('dispense_stock')
 def fefo_dispense_view(request):
     """Multi-item FEFO dispensing and POS sales management view."""
     ensure_master_defaults()
@@ -911,7 +934,7 @@ def fefo_dispense_view(request):
     return render(request, 'inventory/fefo_dispense.html', context)
 
 
-@login_required
+@require_permission('dispense_stock')
 def cart_add_item(request):
     """AJAX endpoint to add medication to cart."""
     if request.method != 'POST':
@@ -972,7 +995,7 @@ def cart_add_item(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
-@login_required
+@require_permission('dispense_stock')
 def cart_update_item(request):
     """AJAX endpoint to update cart item quantity."""
     if request.method != 'POST':
@@ -1030,7 +1053,7 @@ def cart_update_item(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
-@login_required
+@require_permission('dispense_stock')
 def cart_remove_item(request):
     """AJAX endpoint to remove item from cart."""
     if request.method != 'POST':
@@ -1065,7 +1088,7 @@ def cart_remove_item(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
-@login_required
+@require_permission('dispense_stock')
 def cart_get_contents(request):
     """AJAX endpoint to get current cart contents and totals with live stock counts."""
     if 'cart' not in request.session:
@@ -1112,7 +1135,7 @@ def cart_get_contents(request):
     })
 
 
-@login_required
+@require_permission('dispense_stock')
 def cart_clear(request):
     """AJAX endpoint to clear entire cart."""
     if request.method != 'POST':
@@ -1129,7 +1152,7 @@ def cart_clear(request):
     })
 
 
-@login_required
+@require_permission('dispense_stock')
 def checkout_and_dispense(request):
     """Finalize sale: create SalesTransaction, perform FEFO dispensing, update stock, log immutable audit trail."""
     if request.method != 'POST':
