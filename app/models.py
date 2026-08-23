@@ -14,6 +14,13 @@ ROLE_PERMISSIONS = {
         'view_stock_dashboard',
         'search_drug_records',
         'view_audit_trail',
+        'record_stock_receipt',
+        'dispense_stock',
+        'acknowledge_rop',
+        'record_stock_adjustment',
+        'generate_reports',
+        'approve_purchase_orders',
+        'review_abc_classification',
     },
     'PHARMACIST': {
         'view_stock_dashboard',
@@ -83,7 +90,7 @@ class CustomUser(AbstractUser):
         """Explicit permission verification based on defined RBAC matrix."""
         if not self.is_authenticated:
             return False
-        if self.is_superuser:
+        if self.is_superuser or self.role == 'ADMIN':
             return True
         allowed_perms = ROLE_PERMISSIONS.get(self.role, set())
         return permission_name in allowed_perms
@@ -114,11 +121,11 @@ class CustomUser(AbstractUser):
 
     @property
     def is_pharmacist(self):
-        return self.role == 'PHARMACIST' or self.is_superuser
+        return self.role == 'PHARMACIST' or self.is_admin
 
     @property
     def is_manager(self):
-        return self.role == 'MANAGER' or self.is_superuser
+        return self.role == 'MANAGER' or self.is_admin
 
     # Explicit granular permission properties
     @property

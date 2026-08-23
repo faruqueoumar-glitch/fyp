@@ -365,19 +365,11 @@ def login_view(request):
 
 def register_view(request):
     if request.user.is_authenticated:
+        if request.user.is_admin:
+            return redirect('manage_users')
         return redirect('dashboard')
-
-    form = RegisterForm(request.POST or None)
-    if request.method == 'POST' and form.is_valid():
-        user = form.save(commit=False)
-        user.set_password(form.cleaned_data['password'])
-        user.save()
-        login(request, user)
-        log_audit_trail(request, 'USER_LOGIN', 'User', user.id, {}, {'user': user.email, 'role': user.role}, 'New user account registered')
-        messages.success(request, f"Account registered successfully as {user.get_role_display()}.")
-        return redirect('dashboard')
-
-    return render(request, 'auth/register.html', {'form': form})
+    messages.error(request, "Public account registration is disabled. Staff accounts must be created by a System Administrator.")
+    return redirect('login')
 
 
 def logout_view(request):
@@ -402,12 +394,14 @@ def manage_users_view(request):
             if form.is_valid():
                 u = form.save(commit=False)
                 u.set_password(form.cleaned_data['password'])
+                u.is_staff = True
                 u.save()
-                log_audit_trail(request, 'USER_CREATE', 'User', u.id, {}, {'user': u.email, 'role': u.role}, 'User account provisioned by admin')
-                messages.success(request, f"User account {u.email} provisioned successfully.")
+                log_audit_trail(request, 'USER_CREATE', 'User', u.id, {}, {'user': u.email, 'role': u.role}, f"Staff account provisioned by admin: {request.user.email}")
+                messages.success(request, f"New staff account '{u.email}' ({u.get_role_display()}) provisioned successfully.")
             else:
-                for err in form.errors.values():
-                    messages.error(request, err.as_text())
+                for field, errs in form.errors.items():
+                    for err in errs:
+                        messages.error(request, f"{field.replace('_', ' ').title()}: {err}")
             return redirect('manage_users')
 
         user_id = request.POST.get('user_id')
@@ -426,16 +420,58 @@ def manage_users_view(request):
                 )
                 messages.success(request, f"Updated role for {target_user.email} to {target_user.get_role_display()}.")
 
+        elif action == 'edit_user':
+            first_name = request.POST.get('first_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            email = request.POST.get('email', '').strip()
+            role = request.POST.get('role', '').strip()
+
+            if email and User.objects.filter(email=email).exclude(id=target_user.id).exists():
+                messages.error(request, f"Email address '{email}' is already in use by another user account.")
+            else:
+                old_info = {'email': target_user.email, 'role': target_user.role, 'first_name': target_user.first_name, 'last_name': target_user.last_name}
+                target_user.first_name = first_name
+                target_user.last_name = last_name
+                if email:
+                    target_user.email = email
+                if role in dict(User.ROLE_CHOICES):
+                    target_user.role = role
+                target_user.save()
+
+                log_audit_trail(
+                    request, 'USER_UPDATE', 'User', target_user.id,
+                    old_info,
+                    {'email': target_user.email, 'role': target_user.role, 'first_name': target_user.first_name, 'last_name': target_user.last_name},
+                    f"User details updated for {target_user.email}"
+                )
+                messages.success(request, f"User details for '{target_user.email}' updated successfully.")
+
         elif action == 'toggle_active':
-            target_user.is_active = not target_user.is_active
-            target_user.save()
-            status_text = "activated" if target_user.is_active else "deactivated"
-            log_audit_trail(
-                request, 'USER_UPDATE', 'User', target_user.id,
-                {}, {'is_active': target_user.is_active},
-                f"User account {status_text} for {target_user.email}"
-            )
-            messages.success(request, f"User account {target_user.email} has been {status_text}.")
+            if target_user.id == request.user.id:
+                messages.error(request, "You cannot suspend your own active administrator account.")
+            else:
+                target_user.is_active = not target_user.is_active
+                target_user.save()
+                status_text = "activated" if target_user.is_active else "suspended"
+                log_audit_trail(
+                    request, 'USER_UPDATE', 'User', target_user.id,
+                    {}, {'is_active': target_user.is_active},
+                    f"User account {status_text} for {target_user.email}"
+                )
+                messages.success(request, f"User account '{target_user.email}' has been {status_text}.")
+
+        elif action == 'delete_user':
+            if target_user.id == request.user.id:
+                messages.error(request, "You cannot delete your own logged-in administrator account.")
+            else:
+                user_email = target_user.email
+                log_audit_trail(
+                    request, 'USER_DELETE', 'User', target_user.id,
+                    {'email': user_email, 'role': target_user.role}, {},
+                    f"User account deleted for {user_email}"
+                )
+                target_user.delete()
+                messages.success(request, f"User account '{user_email}' has been deleted successfully.")
 
         return redirect('manage_users')
 

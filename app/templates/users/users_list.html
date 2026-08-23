@@ -34,21 +34,30 @@
                     <tr>
                         <th class="px-6 py-4">User Identity</th>
                         <th class="px-6 py-4">Role</th>
-                        <th class="px-6 py-4">Status / Privileges</th>
                         <th class="px-6 py-4">Date Registered</th>
-                        <th class="px-6 py-4 text-right">Role Assignment</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-slate-700">
                     {% for u in users_list %}
-                    <tr class="hover:bg-slate-50/70 transition">
+                    <tr class="hover:bg-slate-50/70 transition {% if not u.is_active %}bg-rose-50/30{% endif %}">
                         <td class="px-6 py-4">
                             <div class="flex items-center space-x-3">
                                 <div class="w-9 h-9 rounded-xl bg-slate-900 text-white font-bold flex items-center justify-center text-sm shadow-xs">
                                     {{ u.first_name|default:u.email|slice:":1"|upper }}
                                 </div>
                                 <div>
-                                    <p class="font-bold text-slate-900">{{ u.first_name }} {{ u.last_name }}</p>
+                                    <div class="flex items-center space-x-2">
+                                        <p class="font-bold text-slate-900">{{ u.first_name }} {{ u.last_name }}</p>
+                                        {% if u.id == request.user.id %}
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-700 border border-indigo-200">You</span>
+                                        {% endif %}
+                                        {% if not u.is_active %}
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700 border border-rose-200">Suspended</span>
+                                        {% else %}
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 border border-emerald-200">Active</span>
+                                        {% endif %}
+                                    </div>
                                     <p class="text-xs font-mono text-slate-500">{{ u.email }}</p>
                                 </div>
                             </div>
@@ -68,34 +77,118 @@
                             </span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 text-xs font-mono">
-                            {% if u.is_superuser %}
-                            <span class="text-purple-700 font-bold">Superuser (Full Control)</span>
-                            {% elif u.role == 'MANAGER' %}
-                            <span class="text-amber-700 font-medium">PO Approval & Analytics</span>
-                            {% else %}
-                            <span class="text-emerald-700 font-medium">FEFO Dispense & Intake</span>
-                            {% endif %}
-                        </td>
                         <td class="px-6 py-4 text-xs text-slate-500 font-mono">
                             {{ u.date_joined|date:"M d, Y H:i" }}
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <form method="POST" action="{% url 'manage_users' %}" class="inline-flex items-center space-x-2">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="update_role">
-                                <input type="hidden" name="user_id" value="{{ u.id }}">
-                                <select name="role" onchange="this.form.submit()" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-900 font-medium text-xs rounded-xl focus:ring-2 focus:ring-slate-400">
-                                    {% for r_code, r_label in role_choices %}
-                                    <option value="{{ r_code }}" {% if u.role == r_code %}selected{% endif %}>{{ r_label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </form>
+                            <div class="inline-flex items-center justify-end space-x-2">
+                                <!-- Role selector dropdown -->
+                                <form method="POST" action="{% url 'manage_users' %}" class="inline-block">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="update_role">
+                                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                                    <select name="role" onchange="this.form.submit()" class="px-2.5 py-1.5 bg-white border border-slate-300 text-slate-900 font-medium text-xs rounded-xl focus:ring-2 focus:ring-slate-400 shadow-xs">
+                                        {% for r_code, r_label in role_choices %}
+                                        <option value="{{ r_code }}" {% if u.role == r_code %}selected{% endif %}>{{ r_label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
+
+                                <!-- Edit user button -->
+                                <button type="button" onclick="document.getElementById('editUserModal{{ u.id }}').classList.remove('hidden')" title="Edit User" class="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl border border-slate-200 transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                </button>
+
+                                {% if u.id == request.user.id %}
+                                <!-- Disabled Suspend button for self -->
+                                <button type="button" disabled title="You cannot suspend your own active administrator account" class="px-2.5 py-1 text-xs font-semibold text-slate-400 bg-slate-100 border border-slate-200 rounded-xl cursor-not-allowed opacity-60">
+                                    Suspend
+                                </button>
+
+                                <!-- Disabled Delete button for self -->
+                                <button type="button" disabled title="You cannot delete your own logged-in administrator account" class="p-1.5 text-slate-300 bg-slate-50 rounded-xl border border-slate-200 cursor-not-allowed opacity-60">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                                {% else %}
+                                <!-- Suspend / Activate button -->
+                                <form method="POST" action="{% url 'manage_users' %}" class="inline-block">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_active">
+                                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                                    {% if u.is_active %}
+                                    <button type="submit" title="Suspend User" class="px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition">
+                                        Suspend
+                                    </button>
+                                    {% else %}
+                                    <button type="submit" title="Activate User" class="px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition">
+                                        Activate
+                                    </button>
+                                    {% endif %}
+                                </form>
+
+                                <!-- Delete user button -->
+                                <form method="POST" action="{% url 'manage_users' %}" class="inline-block" onsubmit="return confirm('Are you sure you want to permanently delete user account {{ u.email }}?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_user">
+                                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                                    <button type="submit" title="Delete User" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-xl border border-rose-200 transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
+
+                    <!-- Edit User Modal -->
+                    <div id="editUserModal{{ u.id }}" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden text-left">
+                        <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-6">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                                <h3 class="text-xl font-bold text-slate-900">Edit User Account Details</h3>
+                                <button type="button" onclick="document.getElementById('editUserModal{{ u.id }}').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 text-2xl font-bold">&times;</button>
+                            </div>
+
+                            <form method="POST" action="{% url 'manage_users' %}" class="space-y-4 text-sm">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="edit_user">
+                                <input type="hidden" name="user_id" value="{{ u.id }}">
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block font-semibold text-slate-700 text-xs uppercase mb-1">First Name</label>
+                                        <input type="text" name="first_name" value="{{ u.first_name }}" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+                                    </div>
+                                    <div>
+                                        <label class="block font-semibold text-slate-700 text-xs uppercase mb-1">Last Name</label>
+                                        <input type="text" name="last_name" value="{{ u.last_name }}" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block font-semibold text-slate-700 text-xs uppercase mb-1">Email Address</label>
+                                    <input type="email" name="email" value="{{ u.email }}" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+                                </div>
+
+                                <div>
+                                    <label class="block font-semibold text-slate-700 text-xs uppercase mb-1">Assigned Role</label>
+                                    <select name="role" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-400">
+                                        {% for r_code, r_label in role_choices %}
+                                        <option value="{{ r_code }}" {% if u.role == r_code %}selected{% endif %}>{{ r_label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
+                                    <button type="button" onclick="document.getElementById('editUserModal{{ u.id }}').classList.add('hidden')" class="px-4 py-2 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100">Cancel</button>
+                                    <button type="submit" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-md">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="px-6 py-8 text-center text-slate-400">No registered users found.</td>
+                        <td colspan="4" class="px-6 py-8 text-center text-slate-400">No registered users found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

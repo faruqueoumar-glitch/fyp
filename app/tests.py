@@ -136,7 +136,7 @@ class ComprehensiveFRTests(TestCase):
 
     def test_explicit_role_permissions_matrix(self):
         """Explicitly test the granular RBAC permissions matrix for Admin, Pharmacist, and Manager."""
-        # Admin Group
+        # Admin Group (Identical capabilities to Superuser)
         admin_perms = {
             'manage_users': True,
             'configure_system': True,
@@ -144,11 +144,12 @@ class ComprehensiveFRTests(TestCase):
             'view_stock_dashboard': True,
             'search_drug_records': True,
             'view_audit_trail': True,
-            'dispense_stock': False,
-            'record_stock_receipt': False,
-            'record_stock_adjustment': False,
-            'approve_purchase_orders': False,
-            'generate_reports': False,
+            'dispense_stock': True,
+            'record_stock_receipt': True,
+            'record_stock_adjustment': True,
+            'approve_purchase_orders': True,
+            'generate_reports': True,
+            'review_abc_classification': True,
         }
         for perm, expected in admin_perms.items():
             self.assertEqual(
@@ -204,9 +205,16 @@ class ComprehensiveFRTests(TestCase):
             )
 
     def test_user_registration_flow(self):
-        """Test registration creates user, logs them in automatically, and redirects to dashboard."""
+        """Test public registration is disabled and admin staff provisioning creates new accounts with assigned roles."""
+        # 1. Unauthenticated registration attempt must redirect to login
         self.client.logout()
-        response = self.client.post(reverse('register'), {
+        response = self.client.get(reverse('register'))
+        self.assertRedirects(response, reverse('login'))
+
+        # 2. Admin provisions staff account with role
+        self.client.login(email='admin@hospital.org', password='Password123!')
+        res_create = self.client.post(reverse('manage_users'), {
+            'action': 'create_user',
             'first_name': 'Jane',
             'last_name': 'Doe',
             'email': 'jane.doe@hospital.org',
@@ -214,8 +222,11 @@ class ComprehensiveFRTests(TestCase):
             'password': 'Password123!',
             'confirm_password': 'Password123!'
         })
-        self.assertRedirects(response, reverse('dashboard'))
-        self.assertTrue(User.objects.filter(email='jane.doe@hospital.org').exists())
+        self.assertRedirects(res_create, reverse('manage_users'))
+        created_user = User.objects.filter(email='jane.doe@hospital.org').first()
+        self.assertIsNotNone(created_user)
+        self.assertEqual(created_user.role, 'PHARMACIST')
+        self.assertTrue(created_user.is_staff)
 
     def test_medication_stock_api(self):
         """Test real-time stock & batch lookup API."""
@@ -228,16 +239,46 @@ class ComprehensiveFRTests(TestCase):
 
 
 
-    def test_manage_users_view_role_update(self):
-        """Test Admin role management view."""
+    def test_manage_users_view_actions(self):
+        """Test Admin role management view actions: role update, edit details, toggle active (suspend), delete user."""
         self.client.login(email='admin@hospital.org', password='Password123!')
-        response = self.client.post(reverse('manage_users'), {
+
+        # 1. Role update
+        self.client.post(reverse('manage_users'), {
             'action': 'update_role',
             'user_id': self.pharmacist.id,
             'role': 'MANAGER'
         })
         self.pharmacist.refresh_from_db()
         self.assertEqual(self.pharmacist.role, 'MANAGER')
+
+        # 2. Edit User details
+        self.client.post(reverse('manage_users'), {
+            'action': 'edit_user',
+            'user_id': self.pharmacist.id,
+            'first_name': 'John',
+            'last_name': 'Pharm',
+            'email': 'john.pharm@hospital.org',
+            'role': 'PHARMACIST'
+        })
+        self.pharmacist.refresh_from_db()
+        self.assertEqual(self.pharmacist.first_name, 'John')
+        self.assertEqual(self.pharmacist.email, 'john.pharm@hospital.org')
+
+        # 3. Toggle Active Status (Suspend/Activate)
+        self.client.post(reverse('manage_users'), {
+            'action': 'toggle_active',
+            'user_id': self.pharmacist.id
+        })
+        self.pharmacist.refresh_from_db()
+        self.assertFalse(self.pharmacist.is_active)
+
+        # 4. Delete User
+        self.client.post(reverse('manage_users'), {
+            'action': 'delete_user',
+            'user_id': self.pharmacist.id
+        })
+        self.assertFalse(User.objects.filter(id=self.pharmacist.id).exists())
 
     def test_signout_view(self):
         """Test signout route redirects to login."""
