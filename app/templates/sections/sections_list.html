@@ -1,92 +1,275 @@
 {% extends 'base.html' %}
-{% block title %}Pharmacy Sections | PharmaAudit OS{% endblock %}
+{% block title %}Pharmacy Sections & Departmental Stock | PharmaAudit OS{% endblock %}
 
 {% block main_content %}
-<div class="max-w-6xl mx-auto space-y-6">
-  <!-- Header -->
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-    <div>
-      <h1 class="text-2xl font-black text-slate-900 tracking-tight">Pharmacy Sections</h1>
-      <p class="text-sm text-slate-500 mt-1">Configure and manage operational pharmacy departments, wards, and storage locations.</p>
+<div class="space-y-8 max-w-7xl mx-auto">
+  <!-- Top Header & System Overview Bar -->
+  <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-slate-900/10">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-700/60">
+      <div>
+        <div class="flex items-center space-x-2">
+          <span class="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold font-mono rounded-full uppercase tracking-wider">
+            Multi-Departmental Inventory
+          </span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black tracking-tight mt-2.5 text-white">Pharmacy Sections & Stock Audit</h1>
+        <p class="text-sm text-slate-300 mt-1 max-w-2xl">
+          Real-time stock monitoring, inventory valuation, and departmental reorder status across all operational pharmacy sections.
+        </p>
+      </div>
+
+      {% if user.can_configure_system %}
+      <button onclick="document.getElementById('addSectionCard').scrollIntoView({behavior: 'smooth'})" class="px-5 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm rounded-2xl shadow-lg transition flex items-center space-x-2 self-start lg:self-center">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        <span>+ Add Pharmacy Section</span>
+      </button>
+      {% endif %}
+    </div>
+
+    <!-- Top KPI Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6">
+      <div class="bg-slate-800/70 border border-slate-700/50 p-4 rounded-2xl">
+        <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider block">Operational Sections</span>
+        <span class="text-2xl sm:text-3xl font-black font-mono text-white mt-1 block">{{ sections.count }}</span>
+        <span class="text-[11px] text-slate-400 mt-0.5 block">100% Active Stores</span>
+      </div>
+
+      <div class="bg-slate-800/70 border border-slate-700/50 p-4 rounded-2xl">
+        <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider block">Total Managed SKUs</span>
+        <span class="text-2xl sm:text-3xl font-black font-mono text-emerald-400 mt-1 block">{{ total_system_skus }}</span>
+        <span class="text-[11px] text-slate-400 mt-0.5 block">Cataloged Formulations</span>
+      </div>
+
+      <div class="bg-slate-800/70 border border-slate-700/50 p-4 rounded-2xl">
+        <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider block">Total Stock Volume</span>
+        <span class="text-2xl sm:text-3xl font-black font-mono text-blue-400 mt-1 block">{{ total_system_units|floatformat:0 }}</span>
+        <span class="text-[11px] text-slate-400 mt-0.5 block">Physical Dosage Units</span>
+      </div>
+
+      <div class="bg-slate-800/70 border border-slate-700/50 p-4 rounded-2xl">
+        <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider block">Inventory Valuation</span>
+        <span class="text-2xl sm:text-3xl font-black font-mono text-amber-300 mt-1 block">₦{{ total_system_valuation|floatformat:2 }}</span>
+        <span class="text-[11px] text-slate-400 mt-0.5 block">Purchase Cost Basis</span>
+      </div>
     </div>
   </div>
 
+  <!-- Main Grid: Section Cards & Creation Form -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-    <!-- Form Card -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-      <h2 class="text-base font-bold text-slate-900 pb-3 border-b border-slate-100 flex items-center space-x-2">
-        <svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-        </svg>
-        <span>Add New Pharmacy Section</span>
-      </h2>
-
-      <form method="POST" action="{% url 'sections_list' %}" class="space-y-4">
-        {% csrf_token %}
-        <div>
-          <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Section Name</label>
-          {{ form.name }}
-          {% if form.name.errors %}
-          <p class="text-xs text-rose-600 mt-1">{{ form.name.errors.0 }}</p>
-          {% endif %}
+    
+    <!-- Left Column: Add New Section (If Allowed) or Summary Info -->
+    <div class="space-y-6">
+      {% if user.can_configure_system %}
+      <div id="addSectionCard" class="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm shadow-slate-200/50 space-y-4">
+        <div class="pb-3 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <span>Add Pharmacy Section</span>
+          </h2>
+          <span class="text-[10px] font-bold uppercase bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-mono">Config</span>
         </div>
 
-        <div>
-          <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Section Code</label>
-          {{ form.code }}
-          {% if form.code.errors %}
-          <p class="text-xs text-rose-600 mt-1">{{ form.code.errors.0 }}</p>
-          {% endif %}
-        </div>
-
-        <div>
-          <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Description & Location</label>
-          {{ form.description }}
-          {% if form.description.errors %}
-          <p class="text-xs text-rose-600 mt-1">{{ form.description.errors.0 }}</p>
-          {% endif %}
-        </div>
-
-        <button type="submit" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl transition shadow-sm">
-          Save Pharmacy Section
-        </button>
-      </form>
-    </div>
-
-    <!-- Table List Card -->
-    <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-      <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-        <h3 class="font-bold text-sm text-slate-900">Active Pharmacy Sections</h3>
-        <span class="px-2.5 py-0.5 bg-slate-200 text-slate-800 text-xs font-mono font-bold rounded-full">
-          {{ sections.count }} Registered
-        </span>
-      </div>
-
-      {% if sections %}
-      <div class="divide-y divide-slate-100">
-        {% for sec in sections %}
-        <div class="p-5 hover:bg-slate-50/80 transition flex items-start justify-between gap-4">
-          <div class="space-y-1">
-            <div class="flex items-center space-x-2">
-              <span class="font-bold text-slate-900 text-sm">{{ sec.name }}</span>
-              <span class="px-2 py-0.5 bg-slate-900 text-white text-[10px] font-mono font-bold rounded-md uppercase">
-                {{ sec.code }}
-              </span>
-            </div>
-            <p class="text-xs text-slate-600 leading-relaxed">{{ sec.description|default:"No additional description provided." }}</p>
-            <span class="inline-block text-[11px] text-slate-400 font-mono mt-1">
-              Active SKUs: {{ sec.medications.count }}
-            </span>
+        <form method="POST" action="{% url 'sections_list' %}" class="space-y-4 text-xs">
+          {% csrf_token %}
+          <div>
+            <label class="block font-semibold text-slate-700 uppercase text-[11px] mb-1">Section Name</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+            <p class="text-xs text-rose-600 mt-1">{{ form.name.errors.0 }}</p>
+            {% endif %}
           </div>
-        </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      <div class="p-12 text-center text-slate-400 text-xs">
-        No pharmacy sections registered yet.
+
+          <div>
+            <label class="block font-semibold text-slate-700 uppercase text-[11px] mb-1">Section Code (e.g. SEC-ONC)</label>
+            {{ form.code }}
+            {% if form.code.errors %}
+            <p class="text-xs text-rose-600 mt-1">{{ form.code.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 uppercase text-[11px] mb-1">Description & Location</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+            <p class="text-xs text-rose-600 mt-1">{{ form.description.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <button type="submit" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition shadow-md">
+            Create Pharmacy Section
+          </button>
+        </form>
       </div>
       {% endif %}
+
+      <!-- Section Navigation Quick Jump Card -->
+      <div class="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm shadow-slate-200/50 space-y-4">
+        <h3 class="text-sm font-bold text-slate-900 pb-3 border-b border-slate-100 flex items-center justify-between">
+          <span>Quick Department Jump</span>
+          <span class="text-xs text-slate-400 font-normal">Click to focus</span>
+        </h3>
+        <div class="space-y-2">
+          {% for sec_item in sections_data %}
+          <a href="#sec-{{ sec_item.section.code }}" class="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl transition group text-xs">
+            <div class="flex items-center space-x-2">
+              <span class="px-2 py-0.5 bg-slate-900 text-white font-mono text-[10px] font-bold rounded-md uppercase">
+                {{ sec_item.section.code }}
+              </span>
+              <span class="font-bold text-slate-800 group-hover:text-slate-950 transition truncate max-w-[140px] sm:max-w-[180px]">
+                {{ sec_item.section.name }}
+              </span>
+            </div>
+            <span class="px-2 py-0.5 bg-slate-200 text-slate-800 font-mono text-[11px] font-extrabold rounded-full">
+              {{ sec_item.skus_count }} SKUs
+            </span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
     </div>
+
+    <!-- Right Column: Pharmacy Section Cards & Itemized Inventories -->
+    <div class="lg:col-span-2 space-y-6">
+      {% for sec_item in sections_data %}
+      <div id="sec-{{ sec_item.section.code }}" class="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm shadow-slate-200/50 space-y-5 transition hover:shadow-md">
+        <!-- Section Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <div class="space-y-1">
+            <div class="flex items-center space-x-3">
+              <span class="px-3 py-1 bg-slate-900 text-white font-mono text-xs font-black rounded-lg uppercase tracking-wider">
+                {{ sec_item.section.code }}
+              </span>
+              <h2 class="text-lg font-extrabold text-slate-900 tracking-tight">
+                {{ sec_item.section.name }}
+              </h2>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed mt-1">
+              {{ sec_item.section.description|default:"Standard operational pharmacy section." }}
+            </p>
+          </div>
+
+          <div class="flex items-center space-x-2 flex-shrink-0">
+            <a href="{% url 'medications_list' %}?section={{ sec_item.section.id }}" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition flex items-center space-x-1">
+              <span>Filter Catalog</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Section Metrics Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div class="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl">
+            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Active SKUs</span>
+            <span class="text-xl font-extrabold font-mono text-slate-900 block mt-0.5">{{ sec_item.skus_count }}</span>
+          </div>
+
+          <div class="bg-emerald-50/60 border border-emerald-200/70 p-3 rounded-2xl">
+            <span class="text-[10px] text-emerald-800 font-bold uppercase tracking-wider block">Total Stock Units</span>
+            <span class="text-xl font-extrabold font-mono text-emerald-700 block mt-0.5">{{ sec_item.total_units }}</span>
+          </div>
+
+          <div class="bg-amber-50/60 border border-amber-200/70 p-3 rounded-2xl">
+            <span class="text-[10px] text-amber-800 font-bold uppercase tracking-wider block">Stock Valuation</span>
+            <span class="text-xl font-extrabold font-mono text-amber-800 block mt-0.5">₦{{ sec_item.valuation|floatformat:2 }}</span>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200/70 p-3 rounded-2xl flex flex-col justify-between">
+            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Health Breakdown</span>
+            <div class="flex items-center space-x-1.5 mt-1 font-mono text-[10px] font-bold">
+              <span class="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded" title="Adequate">{{ sec_item.adequate_count }} Normal</span>
+              {% if sec_item.at_rop_count or sec_item.below_min_count or sec_item.out_of_stock_count %}
+              <span class="px-1.5 py-0.5 bg-rose-100 text-rose-800 rounded" title="Alerts/Low">
+                {{ sec_item.at_rop_count|add:sec_item.below_min_count|add:sec_item.out_of_stock_count }} Alert
+              </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Medication Stock Table for this Section -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-800">
+            <span>Inventory Medications in {{ sec_item.section.name }}</span>
+            <span class="text-slate-400 font-mono text-[11px]">{{ sec_item.medications.count }} items</span>
+          </div>
+
+          {% if sec_item.medications %}
+          <div class="overflow-x-auto rounded-2xl border border-slate-200/80">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-100/90 text-slate-700 uppercase font-mono border-b border-slate-200">
+                  <th class="p-3 font-bold">Medication Name / SKU</th>
+                  <th class="p-3 font-bold">Unit Pricing</th>
+                  <th class="p-3 font-bold">Current Stock</th>
+                  <th class="p-3 font-bold">ROP & Min</th>
+                  <th class="p-3 font-bold">Status</th>
+                  <th class="p-3 font-bold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 bg-white">
+                {% for med in sec_item.medications %}
+                <tr class="hover:bg-slate-50/80 transition">
+                  <td class="p-3">
+                    <p class="font-bold text-slate-900 text-xs">{{ med.name }}</p>
+                    <p class="text-slate-400 font-mono text-[10px]">SKU: {{ med.sku }} | Unit: {{ med.unit }}</p>
+                  </td>
+                  <td class="p-3 font-mono text-slate-700">
+                    <p class="font-bold text-slate-900">₦{{ med.selling_price_per_unit }}</p>
+                    <p class="text-[10px] text-slate-400">Cost: ₦{{ med.unit_cost }}</p>
+                  </td>
+                  <td class="p-3 font-extrabold font-mono text-slate-900 text-xs">
+                    {{ med.current_stock }} <span class="text-[10px] font-normal text-slate-500">{{ med.unit }}</span>
+                  </td>
+                  <td class="p-3 font-mono text-slate-600 text-[11px]">
+                    <p><span class="text-amber-800 font-bold">ROP: {{ med.reorder_point }}</span></p>
+                    <p class="text-slate-400 text-[10px]">Min: {{ med.min_level }}</p>
+                  </td>
+                  <td class="p-3">
+                    {% if med.stock_status == 'OUT_OF_STOCK' %}
+                    <span class="px-2.5 py-0.5 bg-rose-100 text-rose-800 border border-rose-200 font-bold text-[10px] uppercase rounded-full">Out of Stock</span>
+                    {% elif med.stock_status == 'BELOW_MINIMUM' %}
+                    <span class="px-2.5 py-0.5 bg-orange-100 text-orange-800 border border-orange-200 font-bold text-[10px] uppercase rounded-full">Below Min</span>
+                    {% elif med.stock_status == 'AT_REORDER_POINT' %}
+                    <span class="px-2.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 font-bold text-[10px] uppercase rounded-full">ROP Alert</span>
+                    {% else %}
+                    <span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-[10px] uppercase rounded-full">Adequate</span>
+                    {% endif %}
+                  </td>
+                  <td class="p-3 text-right">
+                    <div class="flex items-center justify-end space-x-1.5">
+                      {% if user.can_dispense_stock %}
+                      <a href="{% url 'fefo_dispense' %}?medication={{ med.id }}" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[11px] rounded-lg transition shadow-2xs">
+                        Dispense
+                      </a>
+                      {% endif %}
+                      {% if user.can_record_stock_receipt %}
+                      <a href="{% url 'receive_batch' %}?medication={{ med.id }}" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-[11px] rounded-lg transition shadow-2xs">
+                        + Intake
+                      </a>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="p-6 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+            No medications registered in this section yet.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
   </div>
 </div>
 {% endblock %}

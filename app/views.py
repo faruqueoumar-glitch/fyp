@@ -255,6 +255,12 @@ def ensure_master_defaults():
     if Supplier.objects.count() == 0:
         for sup in DEFAULT_SUPPLIERS:
             Supplier.objects.get_or_create(name=sup['name'], defaults=sup)
+    if Medication.objects.count() < 10:
+        try:
+            from django.core.management import call_command
+            call_command('seed_stock')
+        except Exception:
+            pass
             
     # Normalize legacy low prices to standard Nigerian Naira if any exist below ₦20
     for med in Medication.objects.all():
@@ -273,18 +279,62 @@ def ensure_master_defaults():
 
 
 # Pharmacy Sections Management View
-@require_permission('configure_system')
+@require_permission('search_drug_records')
 def sections_list_view(request):
     ensure_master_defaults()
     form = PharmacySectionForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
+        if not request.user.can_configure_system:
+            messages.error(request, "Access denied. You do not have permission to add new pharmacy sections.")
+            return redirect('sections_list')
         section = form.save()
         log_audit_trail(request, 'CONFIG_CHANGE', 'PharmacySection', section.id, {}, {'name': section.name, 'code': section.code}, 'New Pharmacy Section Created')
         messages.success(request, f"Pharmacy Section '{section.name}' ({section.code}) created successfully.")
         return redirect('sections_list')
 
     sections = PharmacySection.objects.all().order_by('name')
-    return render(request, 'sections/sections_list.html', {'sections': sections, 'form': form})
+    sections_data = []
+    
+    total_system_skus = 0
+    total_system_units = 0
+    total_system_valuation = 0.0
+
+    for sec in sections:
+        meds = sec.medications.all().select_related('supplier').prefetch_related('batches')
+        sec_skus = meds.count()
+        sec_units = sum(m.current_stock for m in meds)
+        sec_valuation = sum(m.current_stock * float(m.unit_cost) for m in meds)
+        
+        adequate = sum(1 for m in meds if m.stock_status == 'ADEQUATE')
+        at_rop = sum(1 for m in meds if m.stock_status == 'AT_REORDER_POINT')
+        below_min = sum(1 for m in meds if m.stock_status == 'BELOW_MINIMUM')
+        out_of_stock = sum(1 for m in meds if m.stock_status == 'OUT_OF_STOCK')
+        
+        total_system_skus += sec_skus
+        total_system_units += sec_units
+        total_system_valuation += sec_valuation
+
+        sections_data.append({
+            'section': sec,
+            'medications': meds,
+            'skus_count': sec_skus,
+            'total_units': sec_units,
+            'valuation': sec_valuation,
+            'adequate_count': adequate,
+            'at_rop_count': at_rop,
+            'below_min_count': below_min,
+            'out_of_stock_count': out_of_stock,
+        })
+
+    context = {
+        'sections_data': sections_data,
+        'sections': sections,
+        'form': form,
+        'total_system_skus': total_system_skus,
+        'total_system_units': total_system_units,
+        'total_system_valuation': total_system_valuation,
+    }
+    return render(request, 'sections/sections_list.html', context)
 
 
 # Suppliers Management View
@@ -553,6 +603,22 @@ def dashboard_view(request):
     recent_audits = StockAuditLedger.objects.all()[:6]
     ledger_intact = all(item.verify_integrity() for item in recent_audits) if recent_audits else True
 
+    # Section-level stock summary breakdown
+    sections = PharmacySection.objects.all().order_by('name')
+    sections_summary = []
+    for sec in sections:
+        sec_meds = sec.medications.all()
+        sec_units = sum(m.current_stock for m in sec_meds)
+        sec_valuation = sum(m.current_stock * float(m.unit_cost) for m in sec_meds)
+        sec_alert_count = sum(1 for m in sec_meds if m.current_stock <= m.reorder_point)
+        sections_summary.append({
+            'section': sec,
+            'skus_count': sec_meds.count(),
+            'total_units': sec_units,
+            'valuation': sec_valuation,
+            'alert_count': sec_alert_count,
+        })
+
     context = {
         'total_medications': len(medications),
         'adequate_count': adequate_count,
@@ -566,6 +632,7 @@ def dashboard_view(request):
         'warning_90_batches': warning_90_batches,
         'recent_audits': recent_audits,
         'ledger_intact': ledger_intact,
+        'sections_summary': sections_summary,
     }
     return render(request, 'dashboard.html', context)
 
