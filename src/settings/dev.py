@@ -3,21 +3,21 @@ import dj_database_url
 from .base import *
 import os
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-# db_url = os.environ.get("DATABASE_URL") or os.environ.get("DB_URI") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 # DATABASES = {
-#     "default": dj_database_url.config(
-#         default=db_url,
-#         conn_max_age=0,
-#         ssl_require=True if "postgresql" in db_url else False,
-#     )
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
 # }
+
+db_url = os.environ.get("DATABASE_URL") or os.environ.get("DB_URI") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
+DATABASES = {
+    "default": dj_database_url.config(
+        default=db_url,
+        conn_max_age=0,
+        ssl_require=True if "postgresql" in db_url else False,
+    )
+}
 
 LOGGING = {
     'version': 1,
