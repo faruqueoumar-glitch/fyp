@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Stock Catalog, ROP & EOQ | PharmaAudit OS{% endblock %}
+{% block title %}Stock & Inventory Catalog | PharmaAudit OS{% endblock %}
 
 {% block main_content %}
 <div class="space-y-8">
@@ -8,8 +8,8 @@
     <!-- Header and Controls Bar -->
     <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Stock Catalog, ROP & EOQ Optimization</h1>
-            <p class="text-sm text-slate-500 font-sans mt-1">Reorder Point $ROP = (Daily \times Lead) + Safety$, Economic Order Quantity $EOQ = \sqrt{\frac{2DS}{H}}$</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Stock & Inventory Catalog</h1>
+            <p class="text-sm text-slate-500 font-sans mt-1">Manage drug items, track stock levels, reorder thresholds, and safety alerts.</p>
         </div>
 
         {% if user.can_configure_system %}
@@ -43,7 +43,7 @@
         {% endif %}
     </form>
 
-    <!-- Medication Table with ROP & EOQ Metrics -->
+    <!-- Medication Table with Reorder Metrics -->
     <div class="bg-white border border-slate-200/80 rounded-3xl shadow-sm shadow-slate-200/50 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs border-collapse">
@@ -53,8 +53,8 @@
                         <th class="p-4 font-bold">Section & Supplier</th>
                         <th class="p-4 font-bold">Current Stock</th>
                         <th class="p-4 font-bold">Min Stock</th>
-                        <th class="p-4 font-bold bg-amber-50/70 text-amber-900">Reorder Point (ROP)</th>
-                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">FR3 EOQ Recommended</th>
+                        <th class="p-4 font-bold bg-amber-50/70 text-amber-900">Reorder Level</th>
+                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">Suggested Order Qty</th>
                         <th class="p-4 font-bold">Status Indicator</th>
                         <th class="p-4 font-bold">Actions</th>
                     </tr>
@@ -100,12 +100,12 @@
                                 {% endif %}
                                 {% if user.can_acknowledge_rop and med.current_stock <= med.reorder_point and med.supplier %}
                                 <a href="{% url 'auto_generate_draft_po' med.id %}" class="inline-flex items-center px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl shadow-2xs transition">
-                                    + Auto PO
-                                </a>
-                                {% endif %}
-                                {% if not user.can_record_stock_adjustment and not user.can_acknowledge_rop %}
-                                <span class="text-slate-400 text-xs italic">Read-only</span>
-                                {% endif %}
+                                     + Auto Order
+                                 </a>
+                                 {% endif %}
+                                 {% if not user.can_record_stock_adjustment and not user.can_acknowledge_rop %}
+                                 <span class="text-slate-400 text-xs italic">Read-only</span>
+                                 {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -117,6 +117,52 @@
                 </tbody>
             </table>
         </div>
+
+        {% if medications.has_other_pages %}
+        <!-- Pagination Bar -->
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-slate-600">
+            <div>
+                Showing <span class="font-bold text-slate-900">{{ medications.start_index }}</span> to <span class="font-bold text-slate-900">{{ medications.end_index }}</span> of <span class="font-bold text-slate-900">{{ medications.paginator.count }}</span> stock items
+            </div>
+
+            <div class="flex items-center space-x-1.5">
+                {% if medications.has_previous %}
+                <a href="?page={{ medications.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_section %}&section={{ selected_section }}{% endif %}"
+                   class="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition shadow-2xs">
+                    &larr; Previous
+                </a>
+                {% else %}
+                <span class="px-3.5 py-2 bg-slate-100 border border-slate-200/60 text-slate-400 font-semibold rounded-xl cursor-not-allowed opacity-60">
+                    &larr; Previous
+                </span>
+                {% endif %}
+
+                {% for num in medications.paginator.page_range %}
+                    {% if medications.number == num %}
+                    <span class="px-3.5 py-2 bg-slate-900 text-white font-bold rounded-xl shadow-2xs">
+                        {{ num }}
+                    </span>
+                    {% elif num > medications.number|add:'-3' and num < medications.number|add:'3' %}
+                    <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if selected_section %}&section={{ selected_section }}{% endif %}"
+                       class="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition shadow-2xs">
+                        {{ num }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if medications.has_next %}
+                <a href="?page={{ medications.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_section %}&section={{ selected_section }}{% endif %}"
+                   class="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition shadow-2xs">
+                    Next &rarr;
+                </a>
+                {% else %}
+                <span class="px-3.5 py-2 bg-slate-100 border border-slate-200/60 text-slate-400 font-semibold rounded-xl cursor-not-allowed opacity-60">
+                    Next &rarr;
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 
 </div>
@@ -127,8 +173,8 @@
     <div class="max-w-2xl w-full border border-slate-200 bg-white p-6 sm:p-8 rounded-3xl shadow-2xl text-sm max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
             <div>
-                <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">FR1 Catalog Entry</span>
-                <h3 class="font-bold text-slate-900 tracking-tight text-lg">Register New Drug Identity & EOQ / ROP</h3>
+                <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Catalog Registration</span>
+                <h3 class="font-bold text-slate-900 tracking-tight text-lg">Register New Drug Item & Reorder Settings</h3>
             </div>
             <button onclick="document.getElementById('addMedModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 font-bold text-2xl leading-none">&times;</button>
         </div>
@@ -168,26 +214,26 @@
             </div>
 
             <div class="p-3.5 bg-slate-100 border border-slate-200 rounded-xl font-semibold text-slate-800 text-xs">
-                FR3 Economic Order Quantity (EOQ) Parameters:
+                Annual Stock Demand Settings:
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Annual Demand (D)</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Annual Demand (Units)</label>
                     {{ form.annual_demand }}
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Ordering Cost S (₦/PO)</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Ordering Cost (₦/PO)</label>
                     {{ form.ordering_cost }}
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Holding Cost H (₦/unit/yr)</label>
+                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Holding Cost (₦/unit/yr)</label>
                     {{ form.holding_cost }}
                 </div>
             </div>
 
             <div class="p-3.5 bg-amber-50/80 border border-amber-100 rounded-xl font-semibold text-amber-900 text-xs">
-                FR4 Reorder Point (ROP) & Safety Stock Parameters:
+                Stock Safety & Reorder Thresholds:
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -211,7 +257,7 @@
 
             <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
                 <button type="button" onclick="document.getElementById('addMedModal').classList.add('hidden')" class="px-5 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition">Cancel</button>
-                <button type="submit" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-md transition">Save & Compute EOQ/ROP</button>
+                <button type="submit" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-md transition">Save Drug Record</button>
             </div>
         </form>
     </div>

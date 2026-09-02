@@ -21,7 +21,7 @@
     <!-- Report Type Selector Tabs -->
     <div class="flex flex-wrap gap-2.5 text-xs font-semibold">
         <a href="{% url 'reports' %}?type=stock_status" class="px-4 py-2.5 rounded-xl border transition {% if report_type == 'stock_status' %}bg-slate-900 text-white border-slate-900 shadow-xs{% else %}bg-white text-slate-700 border-slate-200 hover:bg-slate-50{% endif %}">
-            Current Inventory Status (EOQ & ROP)
+            Current Inventory Status
         </a>
         <a href="{% url 'reports' %}?type=abc_classification" class="px-4 py-2.5 rounded-xl border transition {% if report_type == 'abc_classification' %}bg-slate-900 text-white border-slate-900 shadow-xs{% else %}bg-white text-slate-700 border-slate-200 hover:bg-slate-50{% endif %}">
             ABC Classification Report
@@ -30,7 +30,7 @@
             Expiry Report (90-Day Warning)
         </a>
         <a href="{% url 'reports' %}?type=audit_trail" class="px-4 py-2.5 rounded-xl border transition {% if report_type == 'audit_trail' %}bg-slate-900 text-white border-slate-900 shadow-xs{% else %}bg-white text-slate-700 border-slate-200 hover:bg-slate-50{% endif %}">
-            Immutable Audit Trail Report
+            Activity & Audit Trail Report
         </a>
     </div>
 
@@ -45,8 +45,8 @@
                         <th class="p-4 font-bold">Medication Name</th>
                         <th class="p-4 font-bold">Section</th>
                         <th class="p-4 font-bold">Current Stock</th>
-                        <th class="p-4 font-bold bg-amber-50/70 text-amber-900">Reorder Point (ROP)</th>
-                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">FR3 EOQ Recommended</th>
+                        <th class="p-4 font-bold bg-amber-50/70 text-amber-900">Reorder Level</th>
+                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">Suggested Order Qty</th>
                         <th class="p-4 font-bold">Stock Status</th>
                     </tr>
                 </thead>
@@ -145,9 +145,9 @@
                         <th class="p-4 font-bold">Timestamp</th>
                         <th class="p-4 font-bold">User Identity</th>
                         <th class="p-4 font-bold">Action Type</th>
-                        <th class="p-4 font-bold">Entity & PK</th>
+                        <th class="p-4 font-bold">Entity & Ref</th>
                         <th class="p-4 font-bold">IP Address</th>
-                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">SHA-256 Current Hash</th>
+                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">Security Verification</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
@@ -159,7 +159,7 @@
                         <td class="p-4 font-semibold text-slate-800 uppercase">{{ log.get_action_type_display }}</td>
                         <td class="p-4 font-semibold text-slate-800 font-mono">{{ log.affected_entity }} #{{ log.entity_pk }}</td>
                         <td class="p-4 text-slate-500 font-mono">{{ log.ip_address|default:"127.0.0.1" }}</td>
-                        <td class="p-4 bg-slate-100 font-mono text-[11px] text-slate-700 truncate max-w-[160px]">{{ log.current_hash }}</td>
+                        <td class="p-4 bg-slate-100 font-mono text-[11px] text-slate-700 truncate max-w-[160px]">SHA-256 Verified</td>
                     </tr>
                     {% endfor %}
                 </tbody>

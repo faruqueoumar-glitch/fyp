@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Purchase Orders & EOQ Guidance | PharmaAudit OS{% endblock %}
+{% block title %}Purchase Orders | PharmaAudit OS{% endblock %}
 
 {% block main_content %}
 <div class="space-y-8">
@@ -8,8 +8,8 @@
     <!-- Header -->
     <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Purchase Orders & EOQ Guidance</h1>
-            <p class="text-sm text-slate-500 font-sans mt-1">Economic Order Quantity (EOQ) Recommendation Engine & Purchase Order Approval Workflow</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Purchase Orders</h1>
+            <p class="text-sm text-slate-500 font-sans mt-1">Manage draft purchase orders, stock replenishment, and supplier approvals.</p>
         </div>
 
         {% if user.can_approve_purchase_orders %}
@@ -30,7 +30,7 @@
                         <th class="p-4 font-bold">Supplier</th>
                         <th class="p-4 font-bold">Created By</th>
                         <th class="p-4 font-bold">Ordered Items</th>
-                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">FR3 EOQ Recommended</th>
+                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">Suggested Qty</th>
                         <th class="p-4 font-bold">Status</th>
                         <th class="p-4 font-bold">Total Price (₦)</th>
                         <th class="p-4 font-bold">Actions</th>
@@ -94,8 +94,8 @@
     <div class="max-w-lg w-full border border-slate-200 bg-white p-6 sm:p-8 rounded-3xl shadow-2xl text-sm">
         <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
             <div>
-                <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">FR3 Guidance</span>
-                <h3 class="font-bold text-slate-900 text-lg tracking-tight">Initiate Purchase Order with EOQ</h3>
+                <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Purchase Management</span>
+                <h3 class="font-bold text-slate-900 text-lg tracking-tight">Create Purchase Order</h3>
             </div>
             <button onclick="document.getElementById('createPOModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 font-bold text-2xl leading-none">&times;</button>
         </div>
@@ -124,7 +124,7 @@
             </div>
 
             <div class="p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-800">
-                Formula: Economic Order Quantity $EOQ = \sqrt{\frac{2 \times D \times S}{H}}$ will be automatically attached to this PO as ordering guidance.
+                Note: Suggested order quantities are automatically calculated based on inventory demand.
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">

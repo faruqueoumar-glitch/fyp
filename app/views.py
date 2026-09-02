@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from django.db.models import Q, Sum, F
 from django.http import HttpResponse, JsonResponse
@@ -720,12 +721,21 @@ def medications_list_view(request):
     ensure_master_defaults()
     query = request.GET.get('q', '')
     section_id = request.GET.get('section', '')
+    page = request.GET.get('page', 1)
 
-    medications = Medication.objects.all()
+    medications_qs = Medication.objects.all().order_by('name')
     if query:
-        medications = medications.filter(Q(name__icontains=query) | Q(sku__icontains=query))
+        medications_qs = medications_qs.filter(Q(name__icontains=query) | Q(sku__icontains=query))
     if section_id:
-        medications = medications.filter(section_id=section_id)
+        medications_qs = medications_qs.filter(section_id=section_id)
+
+    paginator = Paginator(medications_qs, 10)
+    try:
+        medications = paginator.page(page)
+    except PageNotAnInteger:
+        medications = paginator.page(1)
+    except EmptyPage:
+        medications = paginator.page(paginator.num_pages)
 
     sections = PharmacySection.objects.all()
     suppliers = Supplier.objects.all()
@@ -803,7 +813,7 @@ def auto_generate_draft_po_view(request, medication_id):
         supplier=med.supplier,
         created_by=request.user,
         status='DRAFT',
-        notes=f"FR4 Automated ROP Trigger: Stock ({med.current_stock}) <= ROP ({med.reorder_point}). EOQ Recommended: {eoq_qty}"
+        notes=f"Auto Reorder Trigger: Stock ({med.current_stock}) reached reorder level ({med.reorder_point}). Suggested Qty: {eoq_qty}"
     )
     PurchaseOrderItem.objects.create(
         purchase_order=po,
@@ -812,16 +822,16 @@ def auto_generate_draft_po_view(request, medication_id):
         eoq_recommended_qty=eoq_qty,
         unit_price=med.unit_cost
     )
-    log_audit_trail(request, 'PO_CREATE', 'PurchaseOrder', po.id, {}, {'po_number': po.po_number, 'medication': med.name}, 'Automated ROP Draft PO Generation')
+    log_audit_trail(request, 'PO_CREATE', 'PurchaseOrder', po.id, {}, {'po_number': po.po_number, 'medication': med.name}, 'Automated Reorder Draft PO Generation')
     NotificationService.send_bulk_notification(
         recipients=User.objects.all(),
         actor=request.user,
-        title="Draft PO Generated",
-        message=f"Draft Purchase Order {po.po_number} generated for {med.name} with EOQ recommended quantity {eoq_qty}.",
+        title="Draft PO Created",
+        message=f"Draft Purchase Order {po.po_number} created for {med.name} with suggested quantity {eoq_qty}.",
         target_obj=po,
         category='po_created'
     )
-    messages.success(request, f"Draft Purchase Order {po.po_number} generated for {med.name} with EOQ quantity {eoq_qty}!")
+    messages.success(request, f"Draft Purchase Order {po.po_number} created for {med.name} with suggested quantity {eoq_qty}.")
     if request.user.can_approve_purchase_orders:
         return redirect('purchase_orders')
     return redirect('medications_list')

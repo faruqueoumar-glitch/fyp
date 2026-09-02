@@ -10,12 +10,12 @@ import os
 #     }
 # }
 
-db_url = os.environ.get("DATABASE_URL") or os.environ.get("DB_URI") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
+db_url = os.environ.get("DATABASE_URL")
 DATABASES = {
     "default": dj_database_url.config(
         default=db_url,
         conn_max_age=0,
-        ssl_require=True if "postgresql" in db_url else False,
+        # ssl_require=True
     )
 }
 

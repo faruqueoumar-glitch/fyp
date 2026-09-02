@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Immutable SHA-256 Cryptographic Audit Ledger | PharmaAudit OS{% endblock %}
+{% block title %}Activity & Audit Log | PharmaAudit OS{% endblock %}
 
 {% block main_content %}
 <div class="space-y-8">
@@ -8,8 +8,8 @@
     <!-- Header & Verification Status Banner -->
     <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Immutable SHA-256 Cryptographic Audit Ledger</h1>
-            <p class="text-sm text-slate-500 font-sans mt-1">Maintains an immutable, tamper-evident ledger of all stock transactions with SHA-256 hash chaining.</p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Activity & Audit Log</h1>
+            <p class="text-sm text-slate-500 font-sans mt-1">Tamper-evident system log tracking all stock updates, sales transactions, and user actions.</p>
         </div>
 
         
@@ -37,10 +37,10 @@
                         <th class="p-4 font-bold">Timestamp</th>
                         <th class="p-4 font-bold">User Account</th>
                         <th class="p-4 font-bold">Action Type</th>
-                        <th class="p-4 font-bold">Entity & PK</th>
+                        <th class="p-4 font-bold">Entity & Ref</th>
                         <th class="p-4 font-bold">IP Address</th>
-                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">SHA-256 Current Hash</th>
-                        <th class="p-4 font-bold">Integrity</th>
+                        <th class="p-4 font-bold bg-slate-200/70 text-slate-900">Security Verification</th>
+                        <th class="p-4 font-bold">Log Status</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
@@ -57,13 +57,13 @@
                         <td class="p-4 font-semibold text-slate-800 font-mono">{{ item.log.affected_entity }} #{{ item.log.entity_pk }}</td>
                         <td class="p-4 text-slate-500 font-mono">{{ item.log.ip_address|default:"127.0.0.1" }}</td>
                         <td class="p-4 bg-slate-100 font-mono text-[11px] text-slate-700 truncate max-w-[160px]" title="{{ item.log.current_hash }}">
-                            {{ item.log.current_hash }}
+                            SHA-256 Verified
                         </td>
                         <td class="p-4">
                             {% if item.is_valid %}
-                            <span class="inline-block bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1 font-bold rounded-full text-[10px] uppercase shadow-2xs">HASH INTACT</span>
+                            <span class="inline-block bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1 font-bold rounded-full text-[10px] uppercase shadow-2xs">VERIFIED INTACT</span>
                             {% else %}
-                            <span class="inline-block bg-rose-600 text-white px-3 py-1 font-bold rounded-full text-[10px] uppercase shadow-2xs">INVALID</span>
+                            <span class="inline-block bg-rose-600 text-white px-3 py-1 font-bold rounded-full text-[10px] uppercase shadow-2xs">TAMPER DETECTED</span>
                             {% endif %}
                         </td>
                     </tr>

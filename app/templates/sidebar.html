@@ -82,7 +82,7 @@
           <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
         </div>
         {% if user.can_search_drug_records %}
-        <!-- Stock Catalog (EOQ & ROP) -->
+        <!-- Stock & Inventory Catalog -->
         <a
           href="{% url 'medications_list' %}"
           class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'medications_list' or current_url == 'add_medication' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
@@ -100,7 +100,7 @@
               d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.096.176l-1.08.54a2 2 0 00-1.096 1.789v.084a2 2 0 002 2h15.228a2 2 0 002-2v-.084a2 2 0 00-1.096-1.789l-1.08-.54zM4 6h16M4 10h16"
             />
           </svg>
-          <span>Stock Catalog (EOQ/ROP)</span>
+          <span>Stock & Inventory Catalog</span>
         </a>
         {% endif %}
 
@@ -260,7 +260,7 @@
           <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
         </div>
         {% if user.can_approve_purchase_orders %}
-        <!-- Purchase Orders (EOQ) -->
+        <!-- Purchase Orders -->
         <a
           href="{% url 'purchase_orders' %}"
           class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'purchase_orders' or current_url == 'auto_generate_draft_po' or current_url == 'approve_po' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
@@ -278,12 +278,12 @@
               d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
             />
           </svg>
-          <span>Purchase Orders (EOQ)</span>
+          <span>Purchase Orders</span>
         </a>
         {% endif %}
 
         {% if user.can_review_abc_classification %}
-        <!-- ABC Classification -->
+        <!-- Inventory Categorization (ABC) -->
         <a
           href="{% url 'abc_classification' %}"
           class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'abc_classification' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
@@ -301,12 +301,12 @@
               d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
             />
           </svg>
-          <span>ABC Classification</span>
+          <span>Inventory Categorization (ABC)</span>
         </a>
         {% endif %}
 
         {% if user.can_acknowledge_rop %}
-        <!-- FEFO Expiry Alerts -->
+        <!-- Expiry Alerts & Quarantine -->
         <a
           href="{% url 'expiries_monitoring' %}"
           class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'expiries_monitoring' or current_url == 'quarantine_batch' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
@@ -324,7 +324,7 @@
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <span>FEFO Expiry Alerts</span>
+          <span>Expiry Alerts & Quarantine</span>
         </a>
         {% endif %}
       </div>
@@ -338,7 +338,7 @@
           <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
         </div>
         {% if user.can_view_audit_trail %}
-        <!-- Immutable Audit Ledger -->
+        <!-- Activity & Audit Log -->
         <a
           href="{% url 'stock_audit_ledger' %}"
           class="flex items-center space-x-3 px-3.5 py-2.5 transition-all duration-200 rounded-xl {% if current_url == 'stock_audit_ledger' %}bg-slate-800 text-white font-semibold border-l-4 border-zinc-300 shadow-md{% else %}text-slate-400 hover:bg-slate-800/60 hover:text-white{% endif %}"
@@ -356,7 +356,7 @@
               d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
             />
           </svg>
-          <span>Immutable Audit Trail</span>
+          <span>Activity & Audit Log</span>
         </a>
         {% endif %}
 

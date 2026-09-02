@@ -1,4 +1,5 @@
 import os
+import sys
 from django.apps import AppConfig
 
 
@@ -7,6 +8,10 @@ class PharmacyConfig(AppConfig):
     name = 'app'
 
     def ready(self):
+        # Do not start background worker during test suite runs
+        if 'test' in sys.argv:
+            return
+
         # Start the keep-alive background thread.
         # In development with auto-reload, RUN_MAIN is set to 'true' on the
         # reloader child process — only start there to avoid duplicate threads.
