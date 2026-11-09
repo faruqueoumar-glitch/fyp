@@ -5,12 +5,14 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from app.models import (
     PharmacySection, Medication, MedicationBatch, StockAuditLedger,
-    Supplier, PurchaseOrder
+    Supplier, PurchaseOrder, Pharmacy
 )
+from app.tenancy import pharmacy_context
 from app.views import calculate_abc_classification
 
 User = get_user_model()
@@ -20,6 +22,14 @@ class ComprehensiveFRTests(TestCase):
 
     def setUp(self):
         self.client = Client()
+        self.pharmacy = Pharmacy.objects.create(
+            shop_name='Test Pharmacy',
+            email='test-pharmacy@example.org',
+            address='Test address',
+        )
+        self.tenant_context = pharmacy_context(self.pharmacy.pk)
+        self.tenant_context.__enter__()
+        self.addCleanup(self.tenant_context.__exit__, None, None, None)
 
         # FR8: Roles
         self.admin = User.objects.create_user(
@@ -285,6 +295,44 @@ class ComprehensiveFRTests(TestCase):
         response = self.client.get(reverse('signout'))
         self.assertRedirects(response, reverse('login'))
 
+    def test_tenant_data_isolation_and_cross_tenant_relations(self):
+        other_pharmacy = Pharmacy.objects.create(
+            shop_name='Other Pharmacy',
+            email='other-pharmacy@example.org',
+            address='Other address',
+        )
+        with pharmacy_context(other_pharmacy.pk):
+            other_section = PharmacySection.objects.create(
+                name='Other Section',
+                code='OTHER',
+            )
+            other_medication = Medication.objects.create(
+                name='Other Medication',
+                sku='MED-AMX-500',
+                section=other_section,
+            )
+
+        self.assertEqual(Medication.objects.count(), 1)
+        self.assertEqual(
+            Medication.objects.filter(sku='MED-AMX-500').get(),
+            self.med,
+        )
+        self.assertEqual(
+            Medication.all_objects.filter(pharmacy=other_pharmacy).count(),
+            1,
+        )
+        response = self.client.get(
+            reverse('medication_stock_api', args=[other_medication.pk])
+        )
+        self.assertEqual(response.status_code, 404)
+
+        with self.assertRaises(ValidationError):
+            Medication.objects.create(
+                name='Invalid Cross-Tenant Link',
+                sku='CROSS-TENANT',
+                section=other_section,
+            )
+
     def test_multi_item_fefo_cart_and_pos_checkout_naira(self):
         """Test multi-item dispensing with cart system, Nigerian Naira pricing, and payment method selection."""
         # Create second medication with Naira pricing
@@ -353,6 +401,5 @@ class ComprehensiveFRTests(TestCase):
         self.assertEqual(receipt_res.status_code, 200)
         self.assertContains(receipt_res, 'Chioma Adeleke')
         self.assertContains(receipt_res, checkout_data['transaction_ref'])
-
 
 

@@ -3,8 +3,11 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 import uuid
+from app.models import PharmacyOwnedModel
 
-class Notification(models.Model):
+
+class Notification(PharmacyOwnedModel):
+    tenant_relation_fields = ('recipient', 'actor')
     TYPE_CHOICES = (
         ('info', 'Info'),
         ('warning', 'Warning'),
