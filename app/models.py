@@ -2,9 +2,128 @@ import hashlib
 import math
 import uuid
 from django.contrib.auth.models import AbstractUser, BaseUserManager, Group
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models
 from django.utils import timezone
+from .tenancy import get_current_pharmacy_id, pharmacy_context
+
+
+class TenantScopedQuerySet(models.QuerySet):
+    def create(self, **kwargs):
+        pharmacy_id = get_current_pharmacy_id()
+        if pharmacy_id is None:
+            raise ValidationError('A pharmacy context is required for tenant-scoped writes.')
+        if kwargs.get('pharmacy_id', pharmacy_id) != pharmacy_id:
+            raise PermissionDenied('Records cannot be created for another pharmacy.')
+        kwargs.setdefault('pharmacy_id', pharmacy_id)
+        return super().create(**kwargs)
+
+    def bulk_create(self, objs, **kwargs):
+        pharmacy_id = get_current_pharmacy_id()
+        if pharmacy_id is None:
+            raise ValidationError('A pharmacy context is required for tenant-scoped writes.')
+        for obj in objs:
+            if obj.pharmacy_id is None:
+                obj.pharmacy_id = pharmacy_id
+            if obj.pharmacy_id is None:
+                raise ValidationError('A pharmacy is required for this record.')
+            elif pharmacy_id is not None and obj.pharmacy_id != pharmacy_id:
+                raise PermissionDenied('Records cannot be created for another pharmacy.')
+            obj.validate_tenant_relationships()
+        return super().bulk_create(objs, **kwargs)
+
+    def update(self, **kwargs):
+        protected_fields = {'pharmacy', 'pharmacy_id'}
+        protected_fields.update(
+            relation_name
+            for field_name in self.model.tenant_relation_fields
+            for relation_name in (field_name, f'{field_name}_id')
+        )
+        if protected_fields.intersection(kwargs):
+            raise PermissionDenied('Tenant ownership and tenant relations cannot be changed through update().')
+        return super().update(**kwargs)
+
+    def bulk_update(self, objs, fields, **kwargs):
+        protected_fields = {'pharmacy', 'pharmacy_id'}
+        protected_fields.update(
+            relation_name
+            for field_name in self.model.tenant_relation_fields
+            for relation_name in (field_name, f'{field_name}_id')
+        )
+        if protected_fields.intersection(fields):
+            raise PermissionDenied('Tenant ownership and tenant relations cannot be changed through bulk_update().')
+        return super().bulk_update(objs, fields, **kwargs)
+
+
+class TenantScopedManager(models.Manager.from_queryset(TenantScopedQuerySet)):
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        pharmacy_id = get_current_pharmacy_id()
+        if pharmacy_id is None:
+            return queryset.none()
+        return queryset.filter(pharmacy_id=pharmacy_id)
+
+
+class Pharmacy(models.Model):
+    shop_name = models.CharField(max_length=200)
+    email = models.EmailField()
+    address = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.shop_name
+
+
+class PharmacyOwnedModel(models.Model):
+    pharmacy = models.ForeignKey(
+        Pharmacy, on_delete=models.PROTECT, related_name='%(class)s_records'
+    )
+
+    objects = TenantScopedManager()
+    all_objects = models.Manager()
+    tenant_relation_fields = ()
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        context_pharmacy_id = get_current_pharmacy_id()
+        if context_pharmacy_id is None:
+            raise ValidationError('A pharmacy context is required for tenant-scoped writes.')
+        if self.pharmacy_id is not None and self.pharmacy_id != context_pharmacy_id:
+            raise ValidationError('Records cannot be saved for another pharmacy.')
+        pharmacy_id = context_pharmacy_id
+        self.pharmacy_id = pharmacy_id
+
+        if not self._state.adding:
+            previous_pharmacy_id = (
+                type(self)._base_manager.filter(pk=self.pk)
+                .values_list('pharmacy_id', flat=True)
+                .first()
+            )
+            if previous_pharmacy_id != pharmacy_id:
+                raise ValidationError('A record cannot be moved between pharmacies.')
+
+        self.validate_tenant_relationships()
+
+        super().save(*args, **kwargs)
+
+    def validate_tenant_relationships(self):
+        pharmacy_id = self.pharmacy_id
+        for field_name in self.tenant_relation_fields:
+            related_id = getattr(self, f'{field_name}_id')
+            if related_id is None:
+                continue
+            related_model = self._meta.get_field(field_name).remote_field.model
+            related_pharmacy_id = (
+                related_model._base_manager.filter(pk=related_id)
+                .values_list('pharmacy_id', flat=True)
+                .first()
+            )
+            if related_pharmacy_id != pharmacy_id:
+                raise ValidationError(
+                    f'{field_name} must belong to the same pharmacy.'
+                )
 
 ROLE_PERMISSIONS = {
     'ADMIN': {
@@ -42,7 +161,7 @@ ROLE_PERMISSIONS = {
 }
 
 
-class CustomUserManager(BaseUserManager):
+class CustomUserManager(TenantScopedManager, BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('The Email field must be set')
@@ -62,10 +181,22 @@ class CustomUserManager(BaseUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
 
+        if get_current_pharmacy_id() is None:
+            pharmacy_id = extra_fields.pop('pharmacy_id', None)
+            if pharmacy_id is None:
+                pharmacies = Pharmacy.objects.all()
+                if pharmacies.count() != 1:
+                    raise ValueError(
+                        'Pass pharmacy_id when creating a superuser in a multi-pharmacy installation.'
+                    )
+                pharmacy_id = pharmacies.get().pk
+            with pharmacy_context(pharmacy_id):
+                return self.create_user(email, password, **extra_fields)
+
         return self.create_user(email, password, **extra_fields)
 
 
-class CustomUser(AbstractUser):
+class CustomUser(PharmacyOwnedModel, AbstractUser):
     ROLE_CHOICES = (
         ('ADMIN', 'System Administrator'),
         ('PHARMACIST', 'Pharmacist'),
@@ -181,8 +312,8 @@ class CustomUser(AbstractUser):
         return self.has_permission('review_abc_classification')
 
 
-class Supplier(models.Model):
-    name = models.CharField(max_length=200, unique=True)
+class Supplier(PharmacyOwnedModel):
+    name = models.CharField(max_length=200)
     contact_person = models.CharField(max_length=150, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=50, blank=True)
@@ -191,27 +322,36 @@ class Supplier(models.Model):
 
     class Meta:
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['pharmacy', 'name'], name='unique_supplier_name_pharm')
+        ]
 
     def __str__(self):
         return self.name
 
 
-class PharmacySection(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    code = models.CharField(max_length=20, unique=True)
+class PharmacySection(PharmacyOwnedModel):
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=20)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['pharmacy', 'name'], name='unique_section_name_pharm'),
+            models.UniqueConstraint(fields=['pharmacy', 'code'], name='unique_section_code_pharm'),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.code})"
 
 
-class Medication(models.Model):
+class Medication(PharmacyOwnedModel):
+    tenant_relation_fields = ('section', 'supplier')
+
     name = models.CharField(max_length=200)
-    sku = models.CharField(max_length=50, unique=True)
+    sku = models.CharField(max_length=50)
     section = models.ForeignKey(PharmacySection, on_delete=models.CASCADE, related_name='medications')
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True, related_name='medications')
     unit = models.CharField(max_length=50, default='Tablets')
@@ -234,6 +374,9 @@ class Medication(models.Model):
 
     class Meta:
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['pharmacy', 'sku'], name='unique_medication_sku_pharm')
+        ]
 
     def __str__(self):
         return f"{self.name} [{self.sku}]"
@@ -295,7 +438,9 @@ class Medication(models.Model):
         return 'ADEQUATE'
 
 
-class MedicationBatch(models.Model):
+class MedicationBatch(PharmacyOwnedModel):
+    tenant_relation_fields = ('medication', 'supplier')
+
     medication = models.ForeignKey(Medication, on_delete=models.CASCADE, related_name='batches')
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True)
     batch_number = models.CharField(max_length=100)
@@ -332,7 +477,9 @@ class MedicationBatch(models.Model):
         return 'HEALTHY'
 
 
-class PurchaseOrder(models.Model):
+class PurchaseOrder(PharmacyOwnedModel):
+    tenant_relation_fields = ('supplier', 'created_by')
+
     STATUS_CHOICES = (
         ('DRAFT', 'Draft'),
         ('PENDING_APPROVAL', 'Pending Approval'),
@@ -341,7 +488,7 @@ class PurchaseOrder(models.Model):
         ('CANCELLED', 'Cancelled'),
     )
 
-    po_number = models.CharField(max_length=50, unique=True, editable=False)
+    po_number = models.CharField(max_length=50, editable=False)
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='purchase_orders')
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
@@ -351,6 +498,9 @@ class PurchaseOrder(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['pharmacy', 'po_number'], name='unique_po_number_pharm')
+        ]
 
     def save(self, *args, **kwargs):
         if not self.po_number:
@@ -366,7 +516,9 @@ class PurchaseOrder(models.Model):
         return total
 
 
-class PurchaseOrderItem(models.Model):
+class PurchaseOrderItem(PharmacyOwnedModel):
+    tenant_relation_fields = ('purchase_order', 'medication')
+
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='items')
     medication = models.ForeignKey(Medication, on_delete=models.CASCADE)
     quantity_ordered = models.PositiveIntegerField()
@@ -381,7 +533,7 @@ class PurchaseOrderItem(models.Model):
         return float(self.quantity_ordered) * float(self.unit_price)
 
 
-class StockAuditLedger(models.Model):
+class StockAuditLedger(PharmacyOwnedModel):
     """FR2: Immutable Audit Trail recording every stock transaction, user login, and data modification."""
     ACTION_TYPES = (
         ('STOCK_RECEIPT', 'Stock Goods Receipt'),
@@ -394,7 +546,7 @@ class StockAuditLedger(models.Model):
         ('QUARANTINE', 'Expired Batch Isolation'),
     )
 
-    transaction_id = models.CharField(max_length=64, unique=True, editable=False)
+    transaction_id = models.CharField(max_length=64, editable=False)
     timestamp = models.DateTimeField(auto_now_add=True)
     user_identity = models.CharField(max_length=150, default='system')
     action_type = models.CharField(max_length=30, choices=ACTION_TYPES)
@@ -411,6 +563,9 @@ class StockAuditLedger(models.Model):
 
     class Meta:
         ordering = ['-timestamp']
+        constraints = [
+            models.UniqueConstraint(fields=['pharmacy', 'transaction_id'], name='unique_audit_id_pharm')
+        ]
 
     def delete(self, *args, **kwargs):
         """FR2: Enforce strict immutability. No audit record shall be modifiable or deletable by any role."""
@@ -440,7 +595,9 @@ class StockAuditLedger(models.Model):
         return computed == self.current_hash
 
 
-class SalesTransaction(models.Model):
+class SalesTransaction(PharmacyOwnedModel):
+    tenant_relation_fields = ('pharmacist',)
+
     """Sales transaction record for medications dispensed and sold."""
     PAYMENT_METHODS = (
         ('CASH', 'Cash (₦)'),
@@ -449,7 +606,7 @@ class SalesTransaction(models.Model):
         ('INSURANCE', 'Health Insurance / HMO'),
     )
 
-    transaction_ref = models.CharField(max_length=50, unique=True, editable=False)
+    transaction_ref = models.CharField(max_length=50, editable=False)
     pharmacist = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
     total_amount_naira = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default='CASH')
@@ -462,6 +619,9 @@ class SalesTransaction(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['pharmacy', 'transaction_ref'], name='unique_sale_ref_pharm')
+        ]
 
     def save(self, *args, **kwargs):
         if not self.transaction_ref:
@@ -480,7 +640,9 @@ class SalesTransaction(models.Model):
         return self.items.count()
 
 
-class SalesTransactionItem(models.Model):
+class SalesTransactionItem(PharmacyOwnedModel):
+    tenant_relation_fields = ('sales_transaction', 'medication')
+
     """Individual medication items in a sales transaction."""
     sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE, related_name='items')
     medication = models.ForeignKey(Medication, on_delete=models.SET_NULL, null=True)

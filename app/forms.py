@@ -79,6 +79,12 @@ class RegisterForm(forms.ModelForm):
             self.add_error('confirm_password', 'Passwords do not match.')
         return cleaned_data
 
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if User.all_objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError('A user with this email address already exists.')
+        return email
+
 
 class LoginForm(forms.Form):
     email = forms.EmailField(
@@ -189,6 +195,10 @@ class FEFODispenseForm(forms.Form):
         widget=forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Prescription ID / Dispense rationale'})
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['medication'].queryset = Medication.objects.all()
+
 
 class StockAdjustmentForm(forms.Form):
     medication = forms.ModelChoiceField(
@@ -202,6 +212,10 @@ class StockAdjustmentForm(forms.Form):
     reason = forms.CharField(
         widget=forms.Textarea(attrs={'class': INPUT_CLASS, 'rows': 2, 'placeholder': 'Discrepancy audit justification'})
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['medication'].queryset = Medication.objects.all()
 
 
 class PurchaseOrderForm(forms.Form):
@@ -221,3 +235,8 @@ class PurchaseOrderForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={'class': INPUT_CLASS})
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['supplier'].queryset = Supplier.objects.all()
+        self.fields['medication'].queryset = Medication.objects.all()

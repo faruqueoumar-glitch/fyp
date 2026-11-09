@@ -21,6 +21,7 @@ from .models import (
     PharmacySection, Medication, MedicationBatch, StockAuditLedger,
     Supplier, PurchaseOrder, PurchaseOrderItem, SalesTransaction, SalesTransactionItem
 )
+from .tenancy import pharmacy_context
 from notifications.notification_services import NotificationService
 
 User = get_user_model()
@@ -405,7 +406,11 @@ def login_view(request):
         user = authenticate(request, email=email, password=password)
         if user:
             login(request, user)
-            log_audit_trail(request, 'USER_LOGIN', 'User', user.id, {}, {'user': user.email, 'role': user.role}, 'User session initiated')
+            request.pharmacy_id = user.pharmacy_id
+            request.pharmacy = user.pharmacy
+            request.session['pharmacy_id'] = user.pharmacy_id
+            with pharmacy_context(user.pharmacy_id):
+                log_audit_trail(request, 'USER_LOGIN', 'User', user.id, {}, {'user': user.email, 'role': user.role}, 'User session initiated')
             messages.success(request, f"Welcome back, {user.first_name or user.email} [{user.get_role_display()}].")
             return redirect('dashboard')
         else:
@@ -477,7 +482,7 @@ def manage_users_view(request):
             email = request.POST.get('email', '').strip()
             role = request.POST.get('role', '').strip()
 
-            if email and User.objects.filter(email=email).exclude(id=target_user.id).exists():
+            if email and User.all_objects.filter(email__iexact=email).exclude(id=target_user.id).exists():
                 messages.error(request, f"Email address '{email}' is already in use by another user account.")
             else:
                 old_info = {'email': target_user.email, 'role': target_user.role, 'first_name': target_user.first_name, 'last_name': target_user.last_name}
@@ -1453,6 +1458,5 @@ def sales_receipt_view(request, transaction_ref):
         })
         
     return render(request, 'inventory/sales_receipt.html', {'transaction': sales_tx})
-
 
 

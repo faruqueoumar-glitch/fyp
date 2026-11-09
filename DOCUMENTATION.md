@@ -141,3 +141,27 @@ The left sidebar navigation is divided into core clinical and operational module
 * **Header Notification Bell**: Displays a live badge counter (`#notificationBadge`) of unread alerts.
 * **Dropdown Preview**: Click the bell to view recent alerts (PO created/approved, stock intake, ROP breaches).
 * **Toast Alerts**: Non-intrusive floating toasts pop up in real time whenever an inventory threshold is breached or a PO is processed.
+
+---
+
+## Multi-Pharmacy Tenant Isolation
+
+The application stores pharmacy data in a shared database. Each pharmacy-owned record is linked to a `Pharmacy` through a required `pharmacy_id`; request middleware derives that ID from the authenticated user's database record and places it on the request. The session also carries the pharmacy ID for context, but authorization always uses the database-backed user association.
+
+The tenant migration creates a **Legacy Pharmacy** and assigns existing users, stock, sales, orders, audit records, and notifications to it. Review and update its name, email, and address in Django admin after deployment. Existing global unique keys for supplier names, section names/codes, medication SKUs, PO numbers, audit IDs, and sale references become unique within each pharmacy.
+
+Apply migrations before starting the updated application:
+
+```sh
+python manage.py migrate
+```
+
+An authorized platform superuser can create pharmacies in Django admin. When creating a staff user there, select the pharmacy that owns the account; the user's pharmacy becomes the source of tenant context at sign-in. Tenant administrators created through the application can only provision staff within their own pharmacy. Inventory seed data must target a pharmacy explicitly once there is more than one:
+
+```sh
+python manage.py seed_stock --pharmacy-id <id>
+```
+
+Tenant-aware default ORM managers scope reads, updates, and deletes to the active pharmacy and assign that pharmacy to new records. Related records are checked for matching pharmacy ownership. `all_objects` is an unscoped manager intended only for controlled cross-tenant operations such as global email uniqueness checks; do not use it in request handlers.
+
+There are no separate customer/patient or prescription tables in this codebase. Patient information is stored on `SalesTransaction`, so it is isolated with the sale.

@@ -3,17 +3,39 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.core.management.base import CommandError
 from app.models import (
-    PharmacySection, Supplier, Medication, MedicationBatch,
+    Pharmacy, PharmacySection, Supplier, Medication, MedicationBatch,
     PurchaseOrder, PurchaseOrderItem, SalesTransaction, SalesTransactionItem, StockAuditLedger
 )
+from app.tenancy import pharmacy_context
 
 User = get_user_model()
 
 class Command(BaseCommand):
     help = 'Seeds realistic stock and inventory data for all pharmacy sections'
 
+    def add_arguments(self, parser):
+        parser.add_argument('--pharmacy-id', type=int)
+
     def handle(self, *args, **options):
+        pharmacies = Pharmacy.objects.all()
+        pharmacy_id = options.get('pharmacy_id')
+        if pharmacy_id:
+            pharmacy = pharmacies.filter(pk=pharmacy_id).first()
+            if pharmacy is None:
+                raise CommandError(f'Pharmacy {pharmacy_id} does not exist.')
+        else:
+            if pharmacies.count() != 1:
+                raise CommandError(
+                    'Specify --pharmacy-id when zero or multiple pharmacies exist.'
+                )
+            pharmacy = pharmacies.get()
+
+        with pharmacy_context(pharmacy.pk):
+            return self._seed_stock(*args, **options)
+
+    def _seed_stock(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('Starting stock data seeding for all pharmacy sections...'))
         today = timezone.now().date()
 
