@@ -31,3 +31,12 @@ def pharmacy_context(pharmacy_id):
         yield
     finally:
         reset_current_pharmacy_id(token)
+
+
+@contextmanager
+def without_pharmacy_context():
+    token = _current_pharmacy_id.set(None)
+    try:
+        yield
+    finally:
+        reset_current_pharmacy_id(token)

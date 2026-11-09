@@ -12,7 +12,7 @@ from app.models import (
     PharmacySection, Medication, MedicationBatch, StockAuditLedger,
     Supplier, PurchaseOrder, Pharmacy
 )
-from app.tenancy import pharmacy_context
+from app.tenancy import pharmacy_context, without_pharmacy_context
 from app.views import calculate_abc_classification
 
 User = get_user_model()
@@ -333,6 +333,19 @@ class ComprehensiveFRTests(TestCase):
                 section=other_section,
             )
 
+    def test_login_initializes_pharmacy_context_from_authenticated_user(self):
+        self.client.logout()
+        with without_pharmacy_context():
+            response = self.client.post(reverse('login'), {
+                'email': self.pharmacist.email,
+                'password': 'Password123!',
+            })
+            self.assertRedirects(response, reverse('dashboard'))
+
+            response = self.client.get(reverse('medications_list'))
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, self.med.name)
+
     def test_multi_item_fefo_cart_and_pos_checkout_naira(self):
         """Test multi-item dispensing with cart system, Nigerian Naira pricing, and payment method selection."""
         # Create second medication with Naira pricing
@@ -401,5 +414,4 @@ class ComprehensiveFRTests(TestCase):
         self.assertEqual(receipt_res.status_code, 200)
         self.assertContains(receipt_res, 'Chioma Adeleke')
         self.assertContains(receipt_res, checkout_data['transaction_ref'])
-
 

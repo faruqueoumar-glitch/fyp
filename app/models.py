@@ -162,6 +162,10 @@ ROLE_PERMISSIONS = {
 
 
 class CustomUserManager(TenantScopedManager, BaseUserManager):
+    def get_by_natural_key(self, username):
+        return self.model.all_objects.get(
+            **{self.model.USERNAME_FIELD: username}
+        )
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('The Email field must be set')
