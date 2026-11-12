@@ -21,7 +21,7 @@ from .models import (
     PharmacySection, Medication, MedicationBatch, StockAuditLedger,
     Supplier, PurchaseOrder, PurchaseOrderItem, SalesTransaction, SalesTransactionItem
 )
-from .tenancy import pharmacy_context
+from .tenancy import get_current_pharmacy_id, pharmacy_context
 from notifications.notification_services import NotificationService
 
 User = get_user_model()
@@ -52,6 +52,8 @@ def require_permission(permission_name):
 
 
 def log_audit_trail(request, action_type, affected_entity, entity_pk, before_data, after_data, reason=""):
+    if get_current_pharmacy_id() is None:
+        return
     """FR2: Helper function to record immutable audit trail entries."""
     user_id = request.user.email if (request and request.user and request.user.is_authenticated) else "system"
     ip = request.META.get('REMOTE_ADDR') if request else None
@@ -251,6 +253,8 @@ DEFAULT_MEDICATIONS = [
 ]
 
 def ensure_master_defaults():
+    if get_current_pharmacy_id() is None:
+        return
     if PharmacySection.objects.count() == 0:
         for s in DEFAULT_SECTIONS:
             PharmacySection.objects.get_or_create(code=s['code'], defaults=s)
@@ -419,6 +423,8 @@ def login_view(request):
                 log_audit_trail(request, 'USER_LOGIN', 'User', user.id, {},
                                 {'user': user.email, 'role': user.role},
                                 'User session initiated')
+            messages.success(request, f"Welcome back, {user.first_name or user.email} [{user.get_role_display()}].")
+            return redirect('dashboard')
         else:
             messages.error(request, "Invalid email address or password.")
 
