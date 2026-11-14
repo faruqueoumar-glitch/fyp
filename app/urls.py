@@ -8,6 +8,12 @@ urlpatterns = [
     path('signout/', views.logout_view, name='signout'),
     path('register/', views.register_view, name='register'),
 
+    # Password Reset URLs (self-service, multi-tenant safe)
+    path('password-reset/', views.password_reset_view, name='password_reset'),
+    path('password-reset/done/', views.password_reset_done_view, name='password_reset_done'),
+    path('reset/<uidb64>/<token>/', views.password_reset_confirm_view, name='password_reset_confirm'),
+    path('reset/done/', views.password_reset_complete_view, name='password_reset_complete'),
+
     # Master Data & User Management (Sections, Suppliers, Users)
     path('sections/', views.sections_list_view, name='sections_list'),
     path('suppliers/', views.suppliers_list_view, name='suppliers_list'),

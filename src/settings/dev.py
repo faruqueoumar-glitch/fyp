@@ -77,3 +77,15 @@ else:
         }
     }
 
+
+# Email Configuration
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_PORT = os.environ.get('EMAIL_PORT', 587)
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@pharmaudit.example')
+
+# Use console email backend for local testing
+if not EMAIL_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

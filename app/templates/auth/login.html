@@ -56,11 +56,15 @@
 
         <div class="mt-6 pt-4 border-t border-slate-100 text-center">
             <p class="text-xs text-slate-500">
-                Staff accounts are provisioned internally by System Administrators.
             </p>
             <p class="text-xs text-slate-500">
                 <a href="{% url 'register' %}" class="font-semibold text-slate-900 hover:underline transition">
-                    Register Your Pharmacy Shop
+                    Create a Pharmacy Account
+                </a>
+            </p>
+            <p class="text-xs text-slate-500 mt-2">
+                <a href="{% url 'password_reset' %}" class="font-semibold text-slate-900 hover:underline transition">
+                    Forgot password?
                 </a>
             </p>
         </div>

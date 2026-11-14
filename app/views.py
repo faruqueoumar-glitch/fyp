@@ -1609,3 +1609,31 @@ def clear_sample_data(request):
         messages.success(request, 'Sample pharmacy data cleared successfully.')
 
     return redirect('dashboard')
+
+
+from django.contrib.auth import views as auth_views
+
+def password_reset_view(request):
+    """Self-service password reset using tenant-aware form."""
+    return auth_views.PasswordResetView.as_view(
+        template_name='auth/password_reset.html',
+        form_class=TenantAwarePasswordResetForm
+    )(request)
+
+def password_reset_done_view(request):
+    """Password reset done view."""
+    return auth_views.PasswordResetDoneView.as_view(
+        template_name='auth/password_reset_done.html'
+    )(request)
+
+def password_reset_confirm_view(request, uidb64, token):
+    """Password reset confirm view."""
+    return auth_views.PasswordResetConfirmView.as_view(
+        template_name='auth/password_reset_confirm.html'
+    )(request, uidb64=uidb64, token=token)
+
+def password_reset_complete_view(request):
+    """Password reset complete view."""
+    return auth_views.PasswordResetCompleteView.as_view(
+        template_name='auth/password_reset_complete.html'
+    )(request)

@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from .models import PharmacySection, Medication, MedicationBatch, Supplier, PurchaseOrder
@@ -218,6 +219,29 @@ class GoodsReceiptForm(forms.ModelForm):
         return cleaned
 
 
+
+
+class TenantAwarePasswordResetForm(PasswordResetForm):
+    """A password reset form that queries users via _base_manager to work
+    across all pharmacy tenants when no tenant context is available.
+    
+    Standard PasswordResetForm can fail for unauthenticated users because
+    CustomUser.objects is scoped to the active pharmacy tenant via
+    PharmacyContextMiddleware. Using _base_manager ensures we search
+    all tenant databases.
+    """
+    def get_users(self, email):
+        """Query users using _base_manager to bypass tenant scoping."""
+        return User._base_manager.filter(email__iexact=email, is_active=True)
+
+# Override the send_mail method to use our custom get_users
+    def send_mail(self, subject_template_name, email_template_name,
+                  context, from_email=None, to_email=None, html_email_template_name=None):
+        from django.contrib.auth.forms import PasswordResetForm
+        super().send_mail(
+            subject_template_name, email_template_name, context,
+            from_email, to_email, html_email_template_name
+        )
 class FEFODispenseForm(forms.Form):
     medication = forms.ModelChoiceField(
         queryset=Medication.objects.all(),
@@ -277,3 +301,33 @@ class PurchaseOrderForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.fields['supplier'].queryset = Supplier.objects.all()
         self.fields['medication'].queryset = Medication.objects.all()
+
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class TenantAwarePasswordResetForm(PasswordResetForm):
+    """A password reset form that queries users via _base_manager to work
+    across all pharmacy tenants when no tenant context is available.
+    
+    Standard PasswordResetForm can fail for unauthenticated users because
+    CustomUser.objects is scoped to the active pharmacy tenant via
+    PharmacyContextMiddleware. Using _base_manager ensures we search
+    all tenant databases.
+    """
+
+    def get_users(self, email):
+        """Query users using _base_manager to bypass tenant scoping."""
+        return User._base_manager.filter(email__iexact=email, is_active=True)
+
+    def send_mail(self, subject_template_name, email_template_name,
+                  context, from_email=None, to_email=None, html_email_template_name=None):
+        """Send password reset email using custom user query."""
+        users = self.get_users(context.get('email', ''))
+        if users.exists():
+            context['user'] = users.first()
+        super().send_mail(
+            subject_template_name, email_template_name,
+            context, from_email, to_email, html_email_template_name
+        )

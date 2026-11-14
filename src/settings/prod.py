@@ -105,3 +105,19 @@ LOGGING = {
         },
     },
 }
+
+# Email Configuration
+# https://docs.djangoproject.com/en/6.0/ref/settings/#email-backend
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_PORT = os.environ.get('EMAIL_PORT', 587)
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@pharmaudit.example')
+
+# Fall back to console email backend for development if EMAIL_HOST is not set
+# This ensures password reset requests never crash with a 500 error in dev
+if not EMAIL_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
