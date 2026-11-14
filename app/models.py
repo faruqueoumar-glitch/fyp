@@ -231,6 +231,10 @@ class CustomUser(PharmacyOwnedModel, AbstractUser):
         return permission_name in allowed_perms
 
     def save(self, *args, **kwargs):
+        uf = kwargs.get("update_fields")
+        if uf is not None and set(uf) == {"last_login"}:
+            models.Model.save(self, *args, **kwargs)
+            return
         super().save(*args, **kwargs)
         try:
             role_to_group = {
