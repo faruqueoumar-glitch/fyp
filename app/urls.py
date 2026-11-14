@@ -5,8 +5,8 @@ urlpatterns = [
     # Dashboard & Auth
     path('', views.dashboard_view, name='dashboard'),
     path('login/', views.login_view, name='login'),
-    path('register/', views.register_view, name='register'),
     path('signout/', views.logout_view, name='signout'),
+    path('register/', views.register_view, name='register'),
 
     # Master Data & User Management (Sections, Suppliers, Users)
     path('sections/', views.sections_list_view, name='sections_list'),
@@ -36,6 +36,8 @@ urlpatterns = [
     path('orders/', views.purchase_orders_view, name='purchase_orders'),
     path('orders/auto-po/<int:medication_id>/', views.auto_generate_draft_po_view, name='auto_generate_draft_po'),
     path('orders/approve/<int:po_id>/', views.approve_po_view, name='approve_po'),
+    path('pharmacy/load-sample-data/', views.load_sample_data, name='load_sample_data'),
+    path('pharmacy/clear-sample-data/', views.clear_sample_data, name='clear_sample_data'),
 
     # FR6 ABC Classification Console
     path('analytics/abc/', views.abc_classification_view, name='abc_classification'),

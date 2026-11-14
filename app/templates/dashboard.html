@@ -526,8 +526,34 @@ PharmaAudit OS{% endblock %} {% block main_content %}
     </div>
   </div>
 
-  {% if user.can_view_audit_trail %}
-  <!-- FR2: Immutable Audit Trail Table Feed -->
+  <!-- Tenant Onboarding Banner -->
+{% if user.pharmacy %}
+{% with med_count=total_medications %}
+{% if med_count == 0 %}
+<div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-6 text-emerald-800">
+    <div class="flex items-start gap-3">
+        <div class="flex-shrink-0">
+            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 4m4-4v6l4-4M6 6a6 6 0 016 6v6a6 6 0 01-6-6H6z"/>
+            </svg>
+        </div>
+        <div>
+            <p class="font-semibold">Welcome to PharmaAudit OS!</p>
+            <p class="text-sm text-emerald-700">Your pharmacy is starting fresh. Load sample data to test all features immediately.</p>
+        </div>
+    </div>
+    <div class="mt-4 flex gap-2">
+        <button id="loadDemoBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold transition-colors">
+            Load Sample Pharmacy Data
+        </button>
+        <button id="clearDemoBtn" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl font-semibold transition-colors">
+            Clear Demo Data
+        </button>
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+{% endif %}
   <div
     class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50"
   >
@@ -602,6 +628,5 @@ PharmaAudit OS{% endblock %} {% block main_content %}
       </table>
     </div>
   </div>
-  {% endif %}
 </div>
 {% endblock %}

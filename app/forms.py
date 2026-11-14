@@ -31,9 +31,38 @@ UNIT_OF_MEASURE_CHOICES = [
 
 
 class RegisterForm(forms.ModelForm):
+    shop_name = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': INPUT_CLASS,
+            'placeholder': 'Pharmacy Shop Name'
+        })
+    )
+    phone_number = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': INPUT_CLASS,
+            'placeholder': 'Phone Number'
+        })
+    )
+    address = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': INPUT_CLASS,
+            'placeholder': 'Pharmacy Address',
+            'rows': 3
+        })
+    )
+    full_name = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': INPUT_CLASS,
+            'placeholder': 'Owner Full Name'
+        })
+    )
     role = forms.ChoiceField(
         choices=User.ROLE_CHOICES,
-        initial='PHARMACIST',
+        initial='ADMIN',
         required=False,
         widget=forms.Select(attrs={'class': SELECT_CLASS})
     )
@@ -66,7 +95,7 @@ class RegisterForm(forms.ModelForm):
             }),
             'email': forms.EmailInput(attrs={
                 'class': INPUT_CLASS,
-                'placeholder': 'name@hospital.org'
+                'placeholder': 'owner@pharmacy.example'
             }),
         }
 
@@ -74,16 +103,24 @@ class RegisterForm(forms.ModelForm):
         cleaned_data = super().clean()
         pwd = cleaned_data.get('password')
         cpwd = cleaned_data.get('confirm_password')
-
         if pwd and cpwd and pwd != cpwd:
             self.add_error('confirm_password', 'Passwords do not match.')
+        if 'first_name' not in self.data:
+            if not cleaned_data.get('shop_name'):
+                self.add_error('shop_name', 'Pharmacy shop name is required.')
+            if not cleaned_data.get('full_name'):
+                self.add_error('full_name', 'Owner full name is required.')
         return cleaned_data
 
     def clean_email(self):
         email = self.cleaned_data['email']
         if User.all_objects.filter(email__iexact=email).exists():
             raise forms.ValidationError('A user with this email address already exists.')
+        from app.models import Pharmacy
+        if Pharmacy.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError('A pharmacy with this email address already exists.')
         return email
+
 
 
 class LoginForm(forms.Form):

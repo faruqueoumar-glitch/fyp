@@ -436,8 +436,130 @@ def register_view(request):
         if request.user.is_admin:
             return redirect('manage_users')
         return redirect('dashboard')
-    messages.error(request, "Public account registration is disabled. Staff accounts must be created by a System Administrator.")
-    return redirect('login')
+    
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            shop_name = form.cleaned_data['shop_name']
+            phone_number = form.cleaned_data['phone_number']
+            address = form.cleaned_data['address']
+            full_name = form.cleaned_data['full_name']
+            email = form.cleaned_data['email']
+            password = form.cleaned_data['password']
+            
+            # Create the Pharmacy first, then create the owner User inside pharmacy_context
+            from django.db import transaction
+            from app.tenancy import pharmacy_context
+            from app.models import Pharmacy
+            
+            with transaction.atomic():
+                # Create the Pharmacy tenant
+                full_address = f"{address} (Tel: {phone_number})".strip() if phone_number else address
+                pharmacy = Pharmacy.objects.create(
+                    shop_name=shop_name,
+                    email=email,
+                    address=full_address,
+                )
+                
+                # Create the owner User inside pharmacy context
+                with pharmacy_context(pharmacy.id):
+                    user = User(
+                        email=email,
+                        first_name=full_name.split()[0] if full_name else '',
+                        last_name=' '.join(full_name.split()[1:]) if len(full_name.split()) > 1 else '',
+                        role='ADMIN',
+                        is_staff=True,
+                        is_active=True,
+                        pharmacy=pharmacy,
+                    )
+                    user.set_password(password)
+                    user.save()
+                
+                # Auto-login the new admin and bind tenant session
+                with pharmacy_context(pharmacy.id):
+                    login(request, user)
+                    request.pharmacy_id = pharmacy.id
+                    request.pharmacy = pharmacy
+                    request.session['pharmacy_id'] = pharmacy.id
+                messages.success(request, f"Welcome to PharmaAudit OS! Your pharmacy '{shop_name}' has been registered.")
+                return redirect('dashboard')
+    else:
+        form = RegisterForm()
+    
+    return render(request, 'auth/register.html', {'form': form})
+
+
+def load_sample_data(request):
+    """Load sample pharmacy data for a new pharmacy with 0 medications."""
+    if not request.user.is_authenticated or not request.user.pharmacy:
+        return redirect('login')
+
+    pharmacy = request.user.pharmacy
+    from django.utils import timezone
+    from datetime import timedelta
+
+    with pharmacy_context(pharmacy.id):
+        if Medication.objects.exists():
+            messages.warning(request, 'Your pharmacy already has medications loaded.')
+            return redirect('dashboard')
+
+        sec_rx, _ = PharmacySection.objects.get_or_create(
+            name='Prescription Medications',
+            defaults={'code': 'RX-01', 'description': 'Prescription drugs and antibiotics'}
+        )
+        sec_otc, _ = PharmacySection.objects.get_or_create(
+            name='Over-the-Counter',
+            defaults={'code': 'OTC-01', 'description': 'Non-prescription medications and health products'}
+        )
+
+        sup1, _ = Supplier.objects.get_or_create(
+            name='PharmaCo Distribution',
+            defaults={'contact_person': 'Adeola Martins', 'phone': '+234 800 123 4567', 'email': 'orders@pharmaco.example'}
+        )
+        sup2, _ = Supplier.objects.get_or_create(
+            name='MedSupply Nigeria Ltd',
+            defaults={'contact_person': 'Chinedu Okafor', 'phone': '+234 800 987 6543', 'email': 'supply@medsupply.example'}
+        )
+
+        sample_meds = [
+            ('Amoxicillin 500mg Capsules', 'SAM-AMX-500', sec_rx, sup1, 'Capsules', 120.00, 200.00, 2400, 15, 60, 500, 150),
+            ('Ibuprofen 400mg Tablets', 'SAM-IBU-400', sec_otc, sup1, 'Tablets', 50.00, 100.00, 3600, 20, 80, 600, 200),
+            ('Cetirizine 10mg Tablets', 'SAM-CET-010', sec_otc, sup2, 'Tablets', 60.00, 120.00, 1800, 10, 40, 300, 120),
+            ('Omeprazole 20mg Capsules', 'SAM-OME-020', sec_rx, sup2, 'Capsules', 90.00, 180.00, 1500, 10, 35, 250, 90),
+            ('Metformin 500mg Tablets', 'SAM-MET-500', sec_rx, sup1, 'Tablets', 70.00, 140.00, 3000, 18, 70, 500, 180),
+            ('Amlodipine 5mg Tablets', 'SAM-AML-005', sec_rx, sup2, 'Tablets', 85.00, 170.00, 2000, 12, 50, 400, 110),
+        ]
+
+        today = timezone.now().date()
+        for idx, (name, sku, sec, sup, unit, cost, price, demand, daily, safety, max_lvl, qty) in enumerate(sample_meds, start=1):
+            med = Medication.objects.create(
+                name=name,
+                sku=sku,
+                section=sec,
+                supplier=sup,
+                unit=unit,
+                unit_cost=cost,
+                selling_price_per_unit=price,
+                annual_demand=demand,
+                daily_consumption=daily,
+                safety_stock=safety,
+                max_level=max_lvl,
+            )
+            MedicationBatch.objects.create(
+                medication=med,
+                supplier=sup,
+                batch_number=f'SAMPLE-B{idx:03d}',
+                initial_quantity=qty,
+                quantity=qty,
+                manufacture_date=today - timedelta(days=45),
+                expiry_date=today + timedelta(days=365),
+                received_date=today - timedelta(days=15),
+            )
+
+        messages.success(request, 'Sample pharmacy data loaded successfully!')
+
+    return redirect('dashboard')
+
 
 
 def logout_view(request):
@@ -658,7 +780,6 @@ def dashboard_view(request):
 # 3.2.2.1 Goods Receipt Intake View
 @require_permission('record_stock_receipt')
 def receive_batch_view(request):
-    """Capturing drug identity, supplier, batch number, manufacture date, expiry date, and quantity received."""
     form = GoodsReceiptForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         batch = form.save(commit=False)
@@ -1471,3 +1592,18 @@ def sales_receipt_view(request, transaction_ref):
         
     return render(request, 'inventory/sales_receipt.html', {'transaction': sales_tx})
 
+
+def clear_sample_data(request):
+    """Clear all sample data for a pharmacy, keeping only the pharmacy and user."""
+    if not request.user.is_authenticated or not request.user.pharmacy:
+        return redirect('login')
+
+    pharmacy = request.user.pharmacy
+    with pharmacy_context(pharmacy.id):
+        MedicationBatch.objects.all().delete()
+        Medication.objects.all().delete()
+        PharmacySection.objects.all().delete()
+        Supplier.objects.all().delete()
+        messages.success(request, 'Sample pharmacy data cleared successfully.')
+
+    return redirect('dashboard')

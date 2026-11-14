@@ -219,7 +219,7 @@ class ComprehensiveFRTests(TestCase):
         # 1. Unauthenticated registration attempt must redirect to login
         self.client.logout()
         response = self.client.get(reverse('register'))
-        self.assertRedirects(response, reverse('login'))
+        self.assertEqual(response.status_code, 200)
 
         # 2. Admin provisions staff account with role
         self.client.login(email='admin@hospital.org', password='Password123!')
@@ -415,3 +415,38 @@ class ComprehensiveFRTests(TestCase):
         self.assertContains(receipt_res, 'Chioma Adeleke')
         self.assertContains(receipt_res, checkout_data['transaction_ref'])
 
+    def test_public_pharmacy_registration_and_sample_data(self):
+        """Test public pharmacy registration creates an isolated tenant and sample data loads/clears cleanly."""
+        self.client.logout()
+        res_post = self.client.post(reverse('register'), {
+            'shop_name': 'GreenCross Retail Pharmacy',
+            'phone_number': '+234 801 234 5678',
+            'address': '14 Broad Street, Lagos',
+            'full_name': 'Ngozi Okonkwo',
+            'email': 'ngozi@greencross.example',
+            'password': 'StrongPassword123!',
+            'confirm_password': 'StrongPassword123!',
+        })
+        self.assertRedirects(res_post, reverse('dashboard'))
+
+        new_pharmacy = Pharmacy.objects.filter(shop_name='GreenCross Retail Pharmacy').first()
+        self.assertIsNotNone(new_pharmacy)
+        owner = User.all_objects.filter(email='ngozi@greencross.example').first()
+        self.assertIsNotNone(owner)
+        self.assertEqual(owner.pharmacy_id, new_pharmacy.id)
+        self.assertEqual(owner.role, 'ADMIN')
+        self.assertTrue(owner.check_password('StrongPassword123!'))
+
+        # Load sample data into the new tenant and verify isolation from existing pharmacy
+        res_load = self.client.get(reverse('load_sample_data'))
+        self.assertRedirects(res_load, reverse('dashboard'))
+        with pharmacy_context(new_pharmacy.id):
+            self.assertEqual(Medication.objects.count(), 6)
+        with pharmacy_context(self.pharmacy.id):
+            self.assertFalse(Medication.objects.filter(sku__startswith='SAM-').exists())
+
+        # Clear sample data
+        res_clear = self.client.get(reverse('clear_sample_data'))
+        self.assertRedirects(res_clear, reverse('dashboard'))
+        with pharmacy_context(new_pharmacy.id):
+            self.assertEqual(Medication.objects.count(), 0)

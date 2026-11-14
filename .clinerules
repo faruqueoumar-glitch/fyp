@@ -1,0 +1,5 @@
+# PharmaAudit OS Project Rules
+- Multi-tenancy: All tenant-scoped writes must execute inside `app.tenancy.pharmacy_context` or `pharmacy_context`. Never bypass `PharmacyAwareModel` validation except for `CustomUser` auth updates (`last_login`, `password`).
+- Settings & Tests: Run tests locally using `DATABASE_URL='sqlite:///db.sqlite3' python manage.py test --noinput` before committing.
+- Deployment Safety: Work on a feature branch (e.g., `feat/demo-polish`) and ask before committing to `main`.
+- Secrets: Never read, log, or commit `.env` files or database credentials.
