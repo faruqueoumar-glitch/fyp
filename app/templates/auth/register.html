@@ -1,13 +1,16 @@
 {% extends 'base.html' %}
 
-{% block title %}Sign Up | PharmaAudit OS{% endblock %}
+{% block title %}Register Your Pharmacy | PharmaAudit OS{% endblock %}
 
 {% block main_content %}
 <div class="min-h-[80vh] flex flex-col justify-center items-center p-4">
-    <div class="max-w-md w-full border border-slate-200 bg-white p-8 rounded-3xl shadow-xl shadow-slate-200/50">
+    <div class="max-w-lg w-full border border-slate-200 bg-white p-8 rounded-3xl shadow-xl shadow-slate-200/50">
         <div class="mb-6 border-b border-slate-100 pb-4 text-center">
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Sign Up</h1>
-            <p class="text-xs text-slate-500 mt-1">Create your account</p>
+            <span class="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold uppercase tracking-wider mb-2">
+                New Pharmacy Onboarding
+            </span>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Register Your Pharmacy</h1>
+            <p class="text-xs text-slate-500 mt-1">Create an isolated workspace for your pharmacy inventory and staff</p>
         </div>
 
         {% if form.non_field_errors %}
@@ -21,67 +24,75 @@
         <form method="POST" action="{% url 'register' %}" class="space-y-4" novalidate>
             {% csrf_token %}
 
-            <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label for="{{ form.shop_name.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Pharmacy Shop Name *</label>
+                {{ form.shop_name }}
+                {% if form.shop_name.errors %}<p class="mt-1 text-xs font-semibold text-rose-600">{{ form.shop_name.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label for="{{ form.first_name.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">First Name</label>
-                    {{ form.first_name }}
-                    {% if form.first_name.errors %}<p class="mt-1 text-xs font-semibold text-rose-600">{{ form.first_name.errors.0 }}</p>{% endif %}
+                    <label for="{{ form.full_name.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Owner Full Name *</label>
+                    {{ form.full_name }}
+                    {% if form.full_name.errors %}<p class="mt-1 text-xs font-semibold text-rose-600">{{ form.full_name.errors.0 }}</p>{% endif %}
                 </div>
                 <div>
-                    <label for="{{ form.last_name.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Last Name</label>
-                    {{ form.last_name }}
-                    {% if form.last_name.errors %}<p class="mt-1 text-xs font-semibold text-rose-600">{{ form.last_name.errors.0 }}</p>{% endif %}
+                    <label for="{{ form.phone_number.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Phone Number</label>
+                    {{ form.phone_number }}
+                    {% if form.phone_number.errors %}<p class="mt-1 text-xs font-semibold text-rose-600">{{ form.phone_number.errors.0 }}</p>{% endif %}
                 </div>
             </div>
 
             <div>
-                <label for="{{ form.email.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Email Address</label>
+                <label for="{{ form.email.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Admin Email Address *</label>
                 {{ form.email }}
                 {% if form.email.errors %}<p class="mt-1 text-xs font-semibold text-rose-600">{{ form.email.errors.0 }}</p>{% endif %}
             </div>
 
             <div>
-                <label for="{{ form.role.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">System Role</label>
-                {{ form.role }}
-                {% if form.role.errors %}<p class="mt-1 text-xs font-semibold text-rose-600">{{ form.role.errors.0 }}</p>{% endif %}
+                <label for="{{ form.address.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Pharmacy Address</label>
+                {{ form.address }}
+                {% if form.address.errors %}<p class="mt-1 text-xs font-semibold text-rose-600">{{ form.address.errors.0 }}</p>{% endif %}
             </div>
 
-            <div>
-                <label for="{{ form.password.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Password</label>
-                <div class="relative">
-                    {{ form.password }}
-                    <button type="button" onclick="togglePasswordVisibility('registerPassword', 'eyeIconReg')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 focus:outline-none p-1">
-                        <svg id="eyeIconReg" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                    </button>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label for="{{ form.password.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Password *</label>
+                    <div class="relative">
+                        {{ form.password }}
+                        <button type="button" onclick="togglePasswordVisibility('registerPassword', 'eyeIconReg')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 focus:outline-none p-1">
+                            <svg id="eyeIconReg" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </div>
+                    {% if form.password.errors %}<p class="mt-1 text-xs font-semibold text-rose-600">{{ form.password.errors.0 }}</p>{% endif %}
                 </div>
-                {% if form.password.errors %}<p class="mt-1 text-xs font-semibold text-rose-600">{{ form.password.errors.0 }}</p>{% endif %}
-            </div>
 
-            <div>
-                <label for="{{ form.confirm_password.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Confirm Password</label>
-                <div class="relative">
-                    {{ form.confirm_password }}
-                    <button type="button" onclick="togglePasswordVisibility('registerConfirmPassword', 'eyeIconConfirm')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 focus:outline-none p-1">
-                        <svg id="eyeIconConfirm" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                    </button>
+                <div>
+                    <label for="{{ form.confirm_password.id_for_label }}" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Confirm Password *</label>
+                    <div class="relative">
+                        {{ form.confirm_password }}
+                        <button type="button" onclick="togglePasswordVisibility('registerConfirmPassword', 'eyeIconConfirm')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 focus:outline-none p-1">
+                            <svg id="eyeIconConfirm" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </div>
+                    {% if form.confirm_password.errors %}<p class="mt-1 text-xs font-semibold text-rose-600">{{ form.confirm_password.errors.0 }}</p>{% endif %}
                 </div>
-                {% if form.confirm_password.errors %}<p class="mt-1 text-xs font-semibold text-rose-600">{{ form.confirm_password.errors.0 }}</p>{% endif %}
             </div>
 
             <button type="submit" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl shadow-md transition duration-200">
-                Sign Up
+                Create Pharmacy Account
             </button>
         </form>
 
         <div class="mt-6 pt-4 border-t border-slate-100 text-center">
             <p class="text-xs text-slate-500">
-                Already registered? 
+                Already registered?
                 <a href="{% url 'login' %}" class="font-semibold text-slate-900 hover:underline transition">
                     Sign In
                 </a>
@@ -95,10 +106,10 @@ function togglePasswordVisibility(inputId, iconId) {
     const input = document.getElementById(inputId);
     const icon = document.getElementById(iconId);
     if (!input) return;
-    
+
     if (input.type === 'password') {
         input.type = 'text';
-        icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.018 10.018 0 014.122-.963c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21f-9-9" />`;
+        icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.018 10.018 0 014.122-.963c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21m-9-9l-9-9" />`;
     } else {
         input.type = 'password';
         icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;

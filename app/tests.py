@@ -418,6 +418,11 @@ class ComprehensiveFRTests(TestCase):
     def test_public_pharmacy_registration_and_sample_data(self):
         """Test public pharmacy registration creates an isolated tenant and sample data loads/clears cleanly."""
         self.client.logout()
+        res_get = self.client.get(reverse('register'))
+        self.assertEqual(res_get.status_code, 200)
+        self.assertContains(res_get, 'Pharmacy Shop Name')
+        self.assertNotContains(res_get, 'System Role')
+
         res_post = self.client.post(reverse('register'), {
             'shop_name': 'GreenCross Retail Pharmacy',
             'phone_number': '+234 801 234 5678',
@@ -436,6 +441,10 @@ class ComprehensiveFRTests(TestCase):
         self.assertEqual(owner.pharmacy_id, new_pharmacy.id)
         self.assertEqual(owner.role, 'ADMIN')
         self.assertTrue(owner.check_password('StrongPassword123!'))
+
+        # Empty dashboard should offer Load Sample Pharmacy Data button
+        res_dash_empty = self.client.get(reverse('dashboard'))
+        self.assertContains(res_dash_empty, 'Load Sample Pharmacy Data')
 
         # Load sample data into the new tenant and verify isolation from existing pharmacy
         res_load = self.client.get(reverse('load_sample_data'))

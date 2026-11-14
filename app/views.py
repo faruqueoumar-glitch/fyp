@@ -773,6 +773,8 @@ def dashboard_view(request):
         'recent_audits': recent_audits,
         'ledger_intact': ledger_intact,
         'sections_summary': sections_summary,
+        'total_medications': Medication.objects.count(),
+        'has_sample_data': Medication.objects.filter(sku__startswith='SAM-').exists(),
     }
     return render(request, 'dashboard.html', context)
 
