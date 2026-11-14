@@ -232,7 +232,7 @@ class CustomUser(PharmacyOwnedModel, AbstractUser):
 
     def save(self, *args, **kwargs):
         uf = kwargs.get("update_fields")
-        if uf is not None and set(uf) == {"last_login"}:
+        if uf is not None and set(uf).issubset({"last_login", "password"}):
             models.Model.save(self, *args, **kwargs)
             return
         super().save(*args, **kwargs)
