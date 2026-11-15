@@ -247,8 +247,12 @@ class CustomUser(PharmacyOwnedModel, AbstractUser):
         uf = kwargs.get("update_fields")
         if uf is not None and set(uf).issubset({"last_login", "password"}):
             # Special case: only updating last_login or password (e.g., password reset)
-            # Skip tenant pharmacy validation for these limited updates
-            super().save(*args, **kwargs)
+            # Bypass pharmacy context check - password reset must work regardless of active session
+            # Hash the password and save using the parent AbstractUser save logic
+            from django.contrib.auth.hashers import make_password
+            if 'password' in uf and self.password != make_password(kwargs.get('password', self.password) or self.password):
+                self.password = make_password(kwargs.get('password') or self.password)
+            super(AbstractUser, self).save(*args, **kwargs)
             return
         # Default save path: run full tenant validation
         super().save(*args, **kwargs)
