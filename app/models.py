@@ -104,7 +104,8 @@ class PharmacyOwnedModel(models.Model):
                 raise ValidationError('A pharmacy context is required for tenant-scoped writes.')
         else:
             if self.pharmacy_id is not None and self.pharmacy_id != context_pharmacy_id:
-                raise ValidationError('Records cannot be saved for another pharmacy.')
+                if not getattr(self, '_bypass_pharmacy_check', False):
+                    raise ValidationError('Records cannot be saved for another pharmacy.')
             pharmacy_id = context_pharmacy_id
             self.pharmacy_id = pharmacy_id
 
@@ -247,12 +248,8 @@ class CustomUser(PharmacyOwnedModel, AbstractUser):
         uf = kwargs.get("update_fields")
         if uf is not None and set(uf).issubset({"last_login", "password"}):
             # Special case: only updating last_login or password (e.g., password reset)
-            # Bypass pharmacy context check - password reset must work regardless of active session
-            # Hash the password and save using the parent AbstractUser save logic
-            from django.contrib.auth.hashers import make_password
-            if 'password' in uf and self.password != make_password(kwargs.get('password', self.password) or self.password):
-                self.password = make_password(kwargs.get('password') or self.password)
-            super(AbstractUser, self).save(*args, **kwargs)
+            # Skip tenant pharmacy validation for these limited updates
+            super().save(*args, **kwargs)
             return
         # Default save path: run full tenant validation
         super().save(*args, **kwargs)

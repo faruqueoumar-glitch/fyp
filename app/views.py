@@ -1628,6 +1628,10 @@ def password_reset_done_view(request):
     )(request)
 
 class TenantAwarePasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    def form_valid(self, form):
+        form.user._bypass_pharmacy_check = True
+        return super().form_valid(form)
+
     """Bypass tenant-scoped default manager when validating reset links."""
     def get_user(self, uidb64):
         from django.contrib.auth import get_user_model
