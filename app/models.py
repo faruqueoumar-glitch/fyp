@@ -88,12 +88,17 @@ class PharmacyOwnedModel(models.Model):
 
     def save(self, *args, **kwargs):
         # Allow saving without pharmacy context for existing records
-        # (e.g., password reset, profile updates without tenant context)
+        # (e.g., password reset, profile updates without tenant context,
+        #  or System Administrators without pharmacy assignment)
         context_pharmacy_id = get_current_pharmacy_id()
         if context_pharmacy_id is None:
-            # If no pharmacy context and record already has pharmacy_id, proceed
-            if self.pk and self.pharmacy_id is not None:
-                # Existing record, just save without changing pharmacy
+            # If no pharmacy context, proceed if record has no pharmacy_id
+            # (e.g., CustomUser with role ADMIN, or records created before tenant scoping)
+            if self.pharmacy_id is None:
+                # No pharmacy context and no pharmacy_id: proceed without setting it
+                pass
+            elif self.pk and self.pharmacy_id is not None:
+                # Existing record with pharmacy_id: proceed without changing it
                 pass
             else:
                 raise ValidationError('A pharmacy context is required for tenant-scoped writes.')
