@@ -15,6 +15,7 @@ from django.utils import timezone
 
 from .forms import (
     LoginForm, RegisterForm, MedicationForm, GoodsReceiptForm,
+    TenantAwarePasswordResetForm,
     FEFODispenseForm, StockAdjustmentForm, PurchaseOrderForm, SupplierForm, PharmacySectionForm
 )
 from .models import (
