@@ -87,21 +87,29 @@ class PharmacyOwnedModel(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
+        # Allow saving without pharmacy context for existing records
+        # (e.g., password reset, profile updates without tenant context)
         context_pharmacy_id = get_current_pharmacy_id()
         if context_pharmacy_id is None:
-            raise ValidationError('A pharmacy context is required for tenant-scoped writes.')
-        if self.pharmacy_id is not None and self.pharmacy_id != context_pharmacy_id:
-            raise ValidationError('Records cannot be saved for another pharmacy.')
-        pharmacy_id = context_pharmacy_id
-        self.pharmacy_id = pharmacy_id
+            # If no pharmacy context and record already has pharmacy_id, proceed
+            if self.pk and self.pharmacy_id is not None:
+                # Existing record, just save without changing pharmacy
+                pass
+            else:
+                raise ValidationError('A pharmacy context is required for tenant-scoped writes.')
+        else:
+            if self.pharmacy_id is not None and self.pharmacy_id != context_pharmacy_id:
+                raise ValidationError('Records cannot be saved for another pharmacy.')
+            pharmacy_id = context_pharmacy_id
+            self.pharmacy_id = pharmacy_id
 
-        if not self._state.adding:
+        if not self._state.adding and context_pharmacy_id is not None:
             previous_pharmacy_id = (
                 type(self)._base_manager.filter(pk=self.pk)
                 .values_list('pharmacy_id', flat=True)
                 .first()
             )
-            if previous_pharmacy_id != pharmacy_id:
+            if previous_pharmacy_id != self.pharmacy_id:
                 raise ValidationError('A record cannot be moved between pharmacies.')
 
         self.validate_tenant_relationships()
