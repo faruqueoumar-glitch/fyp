@@ -1627,9 +1627,23 @@ def password_reset_done_view(request):
         template_name='auth/password_reset_done.html'
     )(request)
 
+class TenantAwarePasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    """Bypass tenant-scoped default manager when validating reset links."""
+    def get_user(self, uidb64):
+        from django.contrib.auth import get_user_model
+        from django.core.exceptions import ValidationError
+        from django.utils.http import urlsafe_base64_decode
+        UserModel = get_user_model()
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            return UserModel._base_manager.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, UserModel.DoesNotExist, ValidationError):
+            return None
+
+
 def password_reset_confirm_view(request, uidb64, token):
     """Password reset confirm view."""
-    return auth_views.PasswordResetConfirmView.as_view(
+    return TenantAwarePasswordResetConfirmView.as_view(
         template_name='auth/password_reset_confirm.html'
     )(request, uidb64=uidb64, token=token)
 

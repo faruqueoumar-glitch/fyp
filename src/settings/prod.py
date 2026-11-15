@@ -117,7 +117,10 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@pharmaudit.e
 
 # Fall back to console email backend for development if EMAIL_HOST is not set
 # This ensures password reset requests never crash with a 500 error in dev
-if not EMAIL_HOST:
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
+if BREVO_API_KEY:
+    EMAIL_BACKEND = 'app.email_backends.BrevoEmailBackend'
+elif not EMAIL_HOST:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
