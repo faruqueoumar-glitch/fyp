@@ -241,8 +241,11 @@ class CustomUser(PharmacyOwnedModel, AbstractUser):
     def save(self, *args, **kwargs):
         uf = kwargs.get("update_fields")
         if uf is not None and set(uf).issubset({"last_login", "password"}):
-            models.Model.save(self, *args, **kwargs)
+            # Special case: only updating last_login or password (e.g., password reset)
+            # Skip tenant pharmacy validation for these limited updates
+            super().save(*args, **kwargs)
             return
+        # Default save path: run full tenant validation
         super().save(*args, **kwargs)
         try:
             role_to_group = {
