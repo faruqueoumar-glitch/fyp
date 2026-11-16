@@ -1,7 +1,8 @@
 import csv
+import json
+import secrets
 import os
 from functools import wraps
-import json
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.contrib import messages
@@ -10,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
-from django.db.models import Q, Sum, F
+from django.db.models import Q, Sum, F, Count
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
@@ -1704,16 +1705,38 @@ def offline_view(request):
 
 @login_required
 def founder_dashboard_view(request):
-    """Super-admin portal: list all pharmacy branches with suspend/activate/delete actions."""
+    """Super-admin portal: global platform overview & branch management."""
     # Restrict to superusers only
     if not request.user.is_superuser:
         return redirect('dashboard')
 
-    from app.models import Pharmacy
+    from app.models import Pharmacy, CustomUser
 
-    pharmacies = Pharmacy.objects.all().order_by('-created_at')
+    # ---- KPI Summary ----
+    total_branches = Pharmacy.objects.count()
+    active_branches = Pharmacy.objects.filter(is_active=True).count()
+    suspended_branches = Pharmacy.objects.filter(is_active=False).count()
+    total_users = CustomUser.objects.count()
+    total_superusers = CustomUser.objects.filter(is_superuser=True).count()
+
+    # ---- Pharmies with user counts (using reverse relation) ----
+    pharmacies = Pharmacy.objects.all().order_by('-created_at').annotate(
+        user_count=Count('customuser')
+    )
+
+    # ---- Search/filter bar ----
+    search_query = request.GET.get('q', '')
+    if search_query:
+        pharmacies = pharmacies.filter(
+            Q(shop_name__icontains=search_query) |
+            Q(email__icontains=search_query)
+        )
+
+    # ---- Platform User Management ----
+    users = CustomUser.objects.all().select_related('pharmacy').order_by('-date_joined')
 
     if request.method == 'POST':
+        # Branch actions
         pharmacy_id = request.POST.get('pharmacy_id')
         action = request.POST.get('action')
 
@@ -1732,8 +1755,53 @@ def founder_dashboard_view(request):
                 pharmacy.delete()
                 messages.success(request, f'Pharmacy branch "{pharmacy.shop_name}" has been deleted.')
 
+        # User management actions
+        user_id = request.POST.get('user_id')
+        user_action = request.POST.get('user_action')
+
+        if user_id and user_action:
+            user = get_object_or_404(CustomUser, id=user_id)
+
+            # Safety guard: prevent superuser from suspending/deleting own account
+            if user == request.user:
+                messages.error(request, 'You cannot suspend or delete your own account.')
+            else:
+                if user_action == 'suspend_toggle':
+                    user.is_active = not user.is_active
+                    user.save()
+                    messages.success(request, f'User "{user.email}" has been {"activated" if user.is_active else "suspended"}.')
+                elif user_action == 'change_role':
+                    new_role = request.POST.get('new_role')
+                    if new_role in dict(CustomUser.ROLE_CHOICES):
+                        user.role = new_role
+                        user.save()
+                        messages.success(request, f'User role updated to {user.get_role_display().lower()}.')
+                    else:
+                        messages.error(request, 'Invalid role selected.')
+                elif user_action == 'reset_password':
+                    # Generate a temporary password and flash it
+                    import secrets
+                    temp_password = secrets.token_urlsafe(8)
+                    user.set_password(temp_password)
+                    user.save()
+                    messages.success(request, f'Temporary password generated for {user.email}: {temp_password}.')
+                elif user_action == 'delete':
+                    # Double safety guard
+                    if user == request.user:
+                        messages.error(request, 'You cannot delete your own account.')
+                    else:
+                        user.delete()
+                        messages.success(request, f'User {user.email} has been deleted.')
+
     context = {
         'pharmacies': pharmacies,
+        'search_query': search_query,
+        'total_branches': total_branches,
+        'active_branches': active_branches,
+        'suspended_branches': suspended_branches,
+        'total_users': total_users,
+        'total_superusers': total_superusers,
+        'users': users,
     }
     return render(request, 'founder_dashboard.html', context)
 
