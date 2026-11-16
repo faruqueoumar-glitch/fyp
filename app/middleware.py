@@ -49,7 +49,11 @@ class BruteForceRateLimitMiddleware:
     def _get_identification(self, request):
         """Create a unique identification string: ip|path"""
         path = request.path
-        ip = request.META.get('REMOTE_ADDR', 'unknown')
+        xff = request.META.get('HTTP_X_FORWARDED_FOR')
+        if xff:
+            ip = xff.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR', 'unknown')
         return f"{ip}|{path}"
 
     def _check_rate_limit(self, ident):
@@ -61,12 +65,10 @@ class BruteForceRateLimitMiddleware:
         return False
 
     def _increment_rate_limit(self, ident):
-        """Increment the attempt counter for the identification."""
+        """Increment the attempt counter safely across Redis and LocMemCache."""
         cache_key = f"brute_force_{ident}"
-        current = cache.incr(cache_key)
-        if current == 1:
-            cache.expire(cache_key, self.WINDOW_SECONDS)
-        return current
+        cache.add(cache_key, 0, timeout=self.WINDOW_SECONDS)
+        return cache.incr(cache_key)
 
     def _reset_rate_limit(self, ident):
         """Reset/clear the rate limit counter for identification."""

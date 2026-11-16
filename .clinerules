@@ -3,3 +3,13 @@
 - Settings & Tests: Run tests locally using `DATABASE_URL='sqlite:///db.sqlite3' python manage.py test --noinput` before committing.
 - Deployment Safety: Work on a feature branch (e.g., `feat/demo-polish`) and ask before committing to `main`.
 - Secrets: Never read, log, or commit `.env` files or database credentials.
+# --- Path Resolution Gotchas (src/ layout) ---
+# BASE_DIR points to src/ (not repo root): settings.BASE_DIR = Path(__file__).resolve().parent.parent -> /path/to/src/
+# PROJECT_ROOT = BASE_DIR.parent -> repo root
+# Never use settings.BASE_DIR for app-relative paths inside src/
+# Always resolve app-level files via Path(__file__).resolve().parent OR settings.PROJECT_ROOT
+
+# --- Virtualenv Path ---
+# Always activate or invoke /home/small_father/Downloads/fyp-main/.venv/bin/python directly when running manage.py commands
+# Example: /home/small_father/Downloads/fyp-main/.venv/bin/python manage.py migrate
+# Example: /home/small_father/Downloads/fyp-main/.venv/bin/python manage.py shell

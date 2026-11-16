@@ -1,0 +1,79 @@
+# Cline Context Ignore Rules for PharmaAudit OS
+# Exclude directories that waste tokens and reduce AI coding efficiency
+
+# Virtual environments
+.venv/
+venv/
+
+# Node modules (if applicable)
+node_modules/
+
+# Django static files and build outputs
+staticfiles/
+collectstatic/
+*.collected*
+
+# Database files (local development only)
+db.sqlite3
+*.db
+*.sqlite
+
+# Cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+**/__pycache__/
+
+# IDE and editor settings
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+*.egg/
+
+# Environment specific
+.env
+*.env.local
+*.env.*.local
+
+# Logs
+logs/
+*.log
+debug.log
+
+# Test outputs and coverage
+htmlcov/
+.coverage
+.mypy_cache/
+.dmypycache/
+pytest_cache/
+.tox/
+venv/
+
+# Backup and temporary files
+*.bak
+*.tmp
+*~
+
+# Documentation build
+docs/_build/
+
+# Dockerignore (if present)
+.dockerignore
+
+# --- UN-IGNORED: Docker configuration (keep accessible for deployment debugging) ---
+# Dockerfile and docker-compose files are small and often needed for Render/debugging
+# Dockerfile
+# docker-compose*.yml
+
+# --- MIGRATIONS: Exclude auto-generated migration noise ---
+# Keep explicit migration files if needed, but ignore auto-generated 0*.py noise
+*/migrations/0*.py
+
+# --- MEDIA: Exclude uploaded files ---
+media/
