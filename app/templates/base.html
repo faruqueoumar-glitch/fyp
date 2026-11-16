@@ -293,6 +293,36 @@
       data-toast="true">
     </script>
     {% endif %}
-    {% block extra_scripts %}{% endblock %}
+    {% block extra_scripts %}
+    <script>
+    // Double-submit protection: disable submit buttons on form submission
+    document.addEventListener('DOMContentLoaded', function() {
+        const forms = document.querySelectorAll('form');
+        
+        forms.forEach(function(form) {
+            const originalBtnValue = form.querySelector('button[type="submit"]')?.value || '';
+            const submitBtn = form.querySelector('button[type="submit"]');
+            
+            form.addEventListener('submit', function(event) {
+                // Disable submit button and show Processing state
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.value = 'Processing...';
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            });
+            
+            // Re-enable on pageshow (browser back-button restore)
+            window.addEventListener('pageshow', function(event) {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.value = originalBtnValue;
+                    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            });
+        });
+    });
+    </script>
+    {% endblock %}
   </body>
 </html>

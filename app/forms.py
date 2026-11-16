@@ -34,32 +34,19 @@ UNIT_OF_MEASURE_CHOICES = [
 class RegisterForm(forms.ModelForm):
     shop_name = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Pharmacy Shop Name'
-        })
+        widget=forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Pharmacy Shop Name'})
     )
     phone_number = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Phone Number'
-        })
+        widget=forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Phone Number'})
     )
     address = forms.CharField(
         required=False,
-        widget=forms.Textarea(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Pharmacy Address',
-            'rows': 3
-        })
+        widget=forms.Textarea(attrs={'class': INPUT_CLASS, 'placeholder': 'Pharmacy Address', 'rows': 3})
     )
     full_name = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Owner Full Name'
-        })
+        widget=forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Owner Full Name'})
     )
     role = forms.ChoiceField(
         choices=User.ROLE_CHOICES,
@@ -68,36 +55,23 @@ class RegisterForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': SELECT_CLASS})
     )
     password = forms.CharField(
-        widget=forms.PasswordInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Enter password',
-            'id': 'registerPassword'
-        })
+        widget=forms.PasswordInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Enter password', 'id': 'registerPassword'})
     )
     confirm_password = forms.CharField(
-        widget=forms.PasswordInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'Confirm password',
-            'id': 'registerConfirmPassword'
-        })
+        widget=forms.PasswordInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Confirm password', 'id': 'registerConfirmPassword'})
+    )
+    _idempotency_key = forms.CharField(
+        widget=forms.HiddenInput(attrs={'id': '_idempotency_key'}),
+        required=False,
     )
 
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'email', 'role']
         widgets = {
-            'first_name': forms.TextInput(attrs={
-                'class': INPUT_CLASS,
-                'placeholder': 'First Name'
-            }),
-            'last_name': forms.TextInput(attrs={
-                'class': INPUT_CLASS,
-                'placeholder': 'Last Name'
-            }),
-            'email': forms.EmailInput(attrs={
-                'class': INPUT_CLASS,
-                'placeholder': 'owner@pharmacy.example'
-            }),
+            'first_name': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'First Name'}),
+            'last_name': forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Last Name'}),
+            'email': forms.EmailInput(attrs={'class': INPUT_CLASS, 'placeholder': 'owner@pharmacy.example'}),
         }
 
     def clean(self):
@@ -123,20 +97,16 @@ class RegisterForm(forms.ModelForm):
         return email
 
 
-
 class LoginForm(forms.Form):
     email = forms.EmailField(
-        widget=forms.EmailInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': 'pharmacist@hospital.org'
-        })
+        widget=forms.EmailInput(attrs={'class': INPUT_CLASS, 'placeholder': 'pharmacist@hospital.org'})
     )
     password = forms.CharField(
-        widget=forms.PasswordInput(attrs={
-            'class': INPUT_CLASS,
-            'placeholder': '••••••••••••',
-            'id': 'loginPassword'
-        })
+        widget=forms.PasswordInput(attrs={'class': INPUT_CLASS, 'placeholder': '••••••••••••', 'id': 'loginPassword'})
+    )
+    _idempotency_key = forms.CharField(
+        widget=forms.HiddenInput(attrs={'id': '_idempotency_key'}),
+        required=False,
     )
 
 
@@ -219,8 +189,6 @@ class GoodsReceiptForm(forms.ModelForm):
         return cleaned
 
 
-
-
 class FEFODispenseForm(forms.Form):
     medication = forms.ModelChoiceField(
         queryset=Medication.objects.all(),
@@ -282,19 +250,23 @@ class PurchaseOrderForm(forms.Form):
         self.fields['medication'].queryset = Medication.objects.all()
 
 from django.contrib.auth.forms import PasswordResetForm
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
 class TenantAwarePasswordResetForm(PasswordResetForm):
     """A password reset form that queries users via _base_manager to work
     across all pharmacy tenants when no tenant context is available.
-    
+
     Standard PasswordResetForm can fail for unauthenticated users because
     CustomUser.objects is scoped to the active pharmacy tenant via
     PharmacyContextMiddleware. Using _base_manager ensures we search
     all tenant databases.
     """
+
+    _idempotency_key = forms.CharField(
+        widget=forms.HiddenInput(attrs={'id': '_idempotency_key'}),
+        required=False,
+    )
 
     def get_users(self, email):
         """Query users using _base_manager to bypass tenant scoping."""

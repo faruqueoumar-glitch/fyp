@@ -617,7 +617,7 @@ def manage_users_view(request):
             email = request.POST.get('email', '').strip()
             role = request.POST.get('role', '').strip()
 
-            if email and User.all_objects.filter(email__iexact=email).exclude(id=target_user.id).exists():
+            if email and User.objects.filter(email__iexact=email).exclude(id=target_user.id).exists():
                 messages.error(request, f"Email address '{email}' is already in use by another user account.")
             else:
                 old_info = {'email': target_user.email, 'role': target_user.role, 'first_name': target_user.first_name, 'last_name': target_user.last_name}
