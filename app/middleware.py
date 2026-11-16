@@ -1,6 +1,6 @@
 from .tenancy import reset_current_pharmacy_id, set_current_pharmacy_id
 from django.core.cache import cache
-from django.http import HttpResponseTooManyRequests
+from django.http import HttpResponse
 import time
 
 
@@ -82,7 +82,7 @@ class BruteForceRateLimitMiddleware:
 
                     if self._check_rate_limit(ident):
                         self._increment_rate_limit(ident)
-                        return HttpResponseTooManyRequests(
+                        return HttpResponse(status=429, content=
                             json.dumps({
                                 'error': 'Too many attempts. Please wait before trying again.',
                                 'retry_after': 300
@@ -143,7 +143,7 @@ class IdempotencyMiddleware:
                     key = self._get_idempotency_key(request)
                     if key:
                         if self._is_duplicate(key):
-                            return HttpResponseTooManyRequests(
+                            return HttpResponse(status=429, content=
                                 json.dumps({
                                     'error': 'This request has already been processed. Please wait and try again.'
                                 }),
