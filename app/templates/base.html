@@ -440,7 +440,7 @@
     {% endblock %}
 
     <!-- Founder Console Mobile Sidebar Toggle -->
-    {% if user.is_superuser and request.path.startswith '/founder' %}
+    {% if user.is_superuser and '/founder/' in request.path %}
     <style>
       #founderMobileSidebar { transition: transform 0.3s ease-out; }
       #founderSidebarBackdrop { transition: opacity 0.3s ease; }
