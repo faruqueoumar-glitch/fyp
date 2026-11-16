@@ -69,6 +69,7 @@ class Pharmacy(models.Model):
     email = models.EmailField()
     address = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.shop_name

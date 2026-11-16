@@ -1698,3 +1698,138 @@ def offline_view(request):
     """Serve the offline fallback template for when network is unavailable."""
     from django.shortcuts import render
     return render(request, 'app/offline.html')
+
+
+# --- Founder Portal (Item 6) ---
+
+@login_required
+def founder_dashboard_view(request):
+    """Super-admin portal: list all pharmacy branches with suspend/activate/delete actions."""
+    # Restrict to superusers only
+    if not request.user.is_superuser:
+        return redirect('dashboard')
+
+    from app.models import Pharmacy
+
+    pharmacies = Pharmacy.objects.all().order_by('-created_at')
+
+    if request.method == 'POST':
+        pharmacy_id = request.POST.get('pharmacy_id')
+        action = request.POST.get('action')
+
+        if pharmacy_id and action:
+            pharmacy = get_object_or_404(Pharmacy, id=pharmacy_id)
+
+            if action == 'suspend':
+                pharmacy.is_active = False
+                pharmacy.save()
+                messages.success(request, f'Pharmacy branch "{pharmacy.shop_name}" has been suspended.')
+            elif action == 'activate':
+                pharmacy.is_active = True
+                pharmacy.save()
+                messages.success(request, f'Pharmacy branch "{pharmacy.shop_name}" has been activated.')
+            elif action == 'delete':
+                pharmacy.delete()
+                messages.success(request, f'Pharmacy branch "{pharmacy.shop_name}" has been deleted.')
+
+    context = {
+        'pharmacies': pharmacies,
+    }
+    return render(request, 'founder_dashboard.html', context)
+
+
+# --- Help & FAQ (Item 11) ---
+
+def _get_role_sections(user):
+    """Return FAQ sections filtered by user role."""
+    if user.is_superuser:
+        return {
+            'title': 'Superuser Help & FAQ',
+            'sections': [
+                {'category': 'Branch Management', 'items': [
+                    {'q': 'How do I suspend a pharmacy branch?', 'a': 'Use the Founder Portal under /founder/ to suspend or reactivate a branch.'},
+                    {'q': 'How do I activate a suspended branch?', 'a': 'In the Founder Portal, select the suspended branch and click Activate.'},
+                    {'q': 'How do I delete a pharmacy branch?', 'a': 'In the Founder Portal, select the branch and confirm deletion.'},
+                ]},
+                {'category': 'System Configuration', 'items': [
+                    {'q': 'How do I configure system settings?', 'a': 'Superusers can access system configuration via the admin interface.'},
+                ]},
+            ]
+        }
+    elif user.is_staff or user.role == 'ADMIN':
+        return {
+            'title': 'Admin Help & FAQ',
+            'sections': [
+                {'category': 'User Management', 'items': [
+                    {'q': 'How do I manage user roles?', 'a': 'Use the admin console to assign or modify user roles and permissions.'},
+                ]},
+                {'category': 'Inventory', 'items': [
+                    {'q': 'How do I perform stock counts?', 'a': 'Use the stock adjustment view to record physical inventory counts.'},
+                    {'q': 'How do I set reorder points?', 'a': 'Configure reorder points per medication in the medication edit form.'},
+                ]},
+                {'category': 'Purchasing', 'items': [
+                    {'q': 'How do I generate purchase orders?', 'a': 'Use the auto-draft PO feature when stock reaches reorder level.'},
+                    {'q': 'How do I approve purchase orders?', 'a': 'Staff with approve_purchase_orders permission can approve draft POs.'},
+                ]},
+            ]
+        }
+    elif user.role == 'PHARMACIST':
+        return {
+            'title': 'Pharmacist Help & FAQ',
+            'sections': [
+                {'category': 'Dispensing', 'items': [
+                    {'q': 'How do I dispense medication using FEFO?', 'a': 'Use the dispenser interface to select medication and batch; system enforces FEFO ordering.'},
+                    {'q': 'How do I handle offline dispensing?', 'a': 'Work in offline mode; changes are synced when connectivity is restored.'},
+                ]},
+                {'category': 'Stock', 'items': [
+                    {'q': 'How do I record a stock receipt?', 'a': 'Use the goods receipt intake to update medication stock levels.'},
+                    {'q': 'How do I adjust stock quantities?', 'a': 'Use the stock adjustment view for discrepancies or wastage.'},
+                ]},
+                {'category': 'Security', 'items': [
+                    {'q': 'What are the login rate limits?', 'a': 'Maximum 10 attempts per 5 minutes per IP/path; after that, HTTP 429 is returned.'},
+                ]},
+            ]
+        }
+    elif user.role == 'MANAGER':
+        return {
+            'title': 'Manager Help & FAQ',
+            'sections': [
+                {'category': 'Staff', 'items': [
+                    {'q': 'How do I view staff performance?', 'a': 'Use the reports console for staff activity and audit logs.'},
+                ]},
+                {'category': 'Inventory', 'items': [
+                    {'q': 'How do I manage batch inventory?', 'a': 'Use the batch management interface to track receipts, expiries, and quarantines.'},
+                ]},
+                {'category': 'Reporting', 'items': [
+                    {'q': 'How do I generate reports?', 'a': 'Use the reports console with various report types (stock status, expiry alerts, audit logs).'},
+                ]},
+            ]
+        }
+    else:
+        return {
+            'title': 'Help & FAQ',
+            'sections': [
+                {'category': 'Getting Started', 'items': [
+                    {'q': 'How do I log in?', 'a': 'Use your registered email and password to access the system.'},
+                ]},
+            ]
+        }
+
+
+@login_required
+def help_view(request):
+    """Role-filtered Help & FAQ page."""
+    user = request.user
+    role_data = _get_role_sections(user)
+    # Flatten FAQ items for search/filter
+    all_items = []
+    for section in role_data['sections']:
+        for item in section['items']:
+            item['category'] = section['category']
+            all_items.append(item)
+    context = {
+        'faq_data': role_data,
+        'all_items': all_items,
+        'query': request.GET.get('q', ''),
+    }
+    return render(request, 'help_faq.html', context)

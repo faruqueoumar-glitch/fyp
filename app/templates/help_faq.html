@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Help & FAQ - Pharmaudit OS{% endblock %}
+
+{% block content %}
+<div class="py-6">
+    <div class="max-w-7xl mx-auto px-4">
+        <h1 class="text-3xl font-bold text-slate-900 mb-4">Help & FAQ</h1>
+        <div class="faq-accordion" role="tablist" aria-label="FAQ Accordion">
+            {% for item in all_items %}
+            <details>
+                <summary>{{ item.q }}</summary>
+                <div class="answer">{{ item.a }}</div>
+            </details>
+            {% empty %}
+            <p class="text-slate-500">No FAQ items found for your role.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/min.css">
+<style>
+    .faq-accordion details {
+        background: white;
+        border-radius: 0.5rem;
+        margin-bottom: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .faq-accordion summary {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        list-style: none;
+        user-select: none;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 500;
+        color: text-slate-900;
+    }
+    .faq-accordion summary::before {
+        content: '+';
+        position: absolute;
+        left: 1rem;
+        color: text-slate-400;
+        font-size: 1.5rem;
+        transition: transform 0.2s;
+        width: 1em;
+        text-align: left;
+        line-height: 1;
+    }
+    .faq-accordion[open] summary::before {
+        transform: rotate(45deg);
+        color: primary;
+    }
+    .faq-accordion summary::after {
+        content: '';
+        width: 0; height: 0;
+        border-left: 0.5rem solid transparent;
+        border-right: 0.5rem solid transparent;
+        border-top: 0.5rem solid currentColor;
+        margin-right: 1rem;
+        transition: transform 0.2s;
+    }
+    .faq-accordion[open] summary::after {
+        transform: rotate(-45deg);
+        border-top: 0;
+        border-bottom: 0.5rem solid currentColor;
+    }
+    .faq-accordion summary:hover {
+        background: #f1f5f9;
+    }
+    .faq-accordion .answer {
+        padding: 0 1rem 1rem 1rem;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+    }
+    .faq-accordion[open] .answer {
+        max-height: 200px;
+        padding: 0 1rem 1rem 1rem;
+    }
+    .search-filter {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        display: flex;
+        gap: 0.5rem;
+    }
+    .search-filter input {
+        flex: 1;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+    }
+    .search-filter button {
+        padding: 0 1rem;
+        background: #e2e8f0;
+        border: none;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        cursor: pointer;
+    }
+    .search-filter button:hover {
+        background: #cbd5e1;
+    }
+</style>
+{% endblock %}
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const accordions = document.querySelectorAll('.faq-accordion details');
+        
+        accordions.forEach(details => {
+            const summary = details.querySelector('summary');
+            const answer = details.querySelector('.answer');
+            
+            if (!details.hasAttribute('open')) {
+                answer.style.maxHeight = '0';
+                answer.style.padding = '0';
+            }
+            
+            summary.addEventListener('click', function() {
+                const isOpen = details.hasAttribute('open');
+                
+                document.querySelectorAll('.faq-accordion details').forEach(other => {
+                    if (other !== details) {
+                        other.removeAttribute('open');
+                        other.querySelector('.answer').style.maxHeight = '0';
+                        other.querySelector('.answer').style.padding = '0';
+                    }
+                });
+                
+                if (isOpen) {
+                    details.removeAttribute('open');
+                    answer.style.maxHeight = '0';
+                    answer.style.padding = '0';
+                } else {
+                    details.open = true;
+                    requestAnimationFrame(() => {
+                        answer.style.maxHeight = answer.scrollHeight + 'px';
+                        answer.style.padding = '0.75rem 1rem 1rem 1rem';
+                    });
+                }
+            });
+        });
+    });
+
+    document.getElementById('faqSearch').addEventListener('input', function(e) {
+        const query = e.target.value.toLowerCase();
+        const items = document.querySelectorAll('.faq-accordion details');
+        
+        items.forEach(item => {
+            const question = item.querySelector('summary').innerText.toLowerCase();
+            const answer = item.querySelector('.answer').innerText.toLowerCase();
+            const display = question.includes(query) || answer.includes(query);
+            item.style.display = display ? 'block' : 'none';
+        });
+    });
+</script>
+{% endblock %}

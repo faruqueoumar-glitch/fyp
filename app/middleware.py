@@ -17,6 +17,19 @@ class PharmacyContextMiddleware:
             pharmacy_id = None
 
         request.pharmacy_id = pharmacy_id
+        # If a pharmacy context is set, check if the pharmacy is suspended
+        if pharmacy_id:
+            from app.models import Pharmacy
+            try:
+                pharmacy = Pharmacy.objects.get(id=pharmacy_id)
+                if not pharmacy.is_active:
+                    # Suspended pharmacy: clear context and invalidate session
+                    request.pharmacy_id = None
+                    request.pharmacy = None
+                    _ = set_current_pharmacy_id(None)  # reset context var
+            except Pharmacy.DoesNotExist:
+                request.pharmacy_id = None
+                request.pharmacy = None
         token = set_current_pharmacy_id(pharmacy_id) if pharmacy_id else None
         try:
             request.pharmacy = (
