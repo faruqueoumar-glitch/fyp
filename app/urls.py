@@ -11,6 +11,16 @@ urlpatterns = [
     # Password Reset URLs (self-service, multi-tenant safe)
     path('password-reset/', views.password_reset_view, name='password_reset'),
     path('password-reset/done/', views.password_reset_done_view, name='password_reset_done'),
+
+    # Lightweight health check (DB-free) for uptime pingers & cold-start retry
+    path('healthz/', views.healthz_view, name='healthz'),
+
+    # Service Worker and Manifest ( served with correct content types )
+    path('sw.js', views.sw_js, name='sw_js'),
+    path('manifest.json', views.manifest_json, name='manifest_json'),
+
+    # Offline fallback page
+    path('offline/', views.offline_view, name='offline'),
     path('reset/<uidb64>/<token>/', views.password_reset_confirm_view, name='password_reset_confirm'),
     path('reset/done/', views.password_reset_complete_view, name='password_reset_complete'),
 

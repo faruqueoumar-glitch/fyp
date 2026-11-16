@@ -1,7 +1,9 @@
 import csv
+import os
 from functools import wraps
 import json
 from datetime import datetime, timedelta
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
@@ -1656,3 +1658,43 @@ def password_reset_complete_view(request):
     return auth_views.PasswordResetCompleteView.as_view(
         template_name='auth/password_reset_complete.html'
     )(request)
+
+
+def healthz_view(request):
+    """Lightweight health check endpoint returning OK without hitting the database.
+    Used by uptime pingers and client wake-up scripts.
+    """
+    return JsonResponse({"status": "ok"})
+
+
+def sw_js(request):
+    """Serve the service worker JavaScript with correct content type."""
+    response = HttpResponse(content_type='application/javascript')
+    response['Service-Worker-Allowed'] = '/'
+    # Read the sw.js file and serve it
+    import os
+    sw_path = os.path.join(settings.BASE_DIR, 'app/static/sw.js')
+    if os.path.exists(sw_path):
+        with open(sw_path, 'rb') as f:
+            response.content = f.read()
+    else:
+        response.content = b'# Pharmaudit OS Service Worker - fallback content'
+    return response
+
+
+def manifest_json(request):
+    """Serve the web app manifest with correct content type."""
+    response = HttpResponse(content_type='application/manifest+json')
+    manifest_path = os.path.join(settings.BASE_DIR, 'app/static/manifest.json')
+    if os.path.exists(manifest_path):
+        with open(manifest_path, 'rb') as f:
+            response.content = f.read()
+    else:
+        response.content = b'# Pharmaudit OS Manifest - fallback content'
+    return response
+
+
+def offline_view(request):
+    """Serve the offline fallback template for when network is unavailable."""
+    from django.shortcuts import render
+    return render(request, 'app/offline.html')

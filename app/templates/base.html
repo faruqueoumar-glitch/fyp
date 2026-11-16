@@ -323,6 +323,120 @@
         });
     });
     </script>
-    {% endblock %}
+</script>
+
+    <!-- Network Status Pill -->
+    <div id="networkPill" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-200 text-slate-700 text-sm font-medium shadow-md transition-colors duration-300 opacity-0 scale-95">
+      <span id="pillText" class="flex items-center gap-2">
+        Online
+        <svg id="onlineIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a2 2 0 01-2 2 2 2 0 01-2-2h-2v4a2 2 0 01-2 2 2 2 0 01-2-2h-2v-4a2 2 0 01-2-2 2 2 0 012-2h2v-4a2 2 0 012-2 2 2 0 012h2v4a2 2 0 012 2 2 2 0 01-2h-2z"/>
+        </svg>
+      </span>
+    </div>
+
+    <!-- Service Worker Registration -->
+    <script>
+    // Register service worker for PWA offline support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(registrationError => {
+            console.error('SW registration failed: ', registrationError);
+          });
+      });
+    }
+    </script>
+
+    <!-- Form Draft Recovery via localStorage -->
+    <script>
+    // Persist form field values to localStorage on input
+    // Exclude password, login, and CSRF fields for security
+    const EXCLUDED_FIELDS = ['password', 'password1', 'password2', 'confirm_password', 'email', 'csrfmiddlewaretoken'];
+
+    function isExcluded(field) {
+      return EXCLUDED_FIELDS.some(id => field.id && field.id.includes(id)) ||
+             EXCLUDED_FIELDS.some(name => field.name && field.name.includes(name));
+    }
+
+    // Save draft on input event
+    function persistFormDraft(form) {
+      const fields = {};
+      const inputs = form.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])');
+
+      inputs.forEach(input => {
+        if (isExcluded(input)) return;
+
+        const value = input.type === 'checkbox' ? input.checked : input.value;
+        if (value !== '') {
+          fields[input.name || input.id] = value;
+        }
+      });
+
+      // Also save which form was being filled (by page URL)
+      const formData = {
+        fields: fields,
+        timestamp: Date.now(),
+        formAction: form.action
+      };
+
+      localStorage.setItem('pharmaudit_form_draft', JSON.stringify(formData));
+    }
+
+    // Restore draft on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      const storedDraft = localStorage.getItem('pharmaudit_form_draft');
+      const currentlyFocusedForm = document.querySelector('form[action*="login"]') ||
+                                 document.querySelector('form[action*="password-reset"]') ||
+                                 document.querySelector('form[action*="register"]');
+
+      if (storedDraft && currentlyFocusedForm) {
+        const draft = JSON.parse(storedDraft);
+
+        // Check if this is the same form (by action URL match)
+        if (currentlyFocusedForm.action && currentlyFocusedForm.action.includes(draft.formAction.split('/').pop())) {
+          // Restore field values
+          Object.keys(draft.fields).forEach(fieldName => {
+            const field = currentlyFocusedForm.elements[fieldName];
+            if (field) {
+              if (field.type === 'checkbox') {
+                field.checked = draft.fields[fieldName] === 'true';
+              } else {
+                field.value = draft.fields[fieldName];
+              }
+              // Add subtle visual feedback
+              field.style.borderColor = '#10b981';
+              field.style.transition = 'border-color 0.3s';
+            }
+          });
+
+          // Remove stored draft after successful restore
+          localStorage.removeItem('pharmaudit_form_draft');
+        }
+      }
+    });
+
+    // Persist drafts on all relevant forms
+    document.querySelectorAll('form').forEach(form => {
+      // Only persist on auth forms (login, register, password-reset)
+      const action = form.getAttribute('action') || '';
+      if (action.includes('login') || action.includes('register') || action.includes('password-reset')) {
+        form.addEventListener('input', function() {
+          persistFormDraft(form);
+        });
+      }
+    });
+
+    // Clear draft on successful form submission
+    document.querySelectorAll('form').forEach(form => {
+      form.addEventListener('submit', function() {
+        // Don't clear immediately - let the success handler clear it
+        // The draft will be cleared by the server response handler if needed
+      });
+    });
+    </script>
   </body>
 </html>
