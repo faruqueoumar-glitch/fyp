@@ -459,3 +459,69 @@ class ComprehensiveFRTests(TestCase):
         self.assertRedirects(res_clear, reverse('dashboard'))
         with pharmacy_context(new_pharmacy.id):
             self.assertEqual(Medication.objects.count(), 0)
+class ProductionReadinessAndSecurityTests(TestCase):
+    """Regression tests for production readiness and security configuration."""
+
+    def test_sw_js_returns_200_with_javascript_content_type(self):
+        """GET /sw.js returns 200 with javascript in Content-Type."""
+        response = self.client.get('/sw.js')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('javascript', response['Content-Type'])
+
+    def test_manifest_json_returns_200_with_manifest_json_content_type(self):
+        """GET /manifest.json returns 200 with manifest+json or json in Content-Type."""
+        response = self.client.get('/manifest.json')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('manifest+json', response['Content-Type'] or '')
+        self.assertIn('json', response['Content-Type'] or '')
+
+    def test_offline_returns_200_with_text_html_content_type(self):
+        """GET /offline/ returns 200 with text/html in Content-Type."""
+        response = self.client.get('/offline/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('text/html', response['Content-Type'])
+
+    def test_brute_force_rate_limit_json_accept(self):
+        """BruteForceRateLimitMiddleware on POST /login/ with HTTP_ACCEPT=application/json returns 429 on 11th attempt."""
+        from django.core.cache import cache
+        cache.clear()
+        client = Client()
+        # Send 10 POST requests - none should return 429
+        for i in range(10):
+            response = client.post('/login/', {
+                'email': 'test@example.com',
+                'password': 'password123'
+            }, HTTP_ACCEPT='application/json')
+            self.assertNotEqual(response.status_code, 429, f'Attempt {i+1} should not be rate limited')
+        # 11th request should return 429
+        response = client.post('/login/', {
+            'email': 'test@example.com',
+            'password': 'password123'
+        }, HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 429)
+        self.assertIn('application/json', response['Content-Type'])
+        data = response.json()
+        self.assertIn('error', data)
+        self.assertIn('retry_after', data)
+
+    def test_brute_force_rate_limit_html_accept(self):
+        """BruteForceRateLimitMiddleware on POST /login/ with HTTP_ACCEPT=text/html returns 429 on 11th attempt with HTML response."""
+        from django.core.cache import cache
+        cache.clear()
+        client = Client()
+        # Send 10 POST requests with HTML accept - none should return 429
+        for i in range(10):
+            response = client.post('/login/', {
+                'email': 'test@example.com',
+                'password': 'password123'
+            }, HTTP_ACCEPT='text/html')
+            self.assertNotEqual(response.status_code, 429, f'Attempt {i+1} should not be rate limited (HTML)')
+        # 11th request should return 429 with HTML
+        response = client.post('/login/', {
+            'email': 'test@example.com',
+            'password': 'password123'
+        }, HTTP_ACCEPT='text/html')
+        self.assertEqual(response.status_code, 429)
+        self.assertIn('text/html', response['Content-Type'])
+        self.assertContains(response, 'Too Many Attempts')
+        self.assertContains(response, '/login/')

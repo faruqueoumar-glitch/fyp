@@ -84,13 +84,24 @@ class BruteForceRateLimitMiddleware:
                     ident = self._get_identification(request)
 
                     if self._check_rate_limit(ident):
-                        return HttpResponse(status=429, content=
-                            json.dumps({
-                                'error': 'Too many attempts. Please wait before trying again.',
-                                'retry_after': 300
-                            }),
-                            content_type='application/json'
-                        )
+                        accept = request.headers.get('Accept', '') or request.META.get('HTTP_ACCEPT', '')
+                        if 'text/html' in accept and 'application/json' not in accept:
+                            return HttpResponse(status=429, content=
+                                '<html><body style="text-align: center; font-family: sans-serif; padding: 2rem;">'
+                                '<h1>Too Many Attempts</h1>'
+                                '<p>Please wait 5 minutes before trying again.</p>'
+                                f'<a href="/login/" style="color: #0066cc;">Go to Login Page</a>'
+                                '</body></html>',
+                                content_type='text/html; charset=utf-8'
+                            )
+                        else:
+                            return HttpResponse(status=429, content=
+                                json.dumps({
+                                    'error': 'Too many attempts. Please wait before trying again.',
+                                    'retry_after': 300
+                                }),
+                                content_type='application/json'
+                            )
 
                     self._increment_rate_limit(ident)
                     break
