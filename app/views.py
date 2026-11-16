@@ -1673,7 +1673,7 @@ def sw_js(request):
     response['Service-Worker-Allowed'] = '/'
     # Read the sw.js file and serve it
     import os
-    sw_path = os.path.join(settings.BASE_DIR, 'app/static/sw.js')
+    sw_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'sw.js')
     if os.path.exists(sw_path):
         with open(sw_path, 'rb') as f:
             response.content = f.read()
@@ -1685,7 +1685,7 @@ def sw_js(request):
 def manifest_json(request):
     """Serve the web app manifest with correct content type."""
     response = HttpResponse(content_type='application/manifest+json')
-    manifest_path = os.path.join(settings.BASE_DIR, 'app/static/manifest.json')
+    manifest_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'manifest.json')
     if os.path.exists(manifest_path):
         with open(manifest_path, 'rb') as f:
             response.content = f.read()
