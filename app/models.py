@@ -87,6 +87,8 @@ class PharmacyOwnedModel(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
+        if getattr(self, '_bypass_pharmacy_check', False):
+            return super().save(*args, **kwargs)
         # Allow saving without pharmacy context for existing records
         # (e.g., password reset, profile updates without tenant context,
         #  or System Administrators without pharmacy assignment)
