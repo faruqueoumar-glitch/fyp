@@ -13,3 +13,6 @@
 # Always activate or invoke /home/small_father/Downloads/fyp-main/.venv/bin/python directly when running manage.py commands
 # Example: /home/small_father/Downloads/fyp-main/.venv/bin/python manage.py migrate
 # Example: /home/small_father/Downloads/fyp-main/.venv/bin/python manage.py shell
+# --- Cline Speed & Efficiency Rules ---
+# Batching: Combine related shell checks, test runs, or git commands into a single terminal call instead of sequential round-trips.
+# Edits: Use targeted `replace_in_file` diffs; never rewrite whole files with `write_to_file` when modifying existing code.

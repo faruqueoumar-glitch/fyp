@@ -1,6 +1,7 @@
 from .tenancy import reset_current_pharmacy_id, set_current_pharmacy_id
 from django.core.cache import cache
 from django.http import HttpResponse
+import json
 import time
 
 
@@ -83,7 +84,6 @@ class BruteForceRateLimitMiddleware:
                     ident = self._get_identification(request)
 
                     if self._check_rate_limit(ident):
-                        self._increment_rate_limit(ident)
                         return HttpResponse(status=429, content=
                             json.dumps({
                                 'error': 'Too many attempts. Please wait before trying again.',
