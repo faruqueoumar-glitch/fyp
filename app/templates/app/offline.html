@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline | PharmaAudit OS</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #0f172a; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 1.5rem; }
+        .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; max-width: 440px; width: 100%; padding: 2rem; text-align: center; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06); }
+        .badge { display: inline-block; background: #fef3c7; color: #92400e; font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.75rem; border-radius: 9999px; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        h1 { font-size: 1.375rem; margin: 0 0 0.5rem; }
+        p { color: #475569; font-size: 0.925rem; line-height: 1.5; margin: 0 0 1.25rem; }
+        .note { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-size: 0.825rem; padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 1.5rem; }
+        button { background: #0f766e; color: #fff; border: none; border-radius: 0.5rem; padding: 0.65rem 1.25rem; font-size: 0.925rem; font-weight: 600; cursor: pointer; width: 100%; }
+        button:hover { background: #115e59; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <span class="badge" id="statusBadge">Connection Interrupted</span>
+        <h1>You're Currently Offline</h1>
+        <p>PharmaAudit OS cannot reach the server right now. This happens when mobile data drops or while the server wakes up.</p>
+        <div class="note">Any form drafts typed before losing signal are safely saved in your browser and will restore automatically once reconnected.</div>
+        <button type="button" onclick="window.location.reload()">Retry Connection</button>
+    </div>
+    <script>
+        window.addEventListener('online', function () {
+            document.getElementById('statusBadge').textContent = 'Back Online — Reloading...';
+            setTimeout(function () { window.location.reload(); }, 600);
+        });
+    </script>
+</body>
+</html>
