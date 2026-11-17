@@ -1,11 +1,11 @@
 {% load static %}
 <!doctype html>
-<html lang="en" class="h-full bg-slate-50">
+<html lang="en" class="h-full font-sans antialiased text-slate-900 bg-slate-900 selection:bg-slate-900 selection:text-white">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
-      {% block title %}PharmaAudit & Stock Optimization OS{% endblock %}
+      {% block title %}PharmaAudit OS &mdash; Founder Console{% endblock %}
     </title>
 
     <!-- Google Fonts: Inter & JetBrains Mono -->
@@ -16,7 +16,7 @@
       rel="stylesheet"
     />
 
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS CDN with dark mode -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -34,14 +34,28 @@
                 700: "#334155",
                 800: "#1e293b",
                 900: "#0f172a",
+                950: "#020617",
+              },
+              founder: {
+                50: "#1e293b",
+                100: "#0f172a",
+                200: "#1e293b",
+                300: "#334155",
+                400: "#475569",
+                500: "#64748b",
+                600: "#94a3b8",
+                700: "#cbd5e1",
+                800: "#e2e8f0",
+                900: "#f1f5f9",
+                950: "#f8fafc",
               },
             },
-            fontFamily: {
-              sans: ['"Inter"', "sans-serif"],
-              mono: ['"JetBrains Mono"', "monospace"],
+            boxShadow: {
+              inner: "inset 0 2px 4px rgba(0,0,0,0.3)",
             },
           },
         },
+        darkMode: 'class',
       };
     </script>
 
@@ -50,32 +64,50 @@
       body {
         font-family: "Inter", sans-serif;
         background: #f8fafc;
+        color: #0f172a;
       }
       .font-mono {
         font-family: "JetBrains Mono", monospace;
       }
 
-      /* Custom smooth scrollbar for sidebar */
-      aside::-webkit-scrollbar {
-        width: 5px;
+      /* Scrollbar for content areas */
+      ::-webkit-scrollbar {
+        width: 6px;
       }
-      aside::-webkit-scrollbar-track {
-        background: #0f172a;
+      ::-webkit-scrollbar-track {
+        background: transparent;
       }
-      aside::-webkit-scrollbar-thumb {
-        background: #334155;
+      ::-webkit-scrollbar-thumb {
+        background: #64748b;
         border-radius: 4px;
       }
-      aside::-webkit-scrollbar-thumb:hover {
-        background: #475569;
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      /* Active pill state */
+      .pill-active {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+      }
+
+      .pill-inactive {
+        background-color: #64748b !important;
+        color: #f1f5f9 !important;
       }
     </style>
     {% block extra_head %}{% endblock %} {% block extra_css %}{% endblock %}
     <link rel="manifest" href="/manifest.json">
-</head>
-  <body
-    class="h-full font-sans antialiased text-slate-900 bg-slate-50 selection:bg-slate-900 selection:text-white"
-  >
+    <script>
+      // Enable dark mode based on system preference
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addListener(e => {
+          document.documentElement.classList.toggle('dark', e.matches);
+        });
+      }
+    </script>
+  </head>
+  <body>
     <!-- Flash Messages Toast System -->
     {% if messages %}
     <div
@@ -98,345 +130,140 @@
       </div>
       {% endfor %}
     </div>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const toasts = document.querySelectorAll('.toast-card');
-        toasts.forEach(function(toast) {
-          setTimeout(function() {
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateY(-10px)';
-            setTimeout(function() {
-              if (toast.parentElement) toast.remove();
-            }, 300);
-          }, 4000);
-        });
-      });
-    </script>
     {% endif %} {% with current_url=request.resolver_match.url_name %}
-    <!-- Layout Wrapper -->
-    <div class="min-h-screen flex flex-col lg:flex-row bg-slate-50">
-      {% if user.is_authenticated %}
-        {% include 'sidebar.html' %}
-      {% endif %}
+    <!-- Layout Wrapper - founder full-width executive shell -->
+    <div class="min-h-screen bg-slate-900 flex flex-col items-stretch bg-slate-900">
+      <!-- Top Navigation Bar -->
+      {% include 'founder_navbar.html' %}
 
-      <!-- Main Body Container -->
-      <main
-        class="flex-1 min-w-0 bg-slate-50 flex flex-col justify-between min-h-screen"
+      <div class="w-full max-w-7xl px-6 lg:px-8"
+
       >
-        <div>
-          {% if user.is_authenticated %}
-            {% include 'navbar.html' %}
-          {% endif %}
 
-          <div
-            class="{% if user.is_authenticated %}p-4 sm:p-6 lg:p-8{% endif %}"
-          >
-            {% block main_content %}{% endblock %}
-          </div>
-        </div>
-
-        {% if user.is_authenticated %}
-          {% include 'footer.html' %}
-        {% endif %}
-      </main>
-    </div>
     {% endwith %}
 
-    <script>
-      function toggleSidebar() {
-        const sidebar = document.getElementById("sidebarNav");
-        const backdrop = document.getElementById("sidebarBackdrop");
-        const menuIcon = document.getElementById("menuIcon");
-        const closeIcon = document.getElementById("closeIcon");
-
-        if (!sidebar || !backdrop) return;
-
-        if (sidebar.classList.contains("hidden")) {
-          sidebar.classList.remove("hidden");
-          sidebar.classList.add("flex");
-          backdrop.classList.remove("hidden");
-          if (menuIcon) menuIcon.classList.add("hidden");
-          if (closeIcon) closeIcon.classList.remove("hidden");
-        } else {
-          sidebar.classList.add("hidden");
-          sidebar.classList.remove("flex");
-          backdrop.classList.add("hidden");
-          if (menuIcon) menuIcon.classList.remove("hidden");
-          if (closeIcon) closeIcon.classList.add("hidden");
-        }
-      }
-
-      function toggleUserDropdown(event) {
-        if (event) event.stopPropagation();
-        const menu = document.getElementById("userDropdownMenu");
-        const chevron = document.getElementById("userDropdownChevron");
-        const btn = document.getElementById("userDropdownBtn");
-
-        if (!menu) return;
-
-        const isHidden = menu.classList.contains("hidden");
-
-        if (isHidden) {
-          menu.classList.remove("hidden");
-          // trigger opacity and scale animation
-          setTimeout(() => {
-            menu.classList.remove("opacity-0", "scale-95");
-            menu.classList.add("opacity-100", "scale-100");
-          }, 10);
-          if (chevron) chevron.classList.add("rotate-180");
-          if (btn) btn.setAttribute("aria-expanded", "true");
-        } else {
-          menu.classList.remove("opacity-100", "scale-100");
-          menu.classList.add("opacity-0", "scale-95");
-          setTimeout(() => {
-            menu.classList.add("hidden");
-          }, 150);
-          if (chevron) chevron.classList.remove("rotate-180");
-          if (btn) btn.setAttribute("aria-expanded", "false");
-        }
-      }
-
-      function toggleNotifyDropdown(event) {
-        if (event) event.stopPropagation();
-        const menu = document.getElementById("notifyDropdownMenu");
-        if (!menu) return;
-        const isHidden = menu.classList.contains("hidden");
-
-        if (isHidden) {
-          menu.classList.remove("hidden");
-          setTimeout(() => {
-            menu.classList.remove("opacity-0", "scale-95");
-            menu.classList.add("opacity-100", "scale-100");
-          }, 10);
-        } else {
-          menu.classList.remove("opacity-100", "scale-100");
-          menu.classList.add("opacity-0", "scale-95");
-          setTimeout(() => {
-            menu.classList.add("hidden");
-          }, 150);
-        }
-      }
-
-      // Close dropdown menus when clicking anywhere outside
-      document.addEventListener("click", function (event) {
-        const userMenu = document.getElementById("userDropdownMenu");
-        const userBtn = document.getElementById("userDropdownBtn");
-        if (userMenu && !userMenu.classList.contains("hidden")) {
-          if (!userMenu.contains(event.target) && !userBtn.contains(event.target)) {
-            toggleUserDropdown();
-          }
-        }
-
-        const notifyMenu = document.getElementById("notifyDropdownMenu");
-        const notifyBtn = document.getElementById("notifyDropdownBtn");
-        if (notifyMenu && !notifyMenu.classList.contains("hidden")) {
-          if (!notifyMenu.contains(event.target) && !notifyBtn.contains(event.target)) {
-            toggleNotifyDropdown();
-          }
-        }
-      });
-
-      // Close dropdown menus on Escape key
-      document.addEventListener("keydown", function (event) {
-        if (event.key === "Escape") {
-          const userMenu = document.getElementById("userDropdownMenu");
-          if (userMenu && !userMenu.classList.contains("hidden")) {
-            toggleUserDropdown();
-          }
-          const notifyMenu = document.getElementById("notifyDropdownMenu");
-          if (notifyMenu && !notifyMenu.classList.contains("hidden")) {
-            toggleNotifyDropdown();
-          }
-        }
-      });
-
-      // Initial fetch for unread notification count & dropdown list
-      {% if user.is_authenticated %}
-      document.addEventListener("DOMContentLoaded", function() {
-        fetch("{% url 'notifications:unread_count' %}")
-          .then(res => res.json())
-          .then(data => {
-            const badge = document.getElementById("notificationBadge");
-            if (badge && data.unread_count > 0) {
-              badge.textContent = data.unread_count;
-              badge.classList.remove("hidden");
-              badge.style.display = "flex";
-            }
-            const list = document.getElementById("notificationDropdownList");
-            if (list && data.notifications && data.notifications.length > 0) {
-              list.innerHTML = "";
-              data.notifications.forEach(n => {
-                const item = document.createElement("a");
-                item.href = "{% url 'notifications:list' %}";
-                item.className = "block p-3 hover:bg-slate-50 transition border-b border-slate-100";
-                item.innerHTML = `
-                  <h4 class="text-xs font-bold text-slate-900">${n.title}</h4>
-                  <p class="text-[11px] text-slate-600 truncate mt-0.5">${n.body}</p>
-                  <span class="text-[10px] text-slate-400 font-mono mt-1 block">${new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                `;
-                list.appendChild(item);
-              });
-            }
-          })
-          .catch(err => console.error("Error fetching notifications:", err));
-      });
-      {% endif %}
-    </script>
-
-    {% if user.is_authenticated %}
-    <script 
-      id="qstack-notify-script"
-      src="{% static 'notify-widget.js' %}?v=3"
-      data-server="https://notification.qstack.com.ng"
-      data-recipient="{{ user.email }}"
-      data-badge-selector="#notificationBadge"
-      data-list-selector="#notificationDropdownList"
-      data-toast="true">
-    </script>
-    {% endif %}
-    {% block extra_scripts %}
-    <script>
-    // Double-submit protection: disable submit buttons on form submission
-    document.addEventListener('DOMContentLoaded', function() {
-        const forms = document.querySelectorAll('form');
-        
-        forms.forEach(function(form) {
-            const originalBtnValue = form.querySelector('button[type="submit"]')?.value || '';
-            const submitBtn = form.querySelector('button[type="submit"]');
-            
-            form.addEventListener('submit', function(event) {
-                // Disable submit button and show Processing state
-                if (submitBtn) {
-                    submitBtn.disabled = true;
-                    submitBtn.value = 'Processing...';
-                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                }
-            });
-            
-            // Re-enable on pageshow (browser back-button restore)
-            window.addEventListener('pageshow', function(event) {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.value = originalBtnValue;
-                    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
-            });
-        });
-    });
-    </script>
-
-    <!-- Network Status Pill -->
-    <div id="networkPill" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-200 text-slate-700 text-sm font-medium shadow-md transition-colors duration-300 opacity-0 scale-95">
-      <span id="pillText" class="flex items-center gap-2">
-        Online
-        <svg id="onlineIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a2 2 0 01-2 2 2 2 0 01-2-2h-2v4a2 2 0 01-2 2 2 2 0 01-2-2h-2v-4a2 2 0 01-2-2 2 2 0 012-2h2v-4a2 2 0 012-2 2 2 0 012h2v4a2 2 0 012 2 2 2 0 01-2h-2z"/>
-        </svg>
-      </span>
+      <!-- Main Content -->
+      {% block main_content %}{% endblock %}
     </div>
 
-    <!-- Service Worker Registration -->
+    {% endwith %}
+
+    <!-- Mobile Founder Sidebar (hidden on lg, shown on mobile) -->
+    <div
+      id="founderMobileSidebar"
+      class="fixed left-0 inset-y-0 w-64 lg:hidden bg-slate-900 border2 border-slate-800/50 h-full flex flex-col pt-12 pb-6 pl-6 shadow-2xl transform translate-x-full sm:transform-none transition-transform"
+      aria-label="Founder Console Mobile Sidebar"
+    >
+      <button
+        id="closeFounderMobileSidebar"
+        class="absolute top-4 right-4 p-2 bg-slate-800 rounded-xl text-slate-200 hover:text-white focus:outline-none"
+        aria-label="Close Mobile Sidebar"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      <nav class="flex-1 space-y-3">
+        <a
+          href="{% url 'founder_dashboard' %}"
+          class="flex items-center space-x-3 px-4 py-3 rounded-md text-base font-medium text-slate-100 hover:bg-slate-800 transition-colors"
+        >
+          <svg class="w-5 h-5" fill="#10b981" stroke="none" viewBox="0 0 24 24"><path d="M12 3l1 1m8 0l1 1m-9-1l2 2M12 12l4 4m0-4l4 4M5 12h14m2-6v6m2-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span>Branches</span>
+        </a>
+        <a
+          href="{% url 'founder_users' %}"
+          class="flex items-center space-x-3 px-4 py-3 rounded-md text-base font-medium text-slate-100 hover:bg-slate-800 transition-colors"
+        >
+          <svg class="w-5 h-5" fill="#10b981" stroke="none" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 01.5 2.05l-4.9 2.6a2 2 0 01-.51-.02L2 4.98a2 2 0 01.02-.5l4.9-2.6a2 2 0 011.51.02M7 6l4 4m4 0l4 4" /></svg>
+          <span>Platform Users</span>
+        </a>
+      </nav>
+    </div>
+
     <script>
-    // Register service worker for PWA offline support
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(registration => {
-            console.log('SW registered: ', registration);
-          })
-          .catch(registrationError => {
-            console.error('SW registration failed: ', registrationError);
-          });
-      });
-    }
-    </script>
-
-    <!-- Form Draft Recovery via localStorage -->
-    <script>
-    // Persist form field values to localStorage on input
-    // Exclude password, login, and CSRF fields for security
-    const EXCLUDED_FIELDS = ['password', 'password1', 'password2', 'confirm_password', 'email', 'csrfmiddlewaretoken'];
-
-    function isExcluded(field) {
-      return EXCLUDED_FIELDS.some(id => field.id && field.id.includes(id)) ||
-             EXCLUDED_FIELDS.some(name => field.name && field.name.includes(name));
-    }
-
-    // Save draft on input event
-    function persistFormDraft(form) {
-      const fields = {};
-      const inputs = form.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])');
-
-      inputs.forEach(input => {
-        if (isExcluded(input)) return;
-
-        const value = input.type === 'checkbox' ? input.checked : input.value;
-        if (value !== '') {
-          fields[input.name || input.id] = value;
-        }
+      // Pill navigation active state
+      document.addEventListener('DOMContentLoaded', function() {
+        const currentPath = window.location.pathname;
+        const pills = document.querySelectorAll('.pill-nav button');
+        pills.forEach(pill => {
+          const href = pill.getAttribute('data-href');
+          if (href && currentPath === href) {
+            pill.classList.add('pill-active');
+            pill.setAttribute('aria-current', 'page');
+          } else {
+            pill.classList.remove('pill-active');
+            pill.removeAttribute('aria-current');
+          }
+        });
       });
 
-      // Also save which form was being filled (by page URL)
-      const formData = {
-        fields: fields,
-        timestamp: Date.now(),
-        formAction: form.action
-      };
+      // Profile dropdown toggle
+      const userProfileBtn = document.getElementById('userProfileBtn');
+      const userProfileDropdown = document.getElementById('userProfileDropdown');
 
-      localStorage.setItem('pharmaudit_form_draft', JSON.stringify(formData));
-    }
-
-    // Restore draft on page load
-    document.addEventListener('DOMContentLoaded', function() {
-      const storedDraft = localStorage.getItem('pharmaudit_form_draft');
-      const currentlyFocusedForm = document.querySelector('form[action*="login"]') ||
-                                 document.querySelector('form[action*="password-reset"]') ||
-                                 document.querySelector('form[action*="register"]');
-
-      if (storedDraft && currentlyFocusedForm) {
-        const draft = JSON.parse(storedDraft);
-
-        // Check if this is the same form (by action URL match)
-        if (currentlyFocusedForm.action && currentlyFocusedForm.action.includes(draft.formAction.split('/').pop())) {
-          // Restore field values
-          Object.keys(draft.fields).forEach(fieldName => {
-            const field = currentlyFocusedForm.elements[fieldName];
-            if (field) {
-              if (field.type === 'checkbox') {
-                field.checked = draft.fields[fieldName] === 'true';
-              } else {
-                field.value = draft.fields[fieldName];
-              }
-              // Add subtle visual feedback
-              field.style.borderColor = '#10b981';
-              field.style.transition = 'border-color 0.3s';
+      if (userProfileBtn && userProfileDropdown) {
+        userProfileBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const isHidden = userProfileDropdown.classList.contains('hidden');
+          document.querySelectorAll('.user-dropdown-menu').forEach(d => {
+            if (d !== userProfileDropdown) {
+              d.classList.add('hidden');
             }
           });
+          userProfileDropdown.classList.toggle('hidden', !isHidden);
+        });
 
-          // Remove stored draft after successful restore
-          localStorage.removeItem('pharmaudit_form_draft');
-        }
-      }
-    });
-
-    // Persist drafts on all relevant forms
-    document.querySelectorAll('form').forEach(form => {
-      // Only persist on auth forms (login, register, password-reset)
-      const action = form.getAttribute('action') || '';
-      if (action.includes('login') || action.includes('register') || action.includes('password-reset')) {
-        form.addEventListener('input', function() {
-          persistFormDraft(form);
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+          if (!userProfileBtn.contains(e.target) && !userProfileDropdown.contains(e.target)) {
+            userProfileDropdown.classList.add('hidden');
+          }
         });
       }
-    });
 
-    // Clear draft on successful form submission
-    document.querySelectorAll('form').forEach(form => {
-      form.addEventListener('submit', function() {
-        // Don't clear immediately - let the success handler clear it
-        // The draft will be cleared by the server response handler if needed
-      });
-    });
-    {% endblock %}
+      // Mobile sidebar toggle
+      const founderMenuBtn = document.getElementById('founderMenuBtn');
+      const closeFounderMobileSidebar = document.getElementById('closeFounderMobileSidebar');
+      const founderSidebarBackdrop = document.getElementById('founderSidebarBackdrop');
+      const founderMobileSidebar = document.getElementById('founderMobileSidebar');
+
+      if (founderMenuBtn) {
+        founderMenuBtn.addEventListener('click', () => {
+          founderMobileSidebar.classList.remove('translate-x-full');
+          founderMobileSidebar.classList.add('translate-x-0');
+          founderSidebarBackdrop.classList.remove('hidden');
+          founderSidebarBackdrop.classList.add('block');
+        });
+      }
+
+      if (closeFounderMobileSidebar) {
+        closeFounderMobileSidebar.addEventListener('click', () => {
+          founderMobileSidebar.classList.add('translate-x-full');
+          founderMobileSidebar.classList.remove('translate-x-0');
+          founderSidebarBackdrop.classList.add('hidden');
+          founderSidebarBackdrop.classList.remove('block');
+        });
+      }
+
+      if (founderSidebarBackdrop) {
+        founderSidebarBackdrop.addEventListener('click', () => {
+          founderMobileSidebar.classList.add('translate-x-full');
+          founderMobileSidebar.classList.remove('translate-x-0');
+          founderSidebarBackdrop.classList.add('hidden');
+          founderSidebarBackdrop.classList.remove('block');
+        });
+      }
+    </script>
+
+    <!-- Dark mode styles -->
+    <style>
+      .dark body { background: #0f172a; color: #f8fafc; }
+      .dark .text-slate-900 { color: #f8fafc; }
+      .dark .text-slate-100 { color: #0f172a; }
+      .dark .bg-slate-900 { background: #0f172a; }
+      .dark .bg-slate-800 { background: #1e293b; }
+      .dark .border-slate-700 { border-color: #334155; }
+      .dark .pill-active { background-color: #0f172a !important; color: #f8fafc !important; }
+      .dark .pill-inactive { background-color: #334155 !important; color: #f1f5f9 !important; }
+    </style>
   </body>
 </html>

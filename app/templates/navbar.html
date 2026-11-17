@@ -60,75 +60,196 @@
     </div>
     {% if user.is_superuser %}
     <h2 class="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">Founder Console</h2>
-    {% elif user.is_staff %}
+    {% elif user.is_staff and user.role == 'admin' %}
     <h2 class="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">Branch: {{ user.pharmacy.shop_name|default:'—' }}</h2>
+    {% elif user.is_staff %}
+    <h2 class="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">{{ user.get_role_display }}</h2>
     {% else %}
     <h2 class="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">{{ user.get_role_display }}</h2>
     {% endif %}
   </div>
   <div class="flex items-center space-x-3">
     {% if user.is_superuser %}
-    <a
-      href="{% url 'founder_dashboard' %}"
-      class="flex items-center space-x-2 px-4 py-2.5 border border-slate-300 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition"
-    >
-      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm0 0V5a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm0 0V5a2 2 0 00-2-2H5a2 2 0 002 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm0 0V5a2 2 0 00-2-2H5a2 2 0 002 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
-      />
-      <span>Founder Console</span>
-    </a>
-    {% endif %}
-    {% if user.is_staff and not user.is_superuser %}
-    <a
-      href="{% url 'dashboard' %}"
-      class="flex items-center space-x-2 px-4 py-2.5 border border-slate-300 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition"
-    >
-      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 9l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2m-5-5h.01M15 9h.01M8 8h.01M16 8h.01M8 12h.01M12 12h.01M16 12h.01M9 15l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2">
-      />
-      <span>Dashboard</span>
-    </a>
-    {% endif %}
-    {% if user.is_authenticated %}
-    <a
-      href="{% url 'help' %}"
-      class="flex items-center space-x-2 px-4 py-2.5 border border-slate-300 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition"
-    >
-      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 9l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2m-5-5h.01M15 9h.01M8 8h.01M16 8h.01M8 12h.01M12 12h.01M9 15l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2">
-      />
-      <span>Help</span>
-    </a>
-    {% endif %}
-    {% if user.is_superuser %}
-    <a
-      href="{% url 'founder_users' %}"
-      class="flex items-center space-x-2 px-4 py-2.5 border border-slate-300 rounded-md text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium transition"
-    >
-      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 01.5 2.05l-4.9 2.6a2 2 0 01-.51-.02L2 4.98a2 2 0 01.02-.5l4.9-2.6a2 2 0 011.51.02M7 6l4 4m4 0l4 4">
-      />
-      <span>Platform Users</span>
-    </a>
-    {% endif %}
-    {% if user.is_authenticated %}
-    <a
-      href="{% url 'signout' %}"
-      class="flex items-center space-x-2 px-4 py-2.5 text-rose-600 hover:bg-rose-50 font-semibold transition"
-    >
-      <svg
-        class="w-4 h-4 text-rose-600"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
+      <!-- Superuser Profile Dropdown -->
+      <div
+        id="userProfileBtn"
+        aria-expanded="false"
+        class="relative rounded-lg border border-slate-700 bg-slate-800/50 text-sm font-medium text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-all duration-200"
       >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round" stroke-width="2"
-          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-      />
-      <span>Sign Out</span>
-    </a>
+        <span class="hidden sm:inline-block text-xs font-medium">FOUNDER / SUPERUSER</span>
+        <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse" aria-hidden="true"></span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </div>
+
+      <div
+        id="userProfileDropdown"
+        class="hidden absolute right-0 mt-2 w-64 rounded-lg bg-slate-800 p-4 shadow-2xl border border-slate-700 z-50 origin-top-right w-64 origin-right shadow-lg"
+        role="menu"
+        aria-orientation="vertical"
+        aria-labelledby="userProfileBtn"
+      >
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-medium text-slate-300">FS</div>
+          <div>
+            <div class="font-medium text-slate-100">Platform Owner</div>
+            <div class="text-xs opacity-60">FOUNDER / SUPERUSER</div>
+          </div>
+        </div>
+        <a
+          href="{% url 'founder_dashboard' %}"
+          class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm0 0V5a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" /></span>
+          Founder Console
+        </a>
+        <a
+          href="{% url 'founder_users' %}"
+          class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 01.5 2.05l-4.9 2.6a2 2 0 01-.51-.02L2 4.98a2 2 0 01.02-.5l4.9-2.6a2 2 0 011.51.02M7 6l4 4m4 0l4 4" /></span>
+          Platform Users
+        </a>
+        <a
+          href="{% url 'dashboard' %}"
+          class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 9l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2m-5-5h.01M15 9h.01M8 8h.01M16 8h.01M8 12h.01M12 12h.01M16 12h.01M9 15l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2" /></span>
+          Branch Dashboard
+        </a>
+        <hr class="my-3 border-slate-700" />
+        <a
+          href="{% url 'help' %}"
+          class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 9l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2m-5-5h.01M15 9h.01M8 8h.01M16 8h.01M8 12h.01M12 12h.01M9 15l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2" /></span>
+          Help
+        </a>
+        <hr class="my-3 border-slate-700" />
+        <a
+          href="{% url 'signout' %}"
+          class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-rose-500 hover:text-rose-400 hover:bg-slate-700 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></span>
+          Sign Out
+        </a>
+      </div>
+    {% elif user.is_staff and user.role == 'admin' %}
+      <!-- Branch Admin Profile Dropdown -->
+      <div
+        id="userProfileBtn"
+        aria-expanded="false"
+        class="relative rounded-lg border border-slate-700 bg-slate-800/50 text-sm font-medium text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-all duration-200"
+      >
+        <span class="hidden sm:inline-block text-xs font-medium">BRANCH ADMIN</span>
+        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse" aria-hidden="true"></span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </div>
+
+      <div
+        id="userProfileDropdown"
+        class="hidden absolute right-0 mt-2 w-64 rounded-lg bg-slate-800 p-4 shadow-2xl border border-slate-700 z-50 origin-top-right w-64 origin-right shadow-lg"
+        role="menu"
+        aria-orientation="vertical"
+        aria-labelledby="userProfileBtn"
+      >
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-medium text-slate-300">{{ request.user.pharmacy.shop_name|slice:':3'|upper }}</div>
+          <div>
+            <div class="font-medium text-slate-100">{{ request.user.pharmacy.shop_name|default:'—' }}</div>
+            <div class="text-xs opacity-60">BRANCH ADMIN</div>
+          </div>
+        </div>
+        <a
+          href="{% url 'dashboard' %}"
+          class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 9l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2m-5-5h.01M15 9h.01M8 8h.01M16 8h.01M8 12h.01M12 12h.01M16 12h.01M9 15l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2" /></span>
+          System Dashboard
+        </a>
+        <a
+          href="{% url 'users' %}"
+          class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" /></span>
+          Manage Staff
+        </a>
+        <a
+          href="{% url 'help' %}"
+          class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 9l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2m-5-5h.01M15 9h.01M8 8h.01M16 8h.01M8 12h.01M12 12h.01M9 15l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2" /></span>
+          Help
+        </a>
+        <hr class="my-3 border-slate-700" />
+        <a
+          href="{% url 'signout' %}"
+          class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-rose-500 hover:text-rose-400 hover:bg-slate-700 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></span>
+          Sign Out
+        </a>
+      </div>
+    {% else %}
+      <!-- Regular Staff Pharmacist/Cashier Profile Dropdown -->
+      <div
+        id="userProfileBtn"
+        aria-expanded="false"
+        class="relative rounded-lg border border-slate-700 bg-slate-800/50 text-sm font-medium text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-all duration-200"
+      >
+        <span class="hidden sm:inline-block text-xs font-medium" id="userRoleBadge">{{ request.user.role|default:'STAFF'|upper }}</span>
+        <span class="w-2 h-2 rounded-full bg-slate-400 animate-pulse" aria-hidden="true"></span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </div>
+
+      <div
+        id="userProfileDropdown"
+        class="hidden absolute right-0 mt-2 w-64 rounded-lg bg-slate-800 p-4 shadow-2xl border border-slate-700 z-50 origin-top-right w-64 origin-right shadow-lg"
+        role="menu"
+        aria-orientation="vertical"
+        aria-labelledby="userProfileBtn"
+      >
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-medium text-slate-300">{{ request.user.pharmacy.shop_name|default:'—'|slice:':3' }}</div>
+          <div>
+            <div class="font-medium text-slate-100">{{ request.user.pharmacy.shop_name|default:'—' }}</div>
+            <div class="text-xs opacity-60">{{ request.user.role|default:'STAFF'|upper }}</div>
+          </div>
+        </div>
+        <a
+          href="{% url 'dashboard' %}"
+          class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 9l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2m-5-5h.01M15 9h.01M8 8h.01M16 8h.01M8 12h.01M12 12h.01M9 15l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2" /></span>
+          System Dashboard
+        </a>
+        <a
+          href="{% url 'help' %}"
+          class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 9l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2m-5-5h.01M15 9h.01M8 8h.01M16 8h.01M8 12h.01M12 12h.01M9 15l2 2 2-2-2-2-2 2m10 0v2h2v-2h-2" /></span>
+          Help
+        </a>
+        <hr class="my-3 border-slate-700" />
+        <a
+          href="{% url 'signout' %}"
+          class="flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-rose-500 hover:text-rose-400 hover:bg-slate-700 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></span>
+          Sign Out
+        </a>
+      </div>
     {% endif %}
   </div>
 </header>
