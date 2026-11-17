@@ -1,104 +1,54 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "base_founder.html" %}
 
-{% block title %}Founder Portal - Pharmaudit OS{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/min.css">
-<style>
-    .pharmacy-card {
-        background: white;
-        border-radius: 0.75rem;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        transition: transform 0.2s;
-    }
-    .pharmacy-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .status-active { color: #059669; font-weight: 500; }
-    .status-suspended { color: #dc2626; font-weight: 500; }
-    .status-badge {
-        padding-inline: 0.5em 0.75em;
-        font-size: 0.75em;
-        font-weight: 600;
-        border-radius: 9999px;
-        text-transform: uppercase;
-    }
-    .status-active .badge { background: #d1fae5; color: #059669; }
-    .status-suspended .badge { background: #fecaca; color: #dc2626; }
-</style>
-{% endblock %}
-
-{% block main_content %}
-<div class="py-6">
-    <div class="max-w-7xl mx-auto px-4">
-
-      <!-- KPI Summary Row -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-xl p-4 shadow-sm">
-          <div class="text-2xl font-bold text-slate-900">{{ total_branches }}</div>
-          <div class="text-sm text-slate-500">Total Branches</div>
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Founder Console</h1>
+            <p class="text-sm text-slate-500">Manage pharmacy branches and platform operations</p>
         </div>
-        <div class="bg-white rounded-xl p-4 shadow-sm">
-          <div class="text-2xl font-bold text-green-600">{{ active_branches }}</div>
-          <div class="text-sm text-slate-500">Active</div>
-        </div>
-        <div class="bg-white rounded-xl p-4 shadow-sm">
-          <div class="text-2xl font-bold text-red-600">{{ suspended_branches }}</div>
-          <div class="text-sm text-slate-500">Suspended</div>
-        </div>
-        <div class="bg-white rounded-xl p-4 shadow-sm">
-          <div class="text-2xl font-bold text-slate-900">{{ total_users }}</div>
-          <div class="text-sm text-slate-500">Total Users</div>
-        </div>
-      </div>
+        <a href="{% url 'founder_users' %}" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition">
+            Manage Platform Users
+        </a>
+    </div>
 
-      {% if pharmacies %}
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div class="flex justify-between items-start mb-2">
-                    <h3 class="font-medium text-slate-900">{{ pharmacy.shop_name }}</h3>
-                    <span class="status-badge {% if pharmacy.is_active %}status-active{% else %}status-suspended{% endif %} badge">
-                        {% if pharmacy.is_active %}Active{% else %}Suspended{% endif %}
-                    </span>
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">Pharmacy Branches</h2>
+        {% if pharmacies %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for pharmacy in pharmacies %}
+            <div class="border border-slate-200 rounded-lg p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-semibold text-slate-900">{{ pharmacy.shop_name }}</h3>
+                        {% if pharmacy.is_active %}
+                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded-full">Suspended</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-slate-500 mb-4">ID: {{ pharmacy.id }}</p>
                 </div>
-                <p class="text-sm text-slate-500">
-                    Created: {{ pharmacy.created_at|date:"M d, Y" }}
-                </p>
-                <p class="text-sm text-slate-500">
-                    Users: {{ pharmacy.user_count|default:"0" }} pharmacists/staff
-                </p>
 
-                <!-- Suspend/Activate/Delete Form -->
-                <form method="POST" action="{% url 'founder_dashboard' %}" class="mt-3">
+                <form method="post" class="mt-4 pt-4 border-t border-slate-100">
                     {% csrf_token %}
                     <input type="hidden" name="pharmacy_id" value="{{ pharmacy.id }}">
-                    <div class="grid grid-cols-2 gap-2 mt-2">
+                    <div class="grid grid-cols-3 gap-2">
                         {% if not pharmacy.is_active %}
-                        <!-- Activate button -->
-                        <button type="submit" name="action" value="activate"
-                            class="col-span-2 py-1.5 bg-green-100 text-green-800 rounded text-sm font-medium hover:bg-green-200 transition">
+                        <button type="submit" name="action" value="activate" class="col-span-2 py-1.5 bg-green-100 text-green-800 rounded text-sm font-medium hover:bg-green-200 transition">
                             Activate
                         </button>
                         {% else %}
-                        <!-- Suspend button -->
-                        <button type="submit" name="action" value="suspend"
-                            class="col-span-2 py-1.5 bg-red-100 text-red-800 rounded text-sm font-medium hover-bg-red-200 transition">
+                        <button type="submit" name="action" value="suspend" class="col-span-2 py-1.5 bg-red-100 text-red-800 rounded text-sm font-medium hover:bg-red-200 transition">
                             Suspend
                         </button>
                         {% endif %}
-                        <!-- Delete button -->
-                        <button type="submit" name="action" value="delete"
-                            class="py-1.5 bg-yellow-100 text-yellow-800 rounded text-sm font-medium hover:bg-yellow-200 transition"
-                            onclick="return confirm('Are you sure you want to delete branch "{{ pharmacy.shop_name }}"? This action cannot be undone.');">
+                        <button type="submit" name="action" value="delete" class="py-1.5 bg-yellow-100 text-yellow-800 rounded text-sm font-medium hover:bg-yellow-200 transition" onclick="return confirm('Delete branch {{ pharmacy.shop_name }}?');">
                             Delete
                         </button>
                     </div>
                 </form>
             </div>
-{% endif %}
             {% endfor %}
         </div>
         {% else %}
