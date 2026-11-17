@@ -1712,16 +1712,17 @@ def founder_dashboard_view(request):
 
     from app.models import Pharmacy, CustomUser
 
-    # ---- KPI Summary ----
-    total_branches = Pharmacy.objects.count()
-    active_branches = Pharmacy.objects.filter(is_active=True).count()
-    suspended_branches = Pharmacy.objects.filter(is_active=False).count()
-    total_users = CustomUser.objects.count()
-    total_superusers = CustomUser.objects.filter(is_superuser=True).count()
+    # ---- KPI Summary ---
+    # Use _base_manager to bypass tenant scoping for superuser global view
+    total_branches = Pharmacy._base_manager.count()
+    active_branches = Pharmacy._base_manager.filter(is_active=True).count()
+    suspended_branches = Pharmacy._base_manager.filter(is_active=False).count()
+    total_users = CustomUser._base_manager.count()
+    total_superusers = CustomUser._base_manager.filter(is_superuser=True).count()
 
     # ---- Pharmies with user counts (using reverse relation) ----
-    pharmacies = Pharmacy.objects.all().order_by('-created_at').annotate(
-        user_count=Count('customuser')
+    pharmacies = Pharmacy._base_manager.all().order_by('-created_at').annotate(
+        user_count=Count('customuser_records')
     )
 
     # ---- Search/filter bar ----
@@ -1733,7 +1734,7 @@ def founder_dashboard_view(request):
         )
 
     # ---- Platform User Management ----
-    users = CustomUser.objects.all().select_related('pharmacy').order_by('-date_joined')
+    users = CustomUser._base_manager.all().select_related('pharmacy').order_by('-date_joined')
 
     if request.method == 'POST':
         # Branch actions
