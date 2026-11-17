@@ -1,0 +1,54 @@
+{% extends "base_founder.html" %}
+{% load static %}
+{% block title %}Founder Users - Pharmaudit OS{% endblock %}
+
+{% block main_content %}
+<div class="py-6">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+            <h2 class="text-2xl font-bold text-slate-900 mb-4">User Management</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full table-auto caption-bottom">
+                    <thead>
+                        <tr class="text-left text-slate-600 text-sm border-b border-slate-200">
+                            <th class="py-3">Username</th>
+                            <th class="py-3">Email</th>
+                            <th class="py-3">Date Joined</th>
+                            <th class="py-3">Role</th>
+                            <th class="py-3">Pharmacy</th>
+                            <th class="py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm text-slate-900">
+                    {% if users %}
+                        {% for user in users %}
+                        <tr class="border-b border-slate-200 hover:bg-slate-50">
+                            <td class="py-3">{{ user.username }}</td>
+                            <td class="py-3">{{ user.email }}</td>
+                            <td class="py-3">{{ user.date_joined|date:"M d, Y" }}</td>
+                            <td class="py-3">
+                                {% if user.is_superuser %}
+                                <span class="badge bg-red-600 text-white text-xs font-medium">Superuser</span>
+                                {% else %}
+                                <span class="badge bg-slate-400 text-xs font-medium">Staff</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">{{ user.pharmacy.shop_name if user.pharmacy else '—' }}</td>
+                            <td class="py-3 text-right">
+                                <a href="{% url 'founder_dashboard' %}" class="text-slate-600 hover:text-slate-800 text-sm">Back</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td class="py-3 colspan-6 text-center text-slate-500" style="height: 200px;">No users found.</td>
+                        </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1670,6 +1670,16 @@ def healthz_view(request):
     return JsonResponse({"status": "ok"})
 
 
+def help_view(request):
+    """Help & FAQ page for the application."""
+    from .tenancy import get_current_pharmacy_id
+    pharmacy_id = get_current_pharmacy_id()
+    context = {
+        'pharmacy_id': pharmacy_id,
+    }
+    return render(request, 'help_faq.html', context)
+
+
 def sw_js(request):
     """Serve the service worker JavaScript with correct content type."""
     response = HttpResponse(content_type='application/javascript')
