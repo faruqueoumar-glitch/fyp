@@ -39,6 +39,18 @@ else:
 # Honor the 'X-Forwarded-Proto' header for HTTPS
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# Trust Render domains for CSRF
+CSRF_TRUSTED_ORIGINS = [
+    'https://fyp-2uhr.onrender.com',
+    'https://*.onrender.com',
+]
+if 'CSRF_TRUSTED_ORIGINS' in os.environ:
+    CSRF_TRUSTED_ORIGINS += os.environ.get('CSRF_TRUSTED_ORIGINS').split(',')
+if 'RENDER_EXTERNAL_URL' in os.environ:
+    external_url = os.environ.get('RENDER_EXTERNAL_URL')
+    if external_url not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(external_url)
+
 # WhiteNoise middleware for serving static files
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
