@@ -6,6 +6,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.contrib import messages
+from django.views.decorators.cache import never_cache
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -403,6 +404,7 @@ def calculate_abc_classification():
 
 
 # Auth Views
+@never_cache
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -1808,6 +1810,9 @@ def founder_dashboard_view(request):
 
 
 # --- Help & FAQ (Item 11) ---
+def faq_view(request):
+    """FAQ page for the founder console."""
+    return render(request, 'faq.html')
 
 def _get_role_sections(user):
     """Return FAQ sections filtered by user role."""
@@ -1886,8 +1891,24 @@ def _get_role_sections(user):
 
 
 @login_required
-def help_view(request):
-    """Role-filtered Help & FAQ page."""
+def founder_users_view(request):
+    """Founder console: platform user management list."""
+    if not request.user.is_superuser:
+        return redirect('dashboard')
+    
+    from app.models import CustomUser
+    
+    # Use _base_manager to bypass tenant scoping for superuser global view
+    users = CustomUser._base_manager.all().select_related('pharmacy').order_by('-date_joined')
+    total_superusers = CustomUser._base_manager.filter(is_superuser=True).count()
+    
+    context = {
+        'users': users,
+        'total_superusers': total_superusers,
+    }
+    return render(request, 'founder_users.html', context)
+
+# Role-filtered Help & FAQ page.
     user = request.user
     role_data = _get_role_sections(user)
     # Flatten FAQ items for search/filter

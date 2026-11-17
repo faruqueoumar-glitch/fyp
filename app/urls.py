@@ -5,6 +5,7 @@ urlpatterns = [
     # Dashboard & Auth
     path('', views.dashboard_view, name='dashboard'),
     path('founder/', views.founder_dashboard_view, name='founder_dashboard'),
+    path('founder/users/', views.founder_users_view, name='founder_users'),
     path('help/', views.help_view, name='help'),
     path('login/', views.login_view, name='login'),
     path('signout/', views.logout_view, name='signout'),
