@@ -25,14 +25,14 @@
       <button
         id="navBranchesBtn"
         data-href="{% url 'founder_dashboard' %}"
-        class="relative rounded-full px-4 py-2 text-sm font-medium transition-colors {{ 'pill-active' if current_url == 'founder_dashboard' else 'pill-inactive' }}"
+        class="relative rounded-full px-4 py-2 text-sm font-medium transition-colors {% if current_url == 'founder_dashboard' %}pill-active{% else %}pill-inactive{% endif %}"
       >
         <span class="relative text-slate-300">Branches</span>
       </button>
       <button
         id="navUsersBtn"
         data-href="{% url 'founder_users' %}"
-        class="relative rounded-full px-4 py-2 text-sm font-medium transition-colors {{ 'pill-active' if current_url == 'founder_users' else 'pill-inactive' }}"
+        class="relative rounded-full px-4 py-2 text-sm font-medium transition-colors {% if current_url == 'founder_users' %}pill-active{% else %}pill-inactive{% endif %}"
       >
         <span class="relative text-slate-300">Platform Users</span>
       </button>
