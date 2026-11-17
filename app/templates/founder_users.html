@@ -34,7 +34,13 @@
                                 <span class="badge bg-slate-400 text-xs font-medium">Staff</span>
                                 {% endif %}
                             </td>
-                            <td class="py-3">{{ user.pharmacy.shop_name if user.pharmacy else '—' }}</td>
+                            <td class="py-3">
+    {% if user.pharmacy %}
+        {{ user.pharmacy.shop_name }}
+    {% else %}
+        —
+    {% endif %}
+</td>
                             <td class="py-3 text-right">
                                 <a href="{% url 'founder_dashboard' %}" class="text-slate-600 hover:text-slate-800 text-sm">Back</a>
                             </td>
