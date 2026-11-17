@@ -1,6 +1,6 @@
 {% extends "base_founder.html" %}
 
-{% block content %}
+{% block main_content %}
 <div class="py-8">
     <!-- KPI Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -42,7 +42,7 @@
                 </thead>
                 <tbody class="text-slate-300">
                     {% for pharmacy in pharmacies %}
-                    <tr class="border-b border-slate-700 hover:bg-slate-700 transition-colors" style="background-color: {{ 'rgba(30,41,59,0.8)' if not loop.index % 2 else 'rgba(30,41,59,0.5)' }}">
+                    <tr class="border-b border-slate-700 hover:bg-slate-700 transition-colors" style="background-color: {% cycle 'rgba(30,41,59,0.8)' 'rgba(30,41,59,0.5)' %}">
                         <td class="py-3 font-medium">{{ pharmacy.shop_name }}</td>
                         <td class="py-3 text-center">
                             {% if pharmacy.is_active %}
@@ -97,7 +97,7 @@
                 </thead>
                 <tbody class="text-slate-300" id="usersTableBody">
                     {% for user in users %}
-                    <tr class="border-b border-slate-700 hover:bg-slate-700 transition-colors" style="background-color: {{ 'rgba(30,41,59,0.8)' if not loop.index % 2 else 'rgba(30,41,59,0.5)' }}">
+                    <tr class="border-b border-slate-700 hover:bg-slate-700 transition-colors" style="background-color: {% cycle 'rgba(30,41,59,0.8)' 'rgba(30,41,59,0.5)' %}">
                         <td class="py-3 font-medium" id="userName-{{ user.id }}">{{ user.username|default:user.email|truncatechars:22 }}</td>
                         <td class="py-3">{{ user.email }}</td>
                         <td class="py-3">
