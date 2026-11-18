@@ -411,11 +411,49 @@ def login_view(request):
 
     form = LoginForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        email = form.cleaned_data['email']
+        identifier = form.cleaned_data['identifier']
         password = form.cleaned_data['password']
-        user = authenticate(request, email=email, password=password)
+        
+        # Resolve identifier: email or PHA.OS/ ID
+        user = None
+        if identifier.startswith('PHA.OS/'):
+            # Try to authenticate by PHA.OS/ ID
+            # Extract the ID part after PHA.OS/
+            id_part = identifier[7:]  # Remove 'PHA.OS/' prefix
+            # Try both USR- and FND- prefixes
+            for prefix in ['PHA.OS/USR-', 'PHA.OS/FND-']:
+                full_id = prefix + id_part
+                try:
+                    user = CustomUser._base_manager.get(pha_user_id=full_id)
+                    break
+                except CustomUser.DoesNotExist:
+                    continue
+            if user is None:
+                messages.error(request, 'Invalid PHA.OS/ identifier.')
+                return render(request, 'auth/login.html', {'form': form})
+        else:
+            # Normal email authentication
+            user = authenticate(request, email=identifier, password=password)
+        
         if user:
-            if user.pharmacy_id is not None:
+            # Enforce branch/staff validation for non-superusers
+            if not user.is_superuser:
+                # Check 1: Account is active
+                if not user.is_active:
+                    messages.error(request, 'Your staff account is suspended. Contact your Branch Admin or Platform Founder.')
+                    return render(request, 'auth/login.html', {'form': form})
+                
+                # Check 2: pharmacy assigned
+                if user.pharmacy is None:
+                    messages.error(request, 'No pharmacy branch is assigned to this account.')
+                    return render(request, 'auth/login.html', {'form': form})
+                
+                # Check 3: pharmacy is active
+                if not user.pharmacy.is_active:
+                    messages.error(request, 'Your pharmacy branch is currently suspended. Contact Platform Support.')
+                    return render(request, 'auth/login.html', {'form': form})
+                
+                # If all checks pass, enter pharmacy context
                 with pharmacy_context(user.pharmacy_id):
                     login(request, user)
                     request.pharmacy_id = user.pharmacy_id
@@ -425,15 +463,17 @@ def login_view(request):
                                     {'user': user.email, 'role': user.role},
                                     'User session initiated')
             else:
+                # Superuser: bypass branch checks
                 login(request, user)
                 log_audit_trail(request, 'USER_LOGIN', 'User', user.id, {},
                                 {'user': user.email, 'role': user.role},
                                 'User session initiated')
-            messages.success(request, f"Welcome back, {user.first_name or user.email} [{user.get_role_display()}].")
+            
+            messages.success(request, f'Welcome back, {user.first_name or user.email} [{user.get_role_display()}].')
             return redirect('dashboard')
         else:
-            messages.error(request, "Invalid email address or password.")
-
+            messages.error(request, 'Invalid email address or password.')
+    
     return render(request, 'auth/login.html', {'form': form})
 
 

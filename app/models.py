@@ -1,5 +1,6 @@
 import hashlib
 import math
+import secrets
 import uuid
 from django.contrib.auth.models import AbstractUser, BaseUserManager, Group
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -70,9 +71,33 @@ class Pharmacy(models.Model):
     address = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+    branch_code = models.CharField(
+        max_length=32,
+        unique=True,
+        blank=True,
+        help_text='PHA.OS/ Branch ID (e.g., PHA.OS/BR-8F3K2A)',
+    )
 
     def __str__(self):
         return self.shop_name
+
+    def save(self, *args, **kwargs):
+        if not self.branch_code:
+            alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+            from django.db import models as django_models
+
+            # Collect existing IDs to avoid collisions
+            existing = set(
+                Pharmacy._base_manager.values_list('branch_code', flat=True)
+            )
+            prefix = 'PHA.OS/BR-'
+            while True:
+                suffix = ''.join(secrets.choice(alphabet) for _ in range(6))
+                candidate = f'{prefix}{suffix}'
+                if candidate not in existing:
+                    self.branch_code = candidate
+                    break
+        super().save(*args, **kwargs)
 
 
 class PharmacyOwnedModel(models.Model):
@@ -229,14 +254,36 @@ class CustomUser(PharmacyOwnedModel, AbstractUser):
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='PHARMACIST')
+    pha_user_id = models.CharField(
+        max_length=32,
+        unique=True,
+        blank=True,
+        help_text='PHA.OS/ User ID (e.g., PHA.OS/USR-9X4M1P for staff, PHA.OS/FND-<6CHAR> for founder)',
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
     objects = CustomUserManager()
 
-    def __str__(self):
-        return f"{self.email} [{self.get_role_display()}]"
+    def save(self, *args, **kwargs):
+        if self.pha_user_id == '':
+            is_superuser = getattr(self, 'is_superuser', False)
+            prefix = 'PHA.OS/FND-' if is_superuser else 'PHA.OS/USR-'
+            alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+            from django.db import models as django_models
+
+            # Collect existing IDs to avoid collisions
+            existing = set(
+                CustomUser._base_manager.values_list('pha_user_id', flat=True)
+            )
+            while True:
+                suffix = ''.join(secrets.choice(alphabet) for _ in range(6))
+                candidate = f'{prefix}{suffix}'
+                if candidate not in existing:
+                    self.pha_user_id = candidate
+                    break
+        super().save(*args, **kwargs)
 
     def has_permission(self, permission_name):
         """Explicit permission verification based on defined RBAC matrix."""
