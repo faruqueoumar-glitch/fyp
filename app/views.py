@@ -1820,7 +1820,7 @@ def founder_dashboard_view(request):
         action = request.POST.get('action')
 
         if pharmacy_id and action:
-            pharmacy = get_object_or_404(Pharmacy, id=pharmacy_id)
+            pharmacy = get_object_or_404(Pharmacy._base_manager, id=pharmacy_id)
 
             if action == 'suspend':
                 pharmacy.is_active = False
@@ -1839,7 +1839,7 @@ def founder_dashboard_view(request):
         user_action = request.POST.get('user_action')
 
         if user_id and user_action:
-            user = get_object_or_404(CustomUser, id=user_id)
+            user = get_object_or_404(CustomUser._base_manager, id=user_id)
 
             # Safety guard: prevent superuser from suspending/deleting own account
             if user == request.user:
