@@ -63,14 +63,14 @@ class Migration(migrations.Migration):
             model_name='customuser',
             name='pha_user_id',
             field=models.CharField(
-                blank=True, help_text='PHA.OS/ User ID (e.g., PHA.OS/USR-9X4M1P for staff, PHA.OS/FND-<6CHAR> for founder)', max_length=32,
+                null=True, blank=True, help_text='PHA.OS/ User ID (e.g., PHA.OS/USR-9X4M1P for staff, PHA.OS/FND-<6CHAR> for founder)', max_length=32,
             ),
         ),
         migrations.AddField(
             model_name='pharmacy',
             name='branch_code',
             field=models.CharField(
-                blank=True, help_text='PHA.OS/ Branch ID (e.g., PHA.OS/BR-8F3K2A)', max_length=32,
+                null=True, blank=True, help_text='PHA.OS/ Branch ID (e.g., PHA.OS/BR-8F3K2A)', max_length=32,
             ),
         ),
         migrations.RunPython(generate_pha_os_ids),

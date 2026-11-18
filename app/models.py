@@ -73,8 +73,9 @@ class Pharmacy(models.Model):
     is_active = models.BooleanField(default=True)
     branch_code = models.CharField(
         max_length=32,
-        unique=True,
+        null=True,
         blank=True,
+        unique=True,
         help_text='PHA.OS/ Branch ID (e.g., PHA.OS/BR-8F3K2A)',
     )
 
@@ -256,8 +257,9 @@ class CustomUser(PharmacyOwnedModel, AbstractUser):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='PHARMACIST')
     pha_user_id = models.CharField(
         max_length=32,
-        unique=True,
+        null=True,
         blank=True,
+        unique=True,
         help_text='PHA.OS/ User ID (e.g., PHA.OS/USR-9X4M1P for staff, PHA.OS/FND-<6CHAR> for founder)',
     )
 
