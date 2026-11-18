@@ -303,6 +303,15 @@ class CustomUser(PharmacyOwnedModel, AbstractUser):
             # Skip tenant pharmacy validation for these limited updates
             super().save(*args, **kwargs)
             return
+        if not self.pha_user_id:
+            prefix = 'PHA.OS/FND-' if getattr(self, 'is_superuser', False) else 'PHA.OS/USR-'
+            alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+            existing = set(CustomUser._base_manager.values_list('pha_user_id', flat=True))
+            while True:
+                candidate = f"{prefix}{''.join(secrets.choice(alphabet) for _ in range(6))}"
+                if candidate not in existing:
+                    self.pha_user_id = candidate
+                    break
         # Default save path: run full tenant validation
         super().save(*args, **kwargs)
         try:
