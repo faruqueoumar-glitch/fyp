@@ -72,22 +72,28 @@ class BruteForceRateLimitMiddleware:
 
     def _check_rate_limit(self, ident):
         """Check if the identification has exceeded the rate limit."""
-        cache_key = f"brute_force_{ident}"
-        attempt_count = cache.get(cache_key, 0)
-        if attempt_count >= self.MAX_ATTEMPTS:
-            return True
-        return False
+        try:
+            cache_key = f"brute_force_{ident}"
+            return cache.get(cache_key, 0) >= self.MAX_ATTEMPTS
+        except Exception:
+            return False
 
     def _increment_rate_limit(self, ident):
         """Increment the attempt counter safely across Redis and LocMemCache."""
-        cache_key = f"brute_force_{ident}"
-        cache.add(cache_key, 0, timeout=self.WINDOW_SECONDS)
-        return cache.incr(cache_key)
+        try:
+            cache_key = f"brute_force_{ident}"
+            cache.add(cache_key, 0, timeout=self.WINDOW_SECONDS)
+            return cache.incr(cache_key)
+        except Exception:
+            return 1
 
     def _reset_rate_limit(self, ident):
         """Reset/clear the rate limit counter for identification."""
-        cache_key = f"brute_force_{ident}"
-        cache.delete(cache_key)
+        try:
+            cache_key = f"brute_force_{ident}"
+            cache.delete(cache_key)
+        except Exception:
+            pass
 
     def __call__(self, request):
         if request.method == 'POST':
@@ -153,13 +159,19 @@ class IdempotencyMiddleware:
         """Check if the idempotency key already exists in cache."""
         if not key:
             return False
-        cache_key = f"idempotency_{key}"
-        return cache.get(cache_key) is not None
+        try:
+            cache_key = f"idempotency_{key}"
+            return cache.get(cache_key) is not None
+        except Exception:
+            return False
 
     def _mark_processed(self, key, timeout=60):
         """Mark the idempotency key as processed for the given timeout (seconds)."""
-        cache_key = f"idempotency_{key}"
-        cache.set(cache_key, '1', timeout)
+        try:
+            cache_key = f"idempotency_{key}"
+            cache.set(cache_key, '1', timeout)
+        except Exception:
+            pass
 
     def __call__(self, request):
         if request.method == 'POST':

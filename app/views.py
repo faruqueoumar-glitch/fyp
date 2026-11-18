@@ -473,9 +473,12 @@ def login_view(request):
                 request.pharmacy_id = user.pharmacy_id
                 request.pharmacy = user.pharmacy
                 request.session['pharmacy_id'] = user.pharmacy_id
-                log_audit_trail(request, 'USER_LOGIN', 'User', user.id, {},
-                                {'user': user.email, 'role': user.role},
-                                'User session initiated')
+                try:
+                    log_audit_trail(request, 'USER_LOGIN', 'User', user.id, {},
+                                    {'user': user.email, 'role': user.role},
+                                    'User session initiated')
+                except Exception:
+                    pass
 
         messages.success(request, f'Welcome back, {user.first_name or user.email} [{user.get_role_display()}].')
 

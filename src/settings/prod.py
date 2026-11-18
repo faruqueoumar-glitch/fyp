@@ -75,8 +75,10 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Production caching configuration using Redis (Render)
+import importlib.util
+
 redis_url = os.environ.get('REDIS_URL')
-if redis_url:
+if redis_url and importlib.util.find_spec('redis') is not None:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
