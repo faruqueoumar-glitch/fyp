@@ -406,94 +406,92 @@ def calculate_abc_classification():
 # Auth Views
 @never_cache
 def login_view(request):
+    from .models import CustomUser
     if request.user.is_authenticated:
+        if request.user.is_superuser:
+            return redirect('founder_dashboard')
         return redirect('dashboard')
 
     form = LoginForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        identifier = form.cleaned_data.get('identifier') or request.POST.get('identifier') or ''
-        identifier = identifier.strip()
+        identifier = (form.cleaned_data.get('identifier') or request.POST.get('identifier') or '').strip()
         password = form.cleaned_data['password']
-        
-        # Resolve identifier: email or PHA.OS/ ID
-        user = None
+
+        # Resolve candidate user by email or PHA.OS/ ID, then verify password
+        candidate = None
         if identifier.upper().startswith('PHA.OS/'):
-            # Try to authenticate by PHA.OS/ ID
-            # Extract the ID part after PHA.OS/
-            id_part = identifier[7:]  # Remove 'PHA.OS/' prefix
-            # Try both USR- and FND- prefixes
-            for prefix in ['PHA.OS/USR-', 'PHA.OS/FND-']:
-                full_id = prefix + id_part
-                try:
-                    user = CustomUser._base_manager.get(pha_user_id=full_id)
+            id_part = identifier[7:].strip()
+            candidates = [identifier]
+            if not id_part.upper().startswith(('USR-', 'FND-')):
+                candidates.extend([f'PHA.OS/USR-{id_part}', f'PHA.OS/FND-{id_part}'])
+            for full_id in candidates:
+                candidate = CustomUser._base_manager.filter(pha_user_id__iexact=full_id).first()
+                if candidate is not None:
                     break
-                except CustomUser.DoesNotExist:
-                    continue
-            if user is None:
-                messages.error(request, 'Invalid PHA.OS/ identifier.')
-                return render(request, 'auth/login.html', {'form': form})
+        elif identifier.upper().startswith(('USR-', 'FND-')):
+            candidate = CustomUser._base_manager.filter(pha_user_id__iexact=f'PHA.OS/{identifier}').first()
         else:
-            # Normal email authentication
-            user = authenticate(request, email=identifier, password=password)
-        
-        if user:
-            # Enforce branch/staff validation for non-superusers
-            if not user.is_superuser:
-                # Check 1: Account is active
-                if not user.is_active:
-                    messages.error(request, 'Your staff account is suspended. Contact your Branch Admin or Platform Founder.')
-                    return render(request, 'auth/login.html', {'form': form})
-                
-                # Check 2: pharmacy assigned
-                if user.pharmacy is None:
-                    messages.error(request, 'No pharmacy branch is assigned to this account.')
-                    return render(request, 'auth/login.html', {'form': form})
-                
-                # Check 3: pharmacy is active
-                if not user.pharmacy.is_active:
-                    messages.error(request, 'Your pharmacy branch is currently suspended. Contact Platform Support.')
-                    return render(request, 'auth/login.html', {'form': form})
-                
-                # If all checks pass, enter pharmacy context
-                with pharmacy_context(user.pharmacy_id):
-                    login(request, user)
-                    request.pharmacy_id = user.pharmacy_id
-                    request.pharmacy = user.pharmacy
-                    request.session['pharmacy_id'] = user.pharmacy_id
-                    log_audit_trail(request, 'USER_LOGIN', 'User', user.id, {},
-                                    {'user': user.email, 'role': user.role},
-                                    'User session initiated')
-            else:
-                # Superuser: bypass branch checks
-                login(request, user)
-                log_audit_trail(request, 'USER_LOGIN', 'User', user.id, {},
-                                {'user': user.email, 'role': user.role},
-                                'User session initiated')
-            
-            messages.success(request, f'Welcome back, {user.first_name or user.email} [{user.get_role_display()}].')
+            candidate = CustomUser._base_manager.filter(email__iexact=identifier).first()
+
+        user = None
+        if candidate is not None and candidate.check_password(password):
+            user = candidate
 
         if user is None:
             messages.error(request, 'Invalid email/PHA.OS/ ID or password.')
             return render(request, 'auth/login.html', {'form': form})
 
-        # Post-Login Redirect (Fix the Bounce-Back Bug)
+        if not user.is_active:
+            messages.error(request, 'Your account is suspended. Contact your Branch Admin or Platform Founder.')
+            return render(request, 'auth/login.html', {'form': form})
+
+        if user.is_superuser:
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            if user.pharmacy_id:
+                request.pharmacy_id = user.pharmacy_id
+                request.pharmacy = user.pharmacy
+                request.session['pharmacy_id'] = user.pharmacy_id
+            else:
+                request.session.pop('pharmacy_id', None)
+            try:
+                log_audit_trail(request, 'USER_LOGIN', 'User', user.id, {},
+                                {'user': user.email, 'role': user.role},
+                                'Founder/Superuser session initiated')
+            except Exception:
+                pass
+        else:
+            if user.pharmacy is None:
+                messages.error(request, 'No pharmacy branch is assigned to this account.')
+                return render(request, 'auth/login.html', {'form': form})
+
+            if not user.pharmacy.is_active:
+                messages.error(request, 'Your pharmacy branch is currently suspended. Contact Platform Support.')
+                return render(request, 'auth/login.html', {'form': form})
+
+            with pharmacy_context(user.pharmacy_id):
+                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                request.pharmacy_id = user.pharmacy_id
+                request.pharmacy = user.pharmacy
+                request.session['pharmacy_id'] = user.pharmacy_id
+                log_audit_trail(request, 'USER_LOGIN', 'User', user.id, {},
+                                {'user': user.email, 'role': user.role},
+                                'User session initiated')
+
+        messages.success(request, f'Welcome back, {user.first_name or user.email} [{user.get_role_display()}].')
+
+        # Post-Login Redirect
         next_url = request.POST.get('next') or request.GET.get('next')
         if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
-            if next_url == '/login/':
-                # Reject redirect to login page itself
-                if user.is_superuser:
-                    return redirect('founder_dashboard')
-                else:
-                    return redirect('dashboard')
-            # Bounce-back bug fix: non-superusers should not be redirected to /founder/
+            if next_url.rstrip('/') == '/login':
+                return redirect('founder_dashboard' if user.is_superuser else 'dashboard')
             if not user.is_superuser and next_url.startswith('/founder'):
                 return redirect('dashboard')
             return redirect(next_url)
+
         if user.is_superuser:
             return redirect('founder_dashboard')
-        else:
-            pass
-    
+        return redirect('dashboard')
+
     return render(request, 'auth/login.html', {'form': form})
 
 
@@ -767,6 +765,8 @@ def medication_stock_api(request, medication_id):
 # FR1 & Dashboard View
 @require_permission('view_stock_dashboard')
 def dashboard_view(request):
+    if request.user.is_superuser and not getattr(request.user, 'pharmacy_id', None):
+        return redirect('founder_dashboard')
     ensure_master_defaults()
     medications = Medication.objects.all()
 
