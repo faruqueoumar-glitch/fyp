@@ -417,7 +417,7 @@ def login_view(request):
         
         # Resolve identifier: email or PHA.OS/ ID
         user = None
-        if identifier.startswith('PHA.OS/'):
+        if identifier.upper().startswith('PHA.OS/'):
             # Try to authenticate by PHA.OS/ ID
             # Extract the ID part after PHA.OS/
             id_part = identifier[7:]  # Remove 'PHA.OS/' prefix
@@ -471,9 +471,28 @@ def login_view(request):
                                 'User session initiated')
             
             messages.success(request, f'Welcome back, {user.first_name or user.email} [{user.get_role_display()}].')
-            return redirect('dashboard')
+
+        if user is None:
+            messages.error(request, 'Invalid email/PHA.OS/ ID or password.')
+            return render(request, 'auth/login.html', {'form': form})
+
+        # Post-Login Redirect (Fix the Bounce-Back Bug)
+        next_url = request.POST.get('next') or request.GET.get('next')
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+            if next_url == '/login/':
+                # Reject redirect to login page itself
+                if user.is_superuser:
+                    return redirect('founder_dashboard')
+                else:
+                    return redirect('dashboard')
+            # Bounce-back bug fix: non-superusers should not be redirected to /founder/
+            if not user.is_superuser and next_url.startswith('/founder'):
+                return redirect('dashboard')
+            return redirect(next_url)
+        if user.is_superuser:
+            return redirect('founder_dashboard')
         else:
-            messages.error(request, 'Invalid email address or password.')
+            pass
     
     return render(request, 'auth/login.html', {'form': form})
 

@@ -297,3 +297,79 @@ class BranchSuspensionTests(TestCase):
         response = self.client.get('/dashboard/')
         # The middleware should clear the suspended pharmacy context
         self.assertEqual(response.status_code, 200)
+class LoginViewTests(TestCase):
+    """Tests for the login view - Item 2."""
+
+    def setUp(self):
+        self.client = Client()
+        self.pharmacy = Pharmacy.objects.create(
+            shop_name="Test Pharmacy", email="test-pharmacy@example.org", address="Test address"
+        )
+        self.tenant_context = pharmacy_context(self.pharmacy.pk)
+        self.tenant_context.__enter__()
+        self.addCleanup(self.tenant_context.__exit__, None, None, None)
+
+        with pharmacy_context(self.pharmacy.pk):
+            self.superuser = User.objects.create_user(
+                email="hamza@gmail.com",
+                password="Password123!",
+                is_superuser=True, is_staff=True,
+                pha_user_id="FND-AB1234",
+            )
+            
+            self.branch_staff = User.objects.create_user(
+                email="staff@hospital.org",
+                password="Password123!", role="PHARMACIST",
+                pha_user_id="USR-CD5678",
+            )
+            
+            self.suspended_user = User.objects.create_user(
+                email="suspended@hospital.org",
+                password="Password123!", role="PHARMACIST",
+                is_active=False,
+                pha_user_id="USR-EF9012",
+            )
+
+            # Create a pharmacy branch for the branch staff
+            self.user_pharmacy = Pharmacy.objects.create(
+                shop_name="Test Branch", email="branch@hospital.org", address="123 Main St", is_active=True
+            )
+            self.branch_staff.pharmacy = self.user_pharmacy
+            self.branch_staff.save()
+
+            # Create a suspended pharmacy for the suspended user
+            self.suspended_pharmacy = Pharmacy.objects.create(
+                shop_name="Suspended Branch", email="suspended-branch@example.org", address="789 Oak St", is_active=False
+            )
+            self.suspended_user.pharmacy = self.suspended_pharmacy
+            self.suspended_user.save()
+
+    def test_superuser_login_via_email(self):
+        response = self.client.post("/login/", {"identifier": "hamza@gmail.com", "password": "Password123!"})
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/founder/", fetch_redirect_address=False)
+
+    def test_superuser_login_via_pha_os_id(self):
+        response = self.client.post("/login/", {"identifier": "PHA.OS/FND-123", "password": "Password123!"})
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/founder/", fetch_redirect_address=False)
+
+    def test_wrong_password_with_pha_os_id(self):
+        response = self.client.post("/login/", {"identifier": "PHA.OS/FND-123", "password": "WrongPassword!"})
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response, "form", "password", "Invalid email/PHA.OS/ ID or password.")
+
+    def test_branch_staff_login_via_email(self):
+        response = self.client.post("/login/", {"identifier": "staff@hospital.org", "password": "Password123!"})
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/dashboard/", fetch_redirect_address=False)
+
+    def test_branch_staff_login_via_pha_os_id(self):
+        response = self.client.post("/login/", {"identifier": "PHA.OS/USR-123", "password": "Password123!"})
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, "/dashboard/", fetch_redirect_address=False)
+
+    def test_suspended_pharmacy_block(self):
+        response = self.client.post("/login/", {"identifier": "suspended@hospital.org", "password": "Password123!"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Your pharmacy branch is currently suspended. Contact Platform Support.")
