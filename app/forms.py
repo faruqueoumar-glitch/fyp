@@ -98,8 +98,9 @@ class RegisterForm(forms.ModelForm):
 
 
 class LoginForm(forms.Form):
-    email = forms.EmailField(
-        widget=forms.EmailInput(attrs={'class': INPUT_CLASS, 'placeholder': 'pharmacist@hospital.org'})
+    identifier = forms.CharField(
+        widget=forms.TextInput(attrs={'class': INPUT_CLASS, 'placeholder': 'Email or PHA.OS/ ID'}),
+        label=''
     )
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': INPUT_CLASS, 'placeholder': '••••••••••••', 'id': 'loginPassword'})

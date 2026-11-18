@@ -411,7 +411,8 @@ def login_view(request):
 
     form = LoginForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        identifier = form.cleaned_data['identifier']
+        identifier = form.cleaned_data.get('identifier') or request.POST.get('identifier') or ''
+        identifier = identifier.strip()
         password = form.cleaned_data['password']
         
         # Resolve identifier: email or PHA.OS/ ID
