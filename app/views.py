@@ -631,7 +631,10 @@ def load_sample_data(request):
 
 def logout_view(request):
     if request.user.is_authenticated:
-        log_audit_trail(request, 'USER_LOGIN', 'User', request.user.id, {}, {'user': request.user.email}, 'User logged out')
+        try:
+            log_audit_trail(request, 'USER_LOGIN', 'User', request.user.id, {}, {'user': request.user.email}, 'User logged out')
+        except Exception:
+            pass
         logout(request)
         messages.info(request, "You have been logged out.")
     return redirect('login')
