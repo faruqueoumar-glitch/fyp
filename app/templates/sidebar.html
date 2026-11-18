@@ -387,9 +387,9 @@
     </nav>
   </div>
 
-  <!-- Pinned Account & Sign Out Footer -->
-  <div class="p-4 border-t border-slate-800 bg-slate-950/60 space-y-2 flex-shrink-0">
-    {% if user.is_superuser %}
+  {% if user.is_superuser %}
+  <!-- Pinned Founder Console Switcher -->
+  <div class="p-4 border-t border-slate-800 bg-slate-950/60 flex-shrink-0">
     <a
       href="{% url 'founder_dashboard' %}"
       class="w-full flex items-center justify-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-600/30 hover:text-white transition"
@@ -399,15 +399,6 @@
       </svg>
       <span>Founder Console</span>
     </a>
-    {% endif %}
-    <a
-      href="{% url 'signout' %}"
-      class="w-full flex items-center justify-center space-x-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-rose-600/15 text-rose-300 border border-rose-500/30 hover:bg-rose-600 hover:text-white transition"
-    >
-      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-      </svg>
-      <span>Sign Out</span>
-    </a>
   </div>
+  {% endif %}
 </aside>
