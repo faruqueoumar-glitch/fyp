@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Profile &amp; Staff ID Card | PharmaAudit OS{% endblock %}
+
+{% block main_content %}
+<div class="max-w-5xl mx-auto">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-5 border-b border-slate-200">
+    <div>
+      <p class="text-xs font-mono uppercase tracking-wider text-emerald-700 font-bold">Identity &amp; Credentials</p>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">My Profile &amp; Official ID Card</h1>
+      <p class="text-sm text-slate-500 mt-0.5">Upload your passport photo and verify your credentials for your printable PharmaAudit OS ID card.</p>
+    </div>
+    <a href="{% url 'staff_id_card' %}" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-xl shadow-sm transition">
+      <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+      </svg>
+      View &amp; Print Landscape ID Card
+    </a>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left Column: Passport Photo Uploader -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col items-center text-center">
+      <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200 mb-4">
+        ID Card Portrait
+      </span>
+
+      <div id="avatarPreviewBox" class="w-32 h-36 rounded-2xl border-2 border-emerald-600 p-1 bg-slate-50 shadow-sm overflow-hidden">
+        {% if profile_user.avatar_data %}
+          <img id="avatarPreviewImg" src="{{ profile_user.avatar_data }}" alt="Passport Photo" class="w-full h-full object-cover rounded-xl" />
+        {% else %}
+          <div id="avatarFallback" class="w-full h-full rounded-xl bg-slate-900 text-white flex items-center justify-center text-2xl font-extrabold">
+            {{ profile_user.first_name|slice:":1"|upper }}{{ profile_user.last_name|slice:":1"|upper|default:profile_user.email|slice:":1"|upper }}
+          </div>
+          <img id="avatarPreviewImg" src="" alt="Passport Photo" class="hidden w-full h-full object-cover rounded-xl" />
+        {% endif %}
+      </div>
+
+      <p class="mt-3 text-sm font-bold text-slate-900">{{ profile_user.get_full_name|default:profile_user.email }}</p>
+      <p class="text-xs font-mono text-slate-500">{{ profile_user.pha_user_id|default:"PHA.OS/USR" }}</p>
+
+      <label for="avatarFileInput" class="mt-5 w-full cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        Choose Passport Photo
+      </label>
+      <input id="avatarFileInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" />
+      <p class="text-[11px] text-slate-400 mt-2">Clear front-facing headshot (PNG/JPG). Auto-optimized for PVC ID card printing.</p>
+
+      {% if profile_user.avatar_data %}
+      <button type="button" id="removeAvatarBtn" class="mt-3 text-xs font-semibold text-rose-600 hover:text-rose-700 underline">
+        Remove current photo
+      </button>
+      {% endif %}
+    </div>
+
+    <!-- Right Column: Profile Form -->
+    <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+      <form method="POST" class="space-y-5">
+        {% csrf_token %}
+        <input type="hidden" name="avatar_data" id="avatarDataInput" value="" />
+        <input type="hidden" name="remove_avatar" id="removeAvatarInput" value="0" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">First Name</label>
+            <input type="text" name="first_name" value="{{ profile_user.first_name }}" required
+              class="w-full px-3.5 py-2.5 text-sm font-medium text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Last Name</label>
+            <input type="text" name="last_name" value="{{ profile_user.last_name }}" required
+              class="w-full px-3.5 py-2.5 text-sm font-medium text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Official Job Title</label>
+            <input type="text" name="job_title" value="{{ profile_user.job_title }}" placeholder="e.g. Superintendent Pharmacist"
+              class="w-full px-3.5 py-2.5 text-sm font-medium text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">PCN / Professional Reg No.</label>
+            <input type="text" name="license_number" value="{{ profile_user.license_number }}" placeholder="e.g. PCN-2026-08412"
+              class="w-full px-3.5 py-2.5 text-sm font-mono font-semibold text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Phone Number</label>
+            <input type="text" name="phone_number" value="{{ profile_user.phone_number }}" placeholder="+234 800 000 0000"
+              class="w-full px-3.5 py-2.5 text-sm font-mono font-medium text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Email Address (Read-Only)</label>
+            <input type="email" value="{{ profile_user.email }}" disabled
+              class="w-full px-3.5 py-2.5 text-sm font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-xl cursor-not-allowed" />
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+          <div>
+            <span class="font-bold text-slate-500 uppercase">Assigned Branch:</span>
+            <span class="font-extrabold text-slate-900 ml-1">{{ pharmacy.shop_name|default:"Platform Executive" }}</span>
+          </div>
+          <span class="font-mono font-bold text-emerald-700">{{ pharmacy.branch_code|default:"PHA.OS/HQ" }}</span>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-3">
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-sm transition">
+            Save Profile &amp; ID Photo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const fileInput = document.getElementById('avatarFileInput');
+  const hiddenData = document.getElementById('avatarDataInput');
+  const removeInput = document.getElementById('removeAvatarInput');
+  const previewImg = document.getElementById('avatarPreviewImg');
+  const fallback = document.getElementById('avatarFallback');
+  const removeBtn = document.getElementById('removeAvatarBtn');
+
+  if (fileInput) {
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const maxDim = 420;
+          let w = img.width, h = img.height;
+          if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else if (h >= w && h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          hiddenData.value = compressed;
+          removeInput.value = '0';
+          previewImg.src = compressed;
+          previewImg.classList.remove('hidden');
+          if (fallback) fallback.classList.add('hidden');
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', function() {
+      hiddenData.value = '';
+      removeInput.value = '1';
+      previewImg.classList.add('hidden');
+      if (fallback) fallback.classList.remove('hidden');
+    });
+  }
+});
+</script>
+{% endblock %}

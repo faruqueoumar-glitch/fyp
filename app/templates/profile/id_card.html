@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Official Staff ID Card | PharmaAudit OS{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  @media print {
+    body * { visibility: hidden; }
+    #printableIdSheet, #printableIdSheet * { visibility: visible; }
+    #printableIdSheet {
+      position: fixed;
+      inset: 0;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      background: white !important;
+      padding: 12mm;
+    }
+    .no-print { display: none !important; }
+    .cr80-card {
+      box-shadow: none !important;
+      border: 1px solid #cbd5e1 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  }
+  .cr80-card {
+    width: 440px;
+    height: 278px;
+  }
+  @media (max-width: 480px) {
+    .cr80-card {
+      width: 100%;
+      height: auto;
+      min-height: 260px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="max-w-5xl mx-auto">
+  <div class="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-5 border-b border-slate-200">
+    <div>
+      <p class="text-xs font-mono uppercase tracking-wider text-emerald-700 font-bold">CR80 Horizontal PVC Credential</p>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Official Staff &amp; Administrator ID Card</h1>
+      <p class="text-sm text-slate-500 mt-0.5">Standard landscape CR80 format (85.6mm &times; 53.98mm) for branch verification and regulatory inspection.</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="{% url 'user_profile' %}" class="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition">
+        Edit Photo / Info
+      </a>
+      <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-sm transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+        </svg>
+        Print Landscape ID
+      </button>
+    </div>
+  </div>
+
+  <!-- Printable Front & Back Landscape Cards -->
+  <div id="printableIdSheet" class="flex flex-col xl:flex-row items-center justify-center gap-8 py-4">
+
+    <!-- ================= FRONT FACE ================= -->
+    <div class="cr80-card relative rounded-2xl bg-white border-2 border-slate-300 shadow-xl overflow-hidden flex flex-col justify-between">
+      <!-- Top Brand Strip -->
+      <div class="bg-slate-900 text-white px-5 py-2.5 flex items-center justify-between border-b-2 border-emerald-500">
+        <div class="flex items-center gap-2.5 min-w-0">
+          {% if pharmacy.logo_data %}
+            <img src="{{ pharmacy.logo_data }}" alt="Branch Logo" class="w-7 h-7 rounded-lg bg-white p-0.5 object-contain shrink-0" />
+          {% else %}
+            <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white font-black text-xs flex items-center justify-center shrink-0">Rx</span>
+          {% endif %}
+          <div class="truncate">
+            <p class="text-xs font-extrabold tracking-tight truncate">{{ pharmacy.shop_name|default:"PharmaAudit OS HQ" }}</p>
+            <p class="text-[9px] font-mono text-emerald-400 uppercase tracking-wider">
+              {% if pharmacy.pcn_license_no %}PCN REG: {{ pharmacy.pcn_license_no }}{% else %}{{ pharmacy.branch_code|default:"PHA.OS/VERIFIED" }}{% endif %}
+            </p>
+          </div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-mono text-[9px] font-bold shrink-0">
+          {{ user.pha_user_id|default:"PHA.OS/ID" }}
+        </span>
+      </div>
+
+      <!-- Middle Section: Top-Left Photo + Name & Role Badge -->
+      <div class="px-5 pt-3.5 pb-2 flex items-start gap-4 flex-1">
+        <!-- Top-Left Passport Portrait -->
+        <div class="w-20 h-24 rounded-xl border-2 border-emerald-600 p-0.5 bg-slate-100 shrink-0 shadow-sm overflow-hidden">
+          {% if user.avatar_data %}
+            <img src="{{ user.avatar_data }}" alt="{{ user.get_full_name }}" class="w-full h-full object-cover rounded-lg" />
+          {% else %}
+            <div class="w-full h-full rounded-lg bg-slate-800 text-white flex items-center justify-center text-lg font-black">
+              {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper|default:user.email|slice:":1"|upper }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Holder Name, Role Badge & Credentials -->
+        <div class="flex-1 min-w-0">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider
+            {% if user.is_superuser %}bg-indigo-100 text-indigo-900 border border-indigo-300
+            {% elif user.role == 'ADMIN' %}bg-emerald-100 text-emerald-900 border border-emerald-300
+            {% else %}bg-slate-100 text-slate-800 border border-slate-300{% endif %}">
+            {% if user.is_superuser %}Founder / Super Admin
+            {% elif user.role == 'ADMIN' %}Branch Administrator
+            {% else %}{{ user.get_role_display|default:"Licensed Pharmacist" }}{% endif %}
+          </span>
+
+          <h2 class="text-base font-black text-slate-900 tracking-tight leading-snug mt-1 truncate">
+            {{ user.get_full_name|default:user.email }}
+          </h2>
+          <p class="text-[11px] font-bold text-emerald-800 truncate">
+            {{ user.job_title|default:"Pharmaceutical Operations & Dispensing" }}
+          </p>
+
+          <div class="mt-1.5 space-y-0.5 text-[10px] font-mono text-slate-600">
+            {% if user.license_number %}
+            <p>License No: <strong class="text-slate-900">{{ user.license_number }}</strong></p>
+            {% endif %}
+            {% if user.phone_number %}
+            <p>Tel: <strong class="text-slate-900">{{ user.phone_number }}</strong></p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Section: Ownership & Address (Left) + QR Code (Bottom-Right) -->
+      <div class="px-5 py-2.5 bg-slate-50 border-t border-slate-200 flex items-end justify-between gap-3">
+        <div class="text-[9.5px] leading-tight text-slate-600 min-w-0">
+          <p class="font-extrabold text-slate-900 uppercase tracking-wide">
+            Property of {{ pharmacy.shop_name|default:"PharmaAudit OS" }}
+          </p>
+          <p class="text-slate-600 truncate mt-0.5">
+            {{ pharmacy.address|default:"Licensed Pharmaceutical Facility, Nigeria" }}
+          </p>
+          <p class="text-[8.5px] text-slate-400 mt-0.5">
+            Official personnel credential • Must be worn on duty
+          </p>
+        </div>
+
+        <!-- Bottom-Right QR Verification Code -->
+        <div class="p-1 bg-white rounded-lg border border-slate-300 shrink-0 shadow-xs">
+          <div id="idCardQrCode" class="w-12 h-12"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= BACK FACE ================= -->
+    <div class="cr80-card relative rounded-2xl bg-slate-900 text-white border-2 border-slate-700 shadow-xl overflow-hidden flex flex-col justify-between">
+      <!-- Magnetic / Security Header Bar -->
+      <div class="bg-emerald-700 px-5 py-2 flex items-center justify-between">
+        <span class="font-mono text-[10px] font-black uppercase tracking-widest text-white">
+          PharmaAudit OS • Regulatory &amp; Compliance Assurance
+        </span>
+        <span class="font-mono text-[9px] text-emerald-100">NG-PCN/NAFDAC</span>
+      </div>
+
+      <!-- Platform Statement -->
+      <div class="px-5 py-3 space-y-2.5 text-[10.5px] leading-relaxed text-slate-200 flex-1 flex flex-col justify-center">
+        <p>
+          <strong class="text-emerald-400">PLATFORM ATTESTATION:</strong> The bearer of this credential is an authorized operator on <strong class="text-white">PharmaAudit OS</strong>—a tamper-evident pharmaceutical inventory, dispensing, and audit compliance platform.
+        </p>
+        <p class="text-slate-300 text-[10px]">
+          Every batch movement, controlled substance dispense, and retail receipt issued by this bearer is cryptographically logged to prevent counterfeit, smuggled, or expired medications from reaching patients.
+        </p>
+        <p class="text-[9.5px] text-amber-300 font-semibold">
+          If found, please return immediately to {{ pharmacy.shop_name|default:"the issuing pharmacy" }} or contact {{ pharmacy.phone_number|default:"branch administration" }}.
+        </p>
+      </div>
+
+      <!-- Signature & Official Stamp Footer -->
+      <div class="px-5 py-3 bg-slate-950/80 border-t border-slate-800 grid grid-cols-2 gap-4 text-[9.5px]">
+        <div>
+          <div class="h-6 border-b border-slate-600"></div>
+          <p class="text-slate-400 font-bold uppercase mt-1">Bearer Signature</p>
+        </div>
+        <div>
+          <div class="h-6 border-b border-slate-600"></div>
+          <p class="text-emerald-400 font-bold uppercase mt-1">Superintendent / Admin Stamp</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const qrEl = document.getElementById('idCardQrCode');
+  if (qrEl && typeof QRCode !== 'undefined') {
+    new QRCode(qrEl, {
+      text: "PHA.OS-VERIFY|{{ user.pha_user_id|default:user.email }}|{{ pharmacy.branch_code|default:'HQ' }}",
+      width: 48,
+      height: 48,
+      colorDark: "#0f172a",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+});
+</script>
+{% endblock %}

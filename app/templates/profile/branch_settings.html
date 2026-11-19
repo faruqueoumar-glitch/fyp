@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Branch Branding &amp; Receipt Assurance | PharmaAudit OS{% endblock %}
+
+{% block main_content %}
+<div class="max-w-5xl mx-auto">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-5 border-b border-slate-200">
+    <div>
+      <p class="text-xs font-mono uppercase tracking-wider text-emerald-700 font-bold">Branch Governance &amp; Trust</p>
+      <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Branch Branding &amp; Customer Receipt Assurance</h1>
+      <p class="text-sm text-slate-500 mt-0.5">Configure your branch logo, physical address, PCN license, and anti-counterfeit / anti-abuse statement for customer receipts.</p>
+    </div>
+    <span class="px-3 py-1.5 rounded-xl bg-slate-900 text-emerald-400 font-mono text-xs font-bold self-start">
+      {{ pharmacy.branch_code|default:"PHA.OS/BRANCH" }}
+    </span>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left Column: Branch Logo Uploader -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col items-center text-center">
+      <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-800 border border-slate-300 mb-4">
+        Official Branch Logo
+      </span>
+
+      <div class="w-32 h-32 rounded-2xl border-2 border-slate-300 p-2 bg-slate-50 shadow-sm flex items-center justify-center overflow-hidden">
+        {% if pharmacy.logo_data %}
+          <img id="logoPreviewImg" src="{{ pharmacy.logo_data }}" alt="{{ pharmacy.shop_name }}" class="w-full h-full object-contain" />
+        {% else %}
+          <img id="logoFallbackImg" src="{% static 'img/login-hero-white-green-navy.png' %}" alt="Default Emblem" class="w-20 h-20 object-contain opacity-80" />
+          <img id="logoPreviewImg" src="" alt="Branch Logo" class="hidden w-full h-full object-contain" />
+        {% endif %}
+      </div>
+
+      <p class="mt-3 text-sm font-extrabold text-slate-900">{{ pharmacy.shop_name }}</p>
+      <p class="text-xs text-slate-500 mt-0.5">Printed on customer sales receipts &amp; staff ID cards</p>
+
+      <label for="logoFileInput" class="mt-5 w-full cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl transition">
+        Upload Branch Logo
+      </label>
+      <input id="logoFileInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" />
+      <p class="text-[11px] text-slate-400 mt-2">Transparent PNG or clean square JPG recommended.</p>
+
+      {% if pharmacy.logo_data %}
+      <button type="button" id="removeLogoBtn" class="mt-3 text-xs font-semibold text-rose-600 hover:text-rose-700 underline">
+        Reset to default emblem
+      </button>
+      {% endif %}
+    </div>
+
+    <!-- Right Column: Branch Address & Anti-Smuggling Assurance Form -->
+    <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+      <form method="POST" class="space-y-5">
+        {% csrf_token %}
+        <input type="hidden" name="logo_data" id="logoDataInput" value="" />
+        <input type="hidden" name="remove_logo" id="removeLogoInput" value="0" />
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Pharmacy / Branch Name</label>
+          <input type="text" name="shop_name" value="{{ pharmacy.shop_name }}" required
+            class="w-full px-3.5 py-2.5 text-sm font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Branch Customer Care Phone</label>
+            <input type="text" name="phone_number" value="{{ pharmacy.phone_number }}" placeholder="+234 800 123 4567"
+              class="w-full px-3.5 py-2.5 text-sm font-mono font-medium text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">PCN Premises / NAFDAC Ref No.</label>
+            <input type="text" name="pcn_license_no" value="{{ pharmacy.pcn_license_no }}" placeholder="e.g. PCN/PREM/LAG/0942"
+              class="w-full px-3.5 py-2.5 text-sm font-mono font-semibold text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Physical Branch Address (Shown on Receipts &amp; ID Cards)</label>
+          <textarea name="address" rows="2" required placeholder="No. 12 Herbert Macaulay Way, Yaba, Lagos, Nigeria"
+            class="w-full px-3.5 py-2.5 text-sm font-medium text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600">{{ pharmacy.address }}</textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-emerald-800 mb-1.5">
+            Customer Receipt Assurance Statement (Pure Source, Anti-Smuggling &amp; Anti-Drug Abuse Pledge)
+          </label>
+          <textarea name="authenticity_statement" rows="4" required
+            class="w-full px-3.5 py-2.5 text-xs font-medium text-slate-800 bg-emerald-50/40 border border-emerald-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600">{{ pharmacy.authenticity_statement }}</textarea>
+          <p class="text-[11px] text-slate-500 mt-1">Printed prominently on every customer retail dispense receipt to assure patients and regulators of authentic, non-smuggled sourcing.</p>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end">
+          <button type="submit" class="px-6 py-2.5 text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-sm transition">
+            Save Branch Branding &amp; Assurance
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const fileInput = document.getElementById('logoFileInput');
+  const hiddenData = document.getElementById('logoDataInput');
+  const removeInput = document.getElementById('removeLogoInput');
+  const previewImg = document.getElementById('logoPreviewImg');
+  const fallbackImg = document.getElementById('logoFallbackImg');
+  const removeBtn = document.getElementById('removeLogoBtn');
+
+  if (fileInput) {
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const maxDim = 360;
+          let w = img.width, h = img.height;
+          if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else if (h >= w && h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/png');
+          hiddenData.value = compressed;
+          removeInput.value = '0';
+          previewImg.src = compressed;
+          previewImg.classList.remove('hidden');
+          if (fallbackImg) fallbackImg.classList.add('hidden');
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', function() {
+      hiddenData.value = '';
+      removeInput.value = '1';
+      previewImg.classList.add('hidden');
+      if (fallbackImg) fallbackImg.classList.remove('hidden');
+    });
+  }
+});
+</script>
+{% endblock %}
