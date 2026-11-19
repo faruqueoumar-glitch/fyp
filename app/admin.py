@@ -37,8 +37,13 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ('email', 'first_name', 'last_name')
     ordering = ('email',)
 
+    def get_queryset(self, request):
+        if request.user.is_superuser:
+            return CustomUser._base_manager.all()
+        return super().get_queryset(request)
+
     def save_model(self, request, obj, form, change):
-        if request.user.is_superuser and not change and obj.pharmacy_id:
+        if request.user.is_superuser and obj.pharmacy_id:
             with pharmacy_context(obj.pharmacy_id):
                 super().save_model(request, obj, form, change)
             return

@@ -1845,30 +1845,27 @@ def founder_dashboard_view(request):
             if user == request.user:
                 messages.error(request, 'You cannot suspend or delete your own account.')
             else:
-                if user_action == 'suspend_toggle':
-                    user.is_active = not user.is_active
-                    user.save()
-                    messages.success(request, f'User "{user.email}" has been {"activated" if user.is_active else "suspended"}.')
-                elif user_action == 'change_role':
-                    new_role = request.POST.get('new_role')
-                    if new_role in dict(CustomUser.ROLE_CHOICES):
-                        user.role = new_role
+                with pharmacy_context(user.pharmacy_id):
+                    if user_action == 'suspend_toggle':
+                        user.is_active = not user.is_active
                         user.save()
-                        messages.success(request, f'User role updated to {user.get_role_display().lower()}.')
-                    else:
-                        messages.error(request, 'Invalid role selected.')
-                elif user_action == 'reset_password':
-                    # Generate a temporary password and flash it
-                    import secrets
-                    temp_password = secrets.token_urlsafe(8)
-                    user.set_password(temp_password)
-                    user.save()
-                    messages.success(request, f'Temporary password generated for {user.email}: {temp_password}.')
-                elif user_action == 'delete':
-                    # Double safety guard
-                    if user == request.user:
-                        messages.error(request, 'You cannot delete your own account.')
-                    else:
+                        messages.success(request, f'User "{user.email}" has been {"activated" if user.is_active else "suspended"}.')
+                    elif user_action == 'change_role':
+                        new_role = request.POST.get('new_role')
+                        if new_role in dict(CustomUser.ROLE_CHOICES):
+                            user.role = new_role
+                            user.save()
+                            messages.success(request, f'User role updated to {user.get_role_display().lower()}.')
+                        else:
+                            messages.error(request, 'Invalid role selected.')
+                    elif user_action == 'reset_password':
+                        # Generate a temporary password and flash it
+                        import secrets
+                        temp_password = secrets.token_urlsafe(8)
+                        user.set_password(temp_password)
+                        user.save()
+                        messages.success(request, f'Temporary password generated for {user.email}: {temp_password}.')
+                    elif user_action == 'delete':
                         user.delete()
                         messages.success(request, f'User {user.email} has been deleted.')
 
