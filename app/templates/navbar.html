@@ -59,62 +59,101 @@
       <span class="text-slate-900 font-bold" id="navTitle">{{ current_url|default:'overview'|title }}</span>
     </div>
     {% if user.is_superuser %}
-          <a
-            href="{% url 'founder_dashboard' %}"
-            class="flex items-center space-x-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-            role="menuitem"
-          >
-            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            <span>Founder Console</span>
-          </a>
-          <a
-            href="{% url 'founder_users' %}"
-            class="flex items-center space-x-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-            role="menuitem"
-          >
-            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span>Platform Users</span>
-          </a>
-          <a
-            href="/admin/"
-            class="flex items-center space-x-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-            role="menuitem"
-          >
-            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span>Django Admin</span>
-          </a>
-          {% else %}
-          <a
-            href="{% url 'dashboard' %}"
-            class="flex items-center space-x-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-            role="menuitem"
-          >
-            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-            <span>Branch Dashboard</span>
-          </a>
+    <h2 class="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">Founder Console</h2>
+    {% elif user.is_admin or user.role == 'admin' %}
+    <h2 class="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">Branch: {{ user.pharmacy.shop_name|default:'—' }}</h2>
+    {% else %}
+    <h2 class="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">{{ user.get_role_display }}</h2>
+    {% endif %}
+  </div>
 
-          {% if user.is_admin or user.role == 'admin' %}
-          <a
-            href="{% url 'manage_users' %}"
-            class="flex items-center space-x-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-            role="menuitem"
-          >
-            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <span>Manage Staff</span>
-          </a>
-          {% endif %}
-          {% endif %}
+  <div class="flex items-center space-x-3">
+    <!-- Account Profile Menu -->
+    <div class="relative" id="userProfileMenuWrapper">
+      <button
+        type="button"
+        id="userProfileBtn"
+        aria-expanded="false"
+        aria-haspopup="true"
+        class="inline-flex items-center space-x-2.5 px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-900 text-xs font-semibold text-slate-100 hover:bg-slate-800 transition shadow-xs cursor-pointer"
+      >
+        {% if user.is_superuser %}
+          <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" aria-hidden="true"></span>
+          <span>FOUNDER / SUPERUSER</span>
+        {% elif user.is_admin or user.role == 'admin' %}
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" aria-hidden="true"></span>
+          <span>BRANCH ADMIN</span>
+        {% else %}
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true"></span>
+          <span>{{ request.user.role|default:'STAFF'|upper }}</span>
+        {% endif %}
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      <div
+        id="userProfileDropdown"
+        class="hidden absolute right-0 mt-2 w-64 rounded-xl bg-slate-900 p-3 shadow-2xl border border-slate-700 z-50 origin-top-right text-slate-200"
+        role="menu"
+        aria-orientation="vertical"
+        aria-labelledby="userProfileBtn"
+      >
+        <div class="px-2 py-2 mb-2 border-b border-slate-800">
+          <div class="text-sm font-semibold text-white truncate">
+            {{ request.user.get_full_name|default:request.user.email }}
+          </div>
+          <div class="text-xs text-slate-400 truncate">
+            {% if user.is_superuser %}Platform Owner{% else %}{{ request.user.pharmacy.shop_name|default:'—' }}{% endif %}
+          </div>
+        </div>
+
+        {% if user.is_superuser %}
+        <a
+          href="{% url 'founder_dashboard' %}"
+          class="flex items-center space-x-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+          <span>Founder Console</span>
+        </a>
+        <a
+          href="{% url 'founder_users' %}"
+          class="flex items-center space-x-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Platform Users</span>
+        </a>
+        {% endif %}
+
+        <a
+          href="{% url 'dashboard' %}"
+          class="flex items-center space-x-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+          <span>Branch Dashboard</span>
+        </a>
+
+        {% if user.is_admin or user.role == 'admin' %}
+        <a
+          href="{% url 'manage_users' %}"
+          class="flex items-center space-x-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+          role="menuitem"
+        >
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <span>Manage Staff</span>
+        </a>
+        {% endif %}
 
         <a
           href="{% url 'help' %}"
