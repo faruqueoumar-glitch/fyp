@@ -78,6 +78,23 @@ class Pharmacy(models.Model):
         unique=True,
         help_text='PHA.OS/ Branch ID (e.g., PHA.OS/BR-8F3K2A)',
     )
+    logo_data = models.TextField(
+        blank=True,
+        default='',
+        help_text='Base64 Data URI of branch logo for receipts and staff ID cards',
+    )
+    phone_number = models.CharField(max_length=40, blank=True, default='')
+    pcn_license_no = models.CharField(
+        max_length=80,
+        blank=True,
+        default='',
+        help_text='PCN Premises Registration / Regulatory License Number',
+    )
+    authenticity_statement = models.TextField(
+        blank=True,
+        default='ASSURANCE OF PURE & AUTHENTIC SOURCE: All medications dispensed at this facility are procured strictly from licensed, NAFDAC-approved manufacturers and accredited wholesale distributors. This pharmacy enforces zero tolerance against smuggled, counterfeit, expired, or abused pharmaceuticals.',
+        help_text='Customer assurance statement printed on retail receipts against smuggling & drug abuse',
+    )
 
     def __str__(self):
         return self.shop_name
@@ -261,6 +278,24 @@ class CustomUser(PharmacyOwnedModel, AbstractUser):
         blank=True,
         unique=True,
         help_text='PHA.OS/ User ID (e.g., PHA.OS/USR-9X4M1P for staff, PHA.OS/FND-<6CHAR> for founder)',
+    )
+    avatar_data = models.TextField(
+        blank=True,
+        default='',
+        help_text='Base64 Data URI of passport photo for Staff/Admin ID card',
+    )
+    phone_number = models.CharField(max_length=40, blank=True, default='')
+    license_number = models.CharField(
+        max_length=80,
+        blank=True,
+        default='',
+        help_text='PCN Registration / Professional License Number',
+    )
+    job_title = models.CharField(
+        max_length=120,
+        blank=True,
+        default='',
+        help_text='Official clinical or operational title (e.g., Superintendent Pharmacist)',
     )
 
     USERNAME_FIELD = 'email'

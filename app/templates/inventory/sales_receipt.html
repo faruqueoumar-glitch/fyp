@@ -19,29 +19,69 @@
     <!-- Official Printable Receipt Card -->
     <div class="bg-white border-2 border-slate-200 rounded-3xl p-6 sm:p-10 shadow-sm space-y-8 print:border-none print:shadow-none print:p-0">
         
-        <!-- Pharmacy Header -->
+        <!-- Pharmacy Header with Branch Logo, Address & Regulatory Registration -->
         <div class="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-slate-200 pb-6 gap-4">
-            <div>
-                <div class="flex items-center space-x-2 mb-1">
-                    <span class="w-7 h-7 rounded-xl bg-emerald-600 text-white font-black text-sm flex items-center justify-center">₦</span>
-                    <h1 class="text-xl sm:text-2xl font-black tracking-tight text-slate-900">PharmaAudit OS</h1>
+            <div class="flex items-start gap-3.5">
+                {% if pharmacy.logo_data %}
+                    <img src="{{ pharmacy.logo_data }}" alt="{{ pharmacy.shop_name }}" class="w-14 h-14 rounded-2xl border border-slate-200 bg-white p-1 object-contain shrink-0" />
+                {% else %}
+                    <span class="w-12 h-12 rounded-2xl bg-emerald-700 text-white font-black text-lg flex items-center justify-center shrink-0 shadow-sm">₦</span>
+                {% endif %}
+                <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h1 class="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+                            {{ pharmacy.shop_name|default:"PharmaAudit OS" }}
+                        </h1>
+                        {% if pharmacy.branch_code %}
+                        <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-[10px] font-bold border border-slate-200">
+                            {{ pharmacy.branch_code }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs font-bold text-slate-700 mt-1">
+                        {{ pharmacy.address|default:"Licensed Pharmaceutical Operations (Nigeria)" }}
+                    </p>
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-mono text-slate-500 mt-1">
+                        {% if pharmacy.phone_number %}
+                            <span>Tel: <strong class="text-slate-700">{{ pharmacy.phone_number }}</strong></span>
+                        {% endif %}
+                        {% if pharmacy.pcn_license_no %}
+                            <span>Premises Reg: <strong class="text-emerald-800">{{ pharmacy.pcn_license_no }}</strong></span>
+                        {% endif %}
+                        <span>Powered by PharmaAudit OS</span>
+                    </div>
                 </div>
-                <p class="text-xs font-bold text-slate-600">Central Pharmacy Dispensing & Stock Audit Console</p>
-                <p class="text-xs text-slate-400 font-mono mt-0.5">Licensed Pharmaceutical Hospital Operations (Nigeria)</p>
             </div>
-            <div class="sm:text-right">
+            <div class="sm:text-right shrink-0">
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono font-black bg-emerald-100 text-emerald-900 border border-emerald-300 uppercase">
-                    Paid & Dispensed
+                    Paid &amp; Dispensed
                 </span>
-                <h3 class="text-base font-black font-mono text-slate-900 mt-1">{{ transaction.transaction_ref }}</h3>
+                <h3 class="text-base font-black font-mono text-slate-900 mt-1.5">{{ transaction.transaction_ref }}</h3>
                 <p class="text-xs font-bold text-slate-500 font-mono">{{ transaction.created_at|date:"Y-m-d H:i:s" }}</p>
+            </div>
+        </div>
+
+        <!-- Anti-Counterfeit, Anti-Smuggling & Drug Abuse Assurance Banner -->
+        <div class="p-4 rounded-2xl bg-emerald-50/90 border border-emerald-300 flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+            </div>
+            <div class="text-xs leading-relaxed">
+                <p class="font-black uppercase tracking-wider text-emerald-900 text-[11px]">
+                    Verified Pure Source &amp; Anti-Smuggling / Anti-Abuse Assurance
+                </p>
+                <p class="text-emerald-950 font-medium mt-0.5">
+                    {{ pharmacy.authenticity_statement|default:"All medications dispensed at this facility are procured strictly from licensed, NAFDAC-approved manufacturers and accredited wholesale distributors. Zero tolerance against smuggled, counterfeit, or abused drugs." }}
+                </p>
             </div>
         </div>
 
         <!-- Transaction Meta Info Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-100 rounded-2xl border border-slate-200 text-xs font-bold">
             <div>
-                <span class="text-slate-500 uppercase text-[10px] font-black">Patient / Rx Ref:</span>
+                <span class="text-slate-500 uppercase text-[10px] font-black">Patient / Buyer:</span>
                 <p class="font-black text-slate-900 mt-0.5 text-sm">{{ transaction.patient_info|default:"Walk-in Patient" }}</p>
             </div>
             <div>
@@ -49,8 +89,13 @@
                 <p class="font-black text-emerald-700 mt-0.5 text-xs">{{ transaction.get_payment_method_display }}</p>
             </div>
             <div>
-                <span class="text-slate-500 uppercase text-[10px] font-black">Dispensing Staff:</span>
-                <p class="font-bold text-slate-900 mt-0.5 text-xs">{{ transaction.pharmacist.first_name|default:transaction.pharmacist.email }}</p>
+                <span class="text-slate-500 uppercase text-[10px] font-black">Dispensing Pharmacist:</span>
+                <p class="font-bold text-slate-900 mt-0.5 text-xs">
+                    {{ transaction.pharmacist.get_full_name|default:transaction.pharmacist.email }}
+                </p>
+                {% if transaction.pharmacist.license_number %}
+                <p class="font-mono text-[10px] text-slate-500">PCN: {{ transaction.pharmacist.license_number }}</p>
+                {% endif %}
             </div>
             <div>
                 <span class="text-slate-500 uppercase text-[10px] font-black">Currency:</span>
@@ -60,7 +105,7 @@
 
         {% if transaction.notes %}
         <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
-            <span class="text-slate-500 uppercase text-[10px] font-black">Clinical Notes:</span>
+            <span class="text-slate-500 uppercase text-[10px] font-black">Clinical / Counseling Notes:</span>
             <p class="text-slate-800 mt-0.5 font-bold">{{ transaction.notes }}</p>
         </div>
         {% endif %}
@@ -71,7 +116,7 @@
                 <thead class="bg-slate-100 text-slate-700 font-black uppercase tracking-wider text-[11px] border-b-2 border-slate-200">
                     <tr>
                         <th class="px-5 py-3.5">#</th>
-                        <th class="px-5 py-3.5">Medication & SKU</th>
+                        <th class="px-5 py-3.5">Medication &amp; SKU</th>
                         <th class="px-5 py-3.5 text-center">Qty</th>
                         <th class="px-5 py-3.5 text-right">Unit Price (₦)</th>
                         <th class="px-5 py-3.5 text-right">Subtotal (₦)</th>
@@ -108,9 +153,30 @@
             </table>
         </div>
 
+        <!-- Dual Retail Accountability Signature Blocks (Dispensing Pharmacist & Buyer / Patient) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
+            <div class="p-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/60">
+                <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">Dispensing Pharmacist Verification</p>
+                <div class="h-12 border-b border-slate-400 mt-3"></div>
+                <div class="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-700">
+                    <span>{{ transaction.pharmacist.get_full_name|default:transaction.pharmacist.email }}</span>
+                    <span class="font-mono text-slate-500">{{ transaction.pharmacist.pha_user_id|default:"Sign & Stamp" }}</span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/60">
+                <p class="text-[10px] font-black uppercase tracking-wider text-slate-500">Buyer / Patient Receiver Acknowledgment</p>
+                <div class="h-12 border-b border-slate-400 mt-3"></div>
+                <div class="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-700">
+                    <span>{{ transaction.patient_info|default:"Customer / Receiver Name" }}</span>
+                    <span class="font-mono text-slate-500">Signature &amp; Date</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer / Certification -->
-        <div class="border-t-2 border-slate-200 pt-6 text-center space-y-2 text-slate-500 text-xs font-bold">
-            <p class="text-slate-700">Thank you for your visit. Please store medications in a cool, dry place as directed.</p>
+        <div class="border-t-2 border-slate-200 pt-5 text-center space-y-1.5 text-slate-500 text-xs font-bold">
+            <p class="text-slate-700">Thank you for choosing {{ pharmacy.shop_name|default:"us" }}. Store medications in a cool, dry place out of reach of children.</p>
             <p class="font-mono text-[10px] text-slate-400">Audit Verification Hash: SHA-256 Verified in StockAuditLedger • Ref: {{ transaction.transaction_ref }}</p>
         </div>
 
