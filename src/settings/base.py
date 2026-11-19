@@ -140,3 +140,12 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+# Ensure Render HTTPS domains pass Django CSRF origin checks
+_render_url = os.environ.get('RENDER_EXTERNAL_URL', '').strip()
+CSRF_TRUSTED_ORIGINS = list(globals().get('CSRF_TRUSTED_ORIGINS', []))
+for _origin in ['https://*.onrender.com', 'http://127.0.0.1:8000', 'http://localhost:8000']:
+    if _origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_origin)
+if _render_url and _render_url not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(_render_url)
