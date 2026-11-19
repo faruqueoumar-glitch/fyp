@@ -58,8 +58,10 @@
       <span class="text-slate-300">/</span>
       <span class="text-slate-900 font-bold" id="navTitle">{{ current_url|default:'overview'|title }}</span>
     </div>
-    {% if user.is_superuser %}
+    {% if user.is_superuser and current_url == 'founder_dashboard' or user.is_superuser and current_url == 'founder_users' or user.is_superuser and current_url == 'help' %}
     <h2 class="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">Founder Console</h2>
+    {% elif user.is_superuser %}
+    <h2 class="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">Branch: {{ user.pharmacy.shop_name|default:'—' }} <span class="text-xs font-semibold text-indigo-600 align-middle">(Founder View)</span></h2>
     {% elif user.is_admin or user.role == 'admin' %}
     <h2 class="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">Branch: {{ user.pharmacy.shop_name|default:'—' }}</h2>
     {% else %}
