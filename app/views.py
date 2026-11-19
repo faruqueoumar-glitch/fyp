@@ -1740,8 +1740,18 @@ def help_view(request):
     """Help & FAQ page for the application."""
     from .tenancy import get_current_pharmacy_id
     pharmacy_id = get_current_pharmacy_id()
+    role_data = _get_role_sections(request.user) if request.user.is_authenticated else {'title': 'Help & FAQ', 'sections': []}
+    sections = role_data.get('sections', [])
+    all_items = [
+        {**item, 'category': sec.get('category', '')}
+        for sec in sections
+        for item in sec.get('items', [])
+    ]
     context = {
         'pharmacy_id': pharmacy_id,
+        'faq_title': role_data.get('title', 'Help & FAQ'),
+        'sections': sections,
+        'all_items': all_items,
     }
     return render(request, 'help_faq.html', context)
 
