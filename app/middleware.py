@@ -16,27 +16,31 @@ class PharmacyContextMiddleware:
         except (TypeError, ValueError):
             pharmacy_id = None
 
-        request.pharmacy_id = pharmacy_id
-        # If a pharmacy context is set, check if the pharmacy is suspended
+        # Fall back to authenticated user's linked pharmacy if session key is absent
+        if pharmacy_id is None and getattr(request, 'user', None) and request.user.is_authenticated:
+            user_pharmacy_id = getattr(request.user, 'pharmacy_id', None)
+            if user_pharmacy_id is not None:
+                pharmacy_id = int(user_pharmacy_id)
+                request.session['pharmacy_id'] = pharmacy_id
+
+        active_pharmacy = None
         if pharmacy_id:
             from app.models import Pharmacy
             try:
                 pharmacy = Pharmacy.objects.get(id=pharmacy_id)
-                if not pharmacy.is_active:
-                    # Suspended pharmacy: clear context and invalidate session
-                    request.pharmacy_id = None
-                    request.pharmacy = None
-                    _ = set_current_pharmacy_id(None)  # reset context var
+                if pharmacy.is_active:
+                    active_pharmacy = pharmacy
+                else:
+                    pharmacy_id = None
+                    request.session.pop('pharmacy_id', None)
             except Pharmacy.DoesNotExist:
-                request.pharmacy_id = None
-                request.pharmacy = None
+                pharmacy_id = None
+                request.session.pop('pharmacy_id', None)
+
+        request.pharmacy_id = pharmacy_id
+        request.pharmacy = active_pharmacy
         token = set_current_pharmacy_id(pharmacy_id) if pharmacy_id else None
         try:
-            request.pharmacy = (
-                request.user.pharmacy
-                if pharmacy_id and request.user.is_authenticated
-                else None
-            )
             return self.get_response(request)
         finally:
             if token is not None:

@@ -1488,6 +1488,9 @@ def cart_clear(request):
 @require_permission('dispense_stock')
 def checkout_and_dispense(request):
     """Finalize sale: create SalesTransaction, perform FEFO dispensing, update stock, log immutable audit trail."""
+    active_pharmacy_id = getattr(request, 'pharmacy_id', None) or getattr(request.user, 'pharmacy_id', None)
+    if not active_pharmacy_id:
+        return JsonResponse({'error': 'No active pharmacy context found for this account.'}, status=403)
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request method'}, status=400)
 
@@ -1597,25 +1600,32 @@ def checkout_and_dispense(request):
                     f"POS Sale #{sales_tx.transaction_ref}: Dispensed {quantity_to_dispense} {medication.unit} @ ₦{unit_price:,.2f} ({sales_tx.get_payment_method_display()})"
                 )
 
-                # Real-time alert notifications for low stock & ROP breach
-                if after_stock == 0:
-                    NotificationService.send_bulk_notification(
-                        recipients=User.objects.all(),
-                        actor=request.user,
-                        title="OUT OF STOCK ALERT",
-                        message=f"Critical: {medication.name} is now completely out of stock!",
-                        target_obj=medication,
-                        category='out_of_stock'
+                # Real-time alert notifications for low stock & ROP breach (non-blocking)
+                try:
+                    tenant_recipients = User.objects.filter(
+                        pharmacy_id=medication.pharmacy_id,
+                        is_active=True
                     )
-                elif after_stock <= medication.reorder_point:
-                    NotificationService.send_bulk_notification(
-                        recipients=User.objects.all(),
-                        actor=request.user,
-                        title="ROP BREACH ALERT",
-                        message=f"Warning: {medication.name} stock ({after_stock}) has reached or dropped below ROP ({medication.reorder_point}).",
-                        target_obj=medication,
-                        category='rop_alert'
-                    )
+                    if after_stock == 0:
+                        NotificationService.send_bulk_notification(
+                            recipients=tenant_recipients,
+                            actor=request.user,
+                            title="OUT OF STOCK ALERT",
+                            message=f"Critical: {medication.name} is now completely out of stock!",
+                            target_obj=medication,
+                            category='out_of_stock'
+                        )
+                    elif after_stock <= medication.reorder_point:
+                        NotificationService.send_bulk_notification(
+                            recipients=tenant_recipients,
+                            actor=request.user,
+                            title="ROP BREACH ALERT",
+                            message=f"Warning: {medication.name} stock ({after_stock}) has reached or dropped below ROP ({medication.reorder_point}).",
+                            target_obj=medication,
+                            category='rop_alert'
+                        )
+                except Exception:
+                    pass
 
             # Update transaction total
             sales_tx.total_amount_naira = total_amount
