@@ -72,4 +72,8 @@ urlpatterns = [
     # FR9 Reports & Export Module
     path('reports/', views.reports_view, name='reports'),
     path('reports/export/', views.export_report_csv, name='export_report_csv'),
+    # Identity, Staff/Admin ID Card & Branch Branding
+    path('profile/', views.user_profile, name='user_profile'),
+    path('profile/id-card/', views.staff_id_card, name='staff_id_card'),
+    path('branch/settings/', views.branch_settings, name='branch_settings'),
 ]

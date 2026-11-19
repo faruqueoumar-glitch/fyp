@@ -2019,3 +2019,95 @@ def founder_users_view(request):
         'query': request.GET.get('q', ''),
     }
     return render(request, 'help_faq.html', context)
+
+
+@login_required
+def user_profile(request):
+    user = request.user
+    pharmacy = getattr(user, 'pharmacy', None)
+
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        job_title = request.POST.get('job_title', '').strip()
+        license_number = request.POST.get('license_number', '').strip()
+        phone_number = request.POST.get('phone_number', '').strip()
+        avatar_data = request.POST.get('avatar_data', '').strip()
+        remove_avatar = request.POST.get('remove_avatar') == '1'
+
+        if first_name:
+            user.first_name = first_name
+        if last_name:
+            user.last_name = last_name
+        user.job_title = job_title
+        user.license_number = license_number
+        user.phone_number = phone_number
+
+        if remove_avatar:
+            user.avatar_data = ''
+        elif avatar_data.startswith('data:image/'):
+            user.avatar_data = avatar_data
+
+        user.save()
+        messages.success(request, 'Profile & official ID card details updated.')
+        return redirect('user_profile')
+
+    return render(request, 'profile/edit_profile.html', {
+        'profile_user': user,
+        'pharmacy': pharmacy,
+    })
+
+
+@login_required
+def staff_id_card(request):
+    user = request.user
+    pharmacy = getattr(user, 'pharmacy', None)
+    return render(request, 'profile/id_card.html', {
+        'profile_user': user,
+        'pharmacy': pharmacy,
+    })
+
+
+@login_required
+def branch_settings(request):
+    user = request.user
+    pharmacy = getattr(user, 'pharmacy', None)
+
+    if not (user.is_superuser or getattr(user, 'role', '') == 'ADMIN'):
+        messages.error(request, 'Only Branch Administrators or Founders can modify branch branding.')
+        return redirect('dashboard')
+
+    if not pharmacy:
+        messages.warning(request, 'No pharmacy branch is assigned to this account.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        shop_name = request.POST.get('shop_name', '').strip()
+        phone_number = request.POST.get('phone_number', '').strip()
+        pcn_license_no = request.POST.get('pcn_license_no', '').strip()
+        address = request.POST.get('address', '').strip()
+        authenticity_statement = request.POST.get('authenticity_statement', '').strip()
+        logo_data = request.POST.get('logo_data', '').strip()
+        remove_logo = request.POST.get('remove_logo') == '1'
+
+        if shop_name:
+            pharmacy.shop_name = shop_name
+        if address:
+            pharmacy.address = address
+        pharmacy.phone_number = phone_number
+        pharmacy.pcn_license_no = pcn_license_no
+        if authenticity_statement:
+            pharmacy.authenticity_statement = authenticity_statement
+
+        if remove_logo:
+            pharmacy.logo_data = ''
+        elif logo_data.startswith('data:image/'):
+            pharmacy.logo_data = logo_data
+
+        pharmacy.save()
+        messages.success(request, 'Branch branding, logo & customer receipt assurance updated.')
+        return redirect('branch_settings')
+
+    return render(request, 'profile/branch_settings.html', {
+        'pharmacy': pharmacy,
+    })
