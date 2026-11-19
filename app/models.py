@@ -268,25 +268,6 @@ class CustomUser(PharmacyOwnedModel, AbstractUser):
 
     objects = CustomUserManager()
 
-    def save(self, *args, **kwargs):
-        if self.pha_user_id == '':
-            is_superuser = getattr(self, 'is_superuser', False)
-            prefix = 'PHA.OS/FND-' if is_superuser else 'PHA.OS/USR-'
-            alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-            from django.db import models as django_models
-
-            # Collect existing IDs to avoid collisions
-            existing = set(
-                CustomUser._base_manager.values_list('pha_user_id', flat=True)
-            )
-            while True:
-                suffix = ''.join(secrets.choice(alphabet) for _ in range(6))
-                candidate = f'{prefix}{suffix}'
-                if candidate not in existing:
-                    self.pha_user_id = candidate
-                    break
-        super().save(*args, **kwargs)
-
     def has_permission(self, permission_name):
         """Explicit permission verification based on defined RBAC matrix."""
         if not self.is_authenticated:

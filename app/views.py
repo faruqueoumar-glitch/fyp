@@ -1869,6 +1869,11 @@ def founder_dashboard_view(request):
                         user.delete()
                         messages.success(request, f'User {user.email} has been deleted.')
 
+        referer = request.META.get('HTTP_REFERER', '')
+        if '/founder/users' in referer:
+            return redirect('founder_users')
+        return redirect('founder_dashboard')
+
     context = {
         'pharmacies': pharmacies,
         'search_query': search_query,
