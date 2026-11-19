@@ -1,0 +1,135 @@
+{% load static %}
+<!doctype html>
+<html lang="en" class="h-full bg-white">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PharmaAudit OS | Precision Pharmacy Inventory &amp; Compliance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Inter"', "sans-serif"],
+              mono: ['"JetBrains Mono"', "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="min-h-screen flex flex-col bg-white text-slate-900 antialiased">
+    <header class="w-full border-b border-slate-100 bg-white/90 backdrop-blur sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <a href="{% url 'home' %}" class="flex items-center gap-3">
+          <img src="{% static 'img/login-hero-white-green-navy.png' %}" alt="PharmaAudit OS" class="h-10 w-auto object-contain mix-blend-multiply" />
+          <span class="font-extrabold tracking-tight text-lg text-slate-900">PharmaAudit <span class="text-emerald-700">OS</span></span>
+        </a>
+        <div class="flex items-center gap-3">
+          <a href="{% url 'login' %}" class="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-xl transition">Sign In</a>
+          <a href="{% url 'register' %}" class="px-4 py-2 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-xl shadow-sm transition">Register Pharmacy</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12">
+      <section class="lg:col-span-6 flex flex-col justify-center px-6 sm:px-12 lg:px-16 py-12 lg:py-20 bg-white">
+        <div class="max-w-xl">
+          <img src="{% static 'img/login-hero-white-green-navy.png' %}" alt="PharmaAudit OS Emblem" class="h-28 w-auto mb-6 object-contain mix-blend-multiply" />
+          <p class="text-sm sm:text-base font-bold tracking-wide text-emerald-700 uppercase mb-3">
+            Precision in Every Dose. Accountability in Every Record.
+          </p>
+          <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight mb-5">
+            Run your pharmacy with zero blind spots.
+          </h1>
+          <p class="text-base sm:text-lg text-slate-600 leading-relaxed mb-8">
+            PharmaAudit OS delivers real-time FEFO batch intelligence, tamper-proof stock audit trails, and multi-branch visibility built for modern pharmacy operations.
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-9 pt-6 border-t border-slate-100">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider text-slate-900">FEFO Dispensing</p>
+              <p class="text-xs text-slate-500 mt-1">Automated expiry-first stock rotation at the counter.</p>
+            </div>
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider text-slate-900">Audit Ledger</p>
+              <p class="text-xs text-slate-500 mt-1">Immutable batch lineage for every receipt &amp; adjustment.</p>
+            </div>
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider text-slate-900">Multi-Branch</p>
+              <p class="text-xs text-slate-500 mt-1">Centralized oversight across every pharmacy outlet.</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <a href="{% url 'register' %}" class="px-6 py-3 text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-md transition">Create a Pharmacy Account</a>
+            <a href="{% url 'login' %}" class="px-6 py-3 text-sm font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Sign In to Console</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="lg:col-span-6 flex items-center justify-center px-6 sm:px-12 py-12 lg:py-20 bg-slate-50 border-t lg:border-t-0 lg:border-l border-slate-200/70">
+        <div class="w-full max-w-lg bg-white border border-slate-200/80 rounded-3xl shadow-xl shadow-slate-200/60 p-6 sm:p-8">
+          <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
+            <div>
+              <p class="text-xs font-mono uppercase tracking-wider text-slate-400">Live Operations</p>
+              <h2 class="text-base font-bold text-slate-900">Executive Audit Overview</h2>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+              Verified Ledger
+            </span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50/60">
+              <p class="text-xs font-semibold text-slate-500">Audit Compliance</p>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-2xl font-extrabold text-emerald-700 font-mono">99.8%</span>
+                <span class="text-xs font-medium text-emerald-700">Verified</span>
+              </div>
+              <div class="mt-3 w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-600 rounded-full" style="width: 98%"></div>
+              </div>
+            </div>
+            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50/60">
+              <p class="text-xs font-semibold text-slate-500">Batch Traceability</p>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-2xl font-extrabold text-slate-900 font-mono">100%</span>
+                <span class="text-xs font-medium text-slate-500">FEFO Active</span>
+              </div>
+              <p class="mt-3 text-[11px] text-slate-500">Every unit linked to supplier &amp; expiry</p>
+            </div>
+            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50/60">
+              <p class="text-xs font-semibold text-slate-500">Near-Expiry Alerts</p>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-2xl font-extrabold text-amber-600 font-mono">0</span>
+                <span class="text-xs font-medium text-slate-500">Expired Dispenses</span>
+              </div>
+              <p class="mt-3 text-[11px] text-slate-500">Automated shelf-life safeguards</p>
+            </div>
+            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50/60">
+              <p class="text-xs font-semibold text-slate-500">Role Governance</p>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-2xl font-extrabold text-slate-900 font-mono">RBAC</span>
+                <span class="text-xs font-medium text-emerald-700">Scoped</span>
+              </div>
+              <p class="mt-3 text-[11px] text-slate-500">Founder, Branch Admin &amp; Pharmacist roles</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-slate-100 bg-white py-5 px-6">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
+        <p>PharmaAudit OS — Precision Pharmacy Inventory &amp; Audit Platform</p>
+        <div class="flex items-center gap-4">
+          <a href="{% url 'login' %}" class="hover:text-slate-700 transition">Sign In</a>
+          <a href="{% url 'register' %}" class="hover:text-slate-700 transition">Register</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

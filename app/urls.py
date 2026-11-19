@@ -3,7 +3,8 @@ from . import views
 
 urlpatterns = [
     # Dashboard & Auth
-    path('', views.dashboard_view, name='dashboard'),
+    path('', views.home_view, name='home'),
+    path('dashboard/', views.dashboard_view, name='dashboard'),
     path('founder/', views.founder_dashboard_view, name='founder_dashboard'),
     path('founder/users/', views.founder_users_view, name='founder_users'),
     path('help/', views.help_view, name='help'),

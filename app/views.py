@@ -768,6 +768,14 @@ def medication_stock_api(request, medication_id):
     })
 
 
+def home_view(request):
+    if request.user.is_authenticated:
+        if request.user.is_superuser and not getattr(request.user, 'pharmacy_id', None):
+            return redirect('founder_dashboard')
+        return redirect('dashboard')
+    return render(request, 'landing.html')
+
+
 # FR1 & Dashboard View
 @require_permission('view_stock_dashboard')
 def dashboard_view(request):
