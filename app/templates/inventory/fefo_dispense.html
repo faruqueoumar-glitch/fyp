@@ -303,7 +303,7 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 font-bold text-slate-700">
-                                    {{ sale.pharmacist.first_name|default:sale.pharmacist.email }}
+                                    {% if sale.pharmacist %}{{ sale.pharmacist.first_name|default:sale.pharmacist.email }}{% else %}System{% endif %}
                                 </td>
                                 <td class="px-4 py-3 text-right font-mono font-black text-slate-900 text-sm">
                                     ₦{{ sale.total_amount_naira|floatformat:2 }}
