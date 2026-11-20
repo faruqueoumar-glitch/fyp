@@ -69,6 +69,8 @@ urlpatterns = [
 
     # FR2 Immutable Audit Ledger
     path('audit/ledger/', views.stock_audit_ledger_view, name='stock_audit_ledger'),
+    path('audit/controlled-register/', views.controlled_register_view, name='controlled_register'),
+    path('sections/medication/<int:med_id>/schedule/', views.medication_schedule_update_view, name='medication_schedule_update'),
 
     # FR9 Reports & Export Module
     path('reports/', views.reports_view, name='reports'),

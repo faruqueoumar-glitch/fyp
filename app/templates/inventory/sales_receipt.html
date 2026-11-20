@@ -169,6 +169,17 @@
             </table>
         </div>
 
+        {% if transaction.prescriber_name or transaction.prescriber_reg_no or transaction.patient_id_or_phone %}
+        <div class="p-4 rounded-2xl bg-rose-50/70 border border-rose-200 text-xs space-y-1">
+            <p class="text-[10px] font-black uppercase tracking-wider text-rose-800">PCN Prescription &amp; Controlled Drug Verification Record</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 font-semibold text-slate-800">
+                <div><span class="text-slate-500">Patient ID/Phone:</span> {{ transaction.patient_id_or_phone|default:"—" }}</div>
+                <div><span class="text-slate-500">Prescriber:</span> {{ transaction.prescriber_name|default:"—" }} ({{ transaction.prescriber_reg_no|default:"—" }})</div>
+                <div><span class="text-slate-500">Facility:</span> {{ transaction.health_facility|default:"—" }}</div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Dual Retail Accountability Signature Blocks (Dispensing Pharmacist & Buyer / Patient) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
             <div class="p-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/60">

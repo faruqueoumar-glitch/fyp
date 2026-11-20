@@ -124,6 +124,33 @@
                         </select>
                     </div>
 
+                    <!-- PCN / NAFDAC Controlled & Prescription Verification Box -->
+                    <div id="pcnComplianceBox" class="hidden sm:col-span-12 p-4 rounded-2xl bg-rose-50/90 border-2 border-rose-300 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span id="pcnComplianceBadge" class="px-2.5 py-0.5 bg-rose-700 text-white font-black text-[10px] uppercase tracking-wider rounded-full">PCN Rx / Controlled Audit</span>
+                            <span class="text-[10px] font-black text-rose-800 uppercase">Mandatory Regulatory Capture</span>
+                        </div>
+                        <p class="text-xs font-semibold text-rose-900 leading-snug">Your cart includes Prescription-Only or Controlled medications. Enter verified patient and prescriber credentials below:</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-black uppercase text-rose-950 mb-1">Patient Phone / Gov or Hosp ID *</label>
+                                <input type="text" id="patientIdOrPhone" placeholder="e.g. 0803-000-0000 / NIN" class="w-full px-3 py-2 bg-white border border-rose-300 rounded-xl text-xs font-bold text-slate-900">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black uppercase text-rose-950 mb-1">Prescriber Full Name *</label>
+                                <input type="text" id="prescriberName" placeholder="e.g. Dr. Amina Bello" class="w-full px-3 py-2 bg-white border border-rose-300 rounded-xl text-xs font-bold text-slate-900">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black uppercase text-rose-950 mb-1">MDCN / PCN Reg No. *</label>
+                                <input type="text" id="prescriberRegNo" placeholder="e.g. MDCN/R/48210" class="w-full px-3 py-2 bg-white border border-rose-300 rounded-xl text-xs font-mono font-bold text-slate-900">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black uppercase text-rose-950 mb-1">Hospital / Clinic</label>
+                                <input type="text" id="healthFacility" placeholder="e.g. LUTH / General Hosp." class="w-full px-3 py-2 bg-white border border-rose-300 rounded-xl text-xs font-bold text-slate-900">
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Clinical / Pharmacist Notes -->
                     <div class="sm:col-span-12">
                         <label class="block font-black text-slate-800 uppercase text-[11px] mb-1.5">
@@ -644,6 +671,8 @@
             summarySubtotal.textContent = '₦0.00';
             summaryGrandTotal.textContent = '₦0.00';
             currentGrandTotal = 0;
+            const pcnBoxEmpty = document.getElementById('pcnComplianceBox');
+            if (pcnBoxEmpty) pcnBoxEmpty.classList.add('hidden');
             btnCheckout.disabled = true;
             calculateChange();
             return;
@@ -657,7 +686,10 @@
 
             tr.innerHTML = `
                 <td class="px-6 py-4">
-                    <p class="font-black text-slate-900 text-sm">${item.name}</p>
+                    <div class="flex items-center flex-wrap gap-1.5">
+                        <p class="font-black text-slate-900 text-sm">${item.name}</p>
+                        ${item.drug_schedule === 'CONTROLLED' ? '<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 font-black text-[9px] uppercase">Controlled</span>' : (item.drug_schedule === 'POM' ? '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-black text-[9px] uppercase">Rx Only</span>' : '')}
+                    </div>
                     <p class="font-mono font-bold text-[11px] text-slate-500">${item.sku} • ${item.unit}</p>
                 </td>
                 <td class="px-6 py-4 text-center">
@@ -694,6 +726,18 @@
         summarySubtotal.textContent = formatNaira(cartData.total_naira);
         summaryGrandTotal.textContent = formatNaira(cartData.total_naira);
         currentGrandTotal = cartData.total_naira;
+        const pcnBox = document.getElementById('pcnComplianceBox');
+        const pcnBadge = document.getElementById('pcnComplianceBadge');
+        if (pcnBox) {
+            if (cartData.has_restricted) {
+                pcnBox.classList.remove('hidden');
+                if (pcnBadge) {
+                    pcnBadge.textContent = cartData.has_controlled ? 'PCN Controlled Drug Register' : 'PCN Prescription Verification';
+                }
+            } else {
+                pcnBox.classList.add('hidden');
+            }
+        }
         btnCheckout.disabled = false;
         calculateChange();
     }
@@ -842,6 +886,10 @@
                 },
                 body: JSON.stringify({
                     patient_info: patientInfo,
+                    patient_id_or_phone: (document.getElementById('patientIdOrPhone')?.value || '').trim(),
+                    prescriber_name: (document.getElementById('prescriberName')?.value || '').trim(),
+                    prescriber_reg_no: (document.getElementById('prescriberRegNo')?.value || '').trim(),
+                    health_facility: (document.getElementById('healthFacility')?.value || '').trim(),
                     payment_method: paymentMethod,
                     notes: notes
                 })

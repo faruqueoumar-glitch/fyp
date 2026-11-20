@@ -1,4 +1,5 @@
 import csv
+from django.views.decorators.http import require_POST
 import json
 import secrets
 import os
@@ -1449,22 +1450,29 @@ def cart_get_contents(request):
         med = Medication.objects.filter(id=item['medication_id']).first()
         available_stock = med.batches.filter(quantity__gt=0, expiry_date__gt=today).aggregate(Sum('quantity'))['quantity__sum'] or 0 if med else 0
 
+        sched = med.drug_schedule if med else 'OTC'
         items.append({
             'medication_id': item['medication_id'],
             'name': item['name'],
             'sku': item['sku'],
             'unit': item['unit'],
+            'drug_schedule': sched,
+            'is_restricted': sched in ('POM', 'CONTROLLED'),
             'quantity': qty,
             'unit_price': price,
             'subtotal': subtotal,
             'available_stock': available_stock
         })
 
+    has_restricted = any(it['is_restricted'] for it in items)
+    has_controlled = any(it['drug_schedule'] == 'CONTROLLED' for it in items)
     return JsonResponse({
         'items': items,
         'total_units': total_units,
         'total_naira': float(total_naira),
-        'item_count': len(items)
+        'item_count': len(items),
+        'has_restricted': has_restricted,
+        'has_controlled': has_controlled,
     })
 
 
@@ -1500,6 +1508,10 @@ def checkout_and_dispense(request):
     try:
         data = json.loads(request.body)
         patient_info = data.get('patient_info', '').strip()
+        patient_id_or_phone = data.get('patient_id_or_phone', '').strip()
+        prescriber_name = data.get('prescriber_name', '').strip()
+        prescriber_reg_no = data.get('prescriber_reg_no', '').strip()
+        health_facility = data.get('health_facility', '').strip()
         payment_method = data.get('payment_method', 'CASH').strip()
         if payment_method == 'POS':
             payment_method = 'POS_CARD'
@@ -1508,11 +1520,27 @@ def checkout_and_dispense(request):
         cart = request.session['cart']
         today = timezone.now().date()
 
+        med_ids = [int(item['medication_id']) for item in cart.values() if item.get('medication_id')]
+        restricted_meds = list(Medication.objects.filter(id__in=med_ids, drug_schedule__in=['POM', 'CONTROLLED']))
+        if restricted_meds:
+            if not patient_info or not patient_id_or_phone:
+                return JsonResponse({
+                    'error': 'PCN Compliance Required: Patient Full Name and Phone/ID are mandatory when dispensing Prescription-Only or Controlled medications.'
+                }, status=400)
+            if not prescriber_name or not prescriber_reg_no:
+                return JsonResponse({
+                    'error': 'PCN Compliance Required: Prescriber Full Name and MDCN/PCN Registration Number are mandatory when dispensing Prescription-Only or Controlled medications.'
+                }, status=400)
+
         with transaction.atomic():
             # Create sales transaction
             sales_tx = SalesTransaction.objects.create(
                 pharmacist=request.user,
                 patient_info=patient_info,
+                patient_id_or_phone=patient_id_or_phone,
+                prescriber_name=prescriber_name,
+                prescriber_reg_no=prescriber_reg_no,
+                health_facility=health_facility,
                 payment_method=payment_method,
                 notes=notes
             )
@@ -1802,6 +1830,115 @@ def sales_history_view(request):
             'q': q,
             'payment_method': payment_method,
             'period': period,
+            'date_from': date_from,
+            'date_to': date_to,
+        },
+    })
+
+
+@login_required
+
+
+@require_POST
+def medication_schedule_update_view(request, med_id):
+    """Update PCN/NAFDAC regulatory drug schedule (OTC / POM / CONTROLLED) directly from catalog."""
+    med = get_object_or_404(Medication, id=med_id)
+    new_sched = (request.POST.get('drug_schedule') or '').strip()
+    if new_sched in dict(Medication.DRUG_SCHEDULES):
+        med.drug_schedule = new_sched
+        med.save(update_fields=['drug_schedule', 'updated_at'])
+        messages.success(request, f"Updated '{med.name}' schedule to {med.get_drug_schedule_display()}.")
+    return redirect(request.META.get('HTTP_REFERER') or 'sections_list')
+
+
+@login_required
+def controlled_register_view(request):
+    """PCN / NAFDAC Controlled Substances & Prescription-Only Dispensing Register."""
+    import csv
+    from django.core.paginator import Paginator
+    from django.db.models import Q, Sum
+    from django.http import HttpResponse
+
+    pharmacy = getattr(request, 'pharmacy', None) or getattr(request.user, 'pharmacy', None)
+    qs = SalesTransactionItem.objects.select_related(
+        'sales_transaction',
+        'sales_transaction__pharmacist',
+        'medication',
+    ).filter(
+        medication__drug_schedule__in=['POM', 'CONTROLLED']
+    ).order_by('-sales_transaction__created_at')
+
+    if pharmacy:
+        qs = qs.filter(sales_transaction__pharmacy=pharmacy)
+
+    schedule = (request.GET.get('schedule') or '').strip()
+    q = (request.GET.get('q') or '').strip()
+    date_from = (request.GET.get('date_from') or '').strip()
+    date_to = (request.GET.get('date_to') or '').strip()
+
+    if schedule in ('POM', 'CONTROLLED'):
+        qs = qs.filter(medication__drug_schedule=schedule)
+    if date_from:
+        qs = qs.filter(sales_transaction__created_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(sales_transaction__created_at__date__lte=date_to)
+    if q:
+        qs = qs.filter(
+            Q(sales_transaction__transaction_ref__icontains=q)
+            | Q(sales_transaction__patient_info__icontains=q)
+            | Q(sales_transaction__patient_id_or_phone__icontains=q)
+            | Q(sales_transaction__prescriber_name__icontains=q)
+            | Q(sales_transaction__prescriber_reg_no__icontains=q)
+            | Q(medication__name__icontains=q)
+            | Q(medication__sku__icontains=q)
+        )
+
+    controlled_units = qs.filter(medication__drug_schedule='CONTROLLED').aggregate(s=Sum('quantity_sold'))['s'] or 0
+    pom_units = qs.filter(medication__drug_schedule='POM').aggregate(s=Sum('quantity_sold'))['s'] or 0
+    total_entries = qs.count()
+
+    if request.GET.get('export') == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="pcn_controlled_rx_register_{timezone.localdate().isoformat()}.csv"'
+        writer = csv.writer(response)
+        writer.writerow([
+            'Date & Time', 'Receipt Ref', 'Schedule', 'Medication Name', 'SKU',
+            'Qty Dispensed', 'Unit', 'Patient Name', 'Patient Phone/ID',
+            'Prescriber Name', 'MDCN / PCN Reg No.', 'Hospital / Clinic', 'Dispensing Pharmacist'
+        ])
+        for item in qs:
+            tx = item.sales_transaction
+            dispenser = ((tx.pharmacist.get_full_name() or '').strip() or tx.pharmacist.email) if tx.pharmacist else 'System'
+            writer.writerow([
+                timezone.localtime(tx.created_at).strftime('%Y-%m-%d %H:%M'),
+                tx.transaction_ref,
+                item.medication.get_drug_schedule_display() if item.medication else '',
+                item.medication.name if item.medication else '',
+                item.medication.sku if item.medication else '',
+                item.quantity_sold,
+                item.medication.unit if item.medication else '',
+                tx.patient_info,
+                tx.patient_id_or_phone,
+                tx.prescriber_name,
+                tx.prescriber_reg_no,
+                tx.health_facility,
+                dispenser,
+            ])
+        return response
+
+    paginator = Paginator(qs, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'audit/controlled_register.html', {
+        'pharmacy': pharmacy,
+        'page_obj': page_obj,
+        'entries': page_obj.object_list,
+        'controlled_units': controlled_units,
+        'pom_units': pom_units,
+        'total_entries': total_entries,
+        'filters': {
+            'schedule': schedule,
+            'q': q,
             'date_from': date_from,
             'date_to': date_to,
         },

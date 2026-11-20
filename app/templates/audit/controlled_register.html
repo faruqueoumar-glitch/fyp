@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Controlled & Prescription Register | PharmaAudit OS{% endblock %}
+
+{% block page_title %}PCN Controlled &amp; Prescription Drug Register{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white border border-slate-200/80 p-5 sm:p-6 rounded-3xl shadow-xs">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2.5 py-0.5 bg-rose-100 text-rose-800 font-black text-[10px] uppercase tracking-wider rounded-full">PCN / NAFDAC Statutory Log</span>
+                <span class="text-xs font-bold text-slate-400">{{ pharmacy.shop_name|default:"Pharmacy Branch" }}{% if pharmacy.pcn_license_no %} • PCN: {{ pharmacy.pcn_license_no }}{% endif %}</span>
+            </div>
+            <h2 class="text-2xl font-black text-slate-900 tracking-tight mt-1">Controlled Substances &amp; Prescription Register</h2>
+            <p class="text-xs font-semibold text-slate-500 mt-0.5">Immutable regulatory dispensing trail capturing patient identity, prescriber MDCN/PCN credentials, and pharmacist sign-off.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5">
+            <a href="?schedule={{ filters.schedule|urlencode }}&q={{ filters.q|urlencode }}&date_from={{ filters.date_from|urlencode }}&date_to={{ filters.date_to|urlencode }}&export=csv"
+               class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs rounded-2xl transition flex items-center space-x-1.5 shadow-xs">
+                <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span>Export PCN Register (CSV)</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs">
+            <p class="text-[11px] font-black uppercase tracking-wider text-slate-500">Total Regulated Dispenses</p>
+            <h3 class="text-2xl font-black text-slate-900 font-mono mt-1">{{ total_entries }}</h3>
+            <p class="text-xs font-semibold text-slate-400 mt-1">Verified prescription &amp; controlled entries</p>
+        </div>
+        <div class="bg-white border border-rose-200/80 rounded-3xl p-5 shadow-xs">
+            <p class="text-[11px] font-black uppercase tracking-wider text-rose-700">Controlled Substance Units</p>
+            <h3 class="text-2xl font-black text-rose-700 font-mono mt-1">{{ controlled_units }}</h3>
+            <p class="text-xs font-semibold text-slate-400 mt-1">Narcotics &amp; psychotropics dispensed</p>
+        </div>
+        <div class="bg-white border border-amber-200/80 rounded-3xl p-5 shadow-xs">
+            <p class="text-[11px] font-black uppercase tracking-wider text-amber-700">Prescription-Only (POM) Units</p>
+            <h3 class="text-2xl font-black text-amber-700 font-mono mt-1">{{ pom_units }}</h3>
+            <p class="text-xs font-semibold text-slate-400 mt-1">Ethical prescription medications dispensed</p>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <form method="get" class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+        <div class="md:col-span-4">
+            <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">Search Drug / Patient / Prescriber / MDCN</label>
+            <input type="text" name="q" value="{{ filters.q }}" placeholder="Drug, Patient, Dr. Name, MDCN, Receipt..."
+                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-900">
+        </div>
+        <div class="md:col-span-3">
+            <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">Schedule Classification</label>
+            <select name="schedule" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-900">
+                <option value="">All Regulated Drugs (POM + Controlled)</option>
+                <option value="CONTROLLED" {% if filters.schedule == 'CONTROLLED' %}selected{% endif %}>Controlled Substances Only</option>
+                <option value="POM" {% if filters.schedule == 'POM' %}selected{% endif %}>Prescription-Only (POM) Only</option>
+            </select>
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">From Date</label>
+            <input type="date" name="date_from" value="{{ filters.date_from }}" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-900">
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1">To Date</label>
+            <input type="date" name="date_to" value="{{ filters.date_to }}" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-900">
+        </div>
+        <div class="md:col-span-1">
+            <button type="submit" class="w-full px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs rounded-2xl transition">Filter</button>
+        </div>
+    </form>
+
+    <!-- Register Table -->
+    <div class="bg-white border border-slate-200/80 rounded-3xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                    <tr>
+                        <th class="px-5 py-3.5">Date &amp; Receipt</th>
+                        <th class="px-5 py-3.5">Medication &amp; Schedule</th>
+                        <th class="px-5 py-3.5 text-center">Qty Dispensed</th>
+                        <th class="px-5 py-3.5">Patient &amp; ID / Phone</th>
+                        <th class="px-5 py-3.5">Prescriber &amp; MDCN/PCN</th>
+                        <th class="px-5 py-3.5">Pharmacist</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    {% for item in entries %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="px-5 py-4 align-top">
+                            <a href="{% url 'sales_receipt' item.sales_transaction.transaction_ref %}" class="font-mono font-black text-slate-900 hover:text-emerald-700 underline decoration-slate-300">
+                                {{ item.sales_transaction.transaction_ref }}
+                            </a>
+                            <p class="text-[11px] font-semibold text-slate-400 mt-0.5">{{ item.sales_transaction.created_at|date:"M d, Y • h:i A" }}</p>
+                        </td>
+                        <td class="px-5 py-4 align-top">
+                            <p class="font-black text-slate-900">{{ item.medication.name }}</p>
+                            <div class="flex items-center gap-1.5 mt-1">
+                                <span class="font-mono text-[10px] text-slate-500">{{ item.medication.sku }}</span>
+                                {% if item.medication.drug_schedule == 'CONTROLLED' %}
+                                <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-black text-[9px] uppercase">Controlled</span>
+                                {% else %}
+                                <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-black text-[9px] uppercase">POM / Rx</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-5 py-4 align-top text-center font-mono font-black text-slate-900">
+                            {{ item.quantity_sold }} {{ item.medication.unit }}
+                        </td>
+                        <td class="px-5 py-4 align-top">
+                            <p class="font-bold text-slate-800">{{ item.sales_transaction.patient_info|default:"—" }}</p>
+                            <p class="font-mono text-[11px] text-slate-500">{{ item.sales_transaction.patient_id_or_phone|default:"—" }}</p>
+                        </td>
+                        <td class="px-5 py-4 align-top">
+                            <p class="font-bold text-slate-800">{{ item.sales_transaction.prescriber_name|default:"—" }}</p>
+                            <p class="font-mono text-[11px] text-rose-700 font-bold">{{ item.sales_transaction.prescriber_reg_no|default:"—" }}</p>
+                            {% if item.sales_transaction.health_facility %}
+                            <p class="text-[11px] text-slate-400">{{ item.sales_transaction.health_facility }}</p>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 align-top">
+                            {% if item.sales_transaction.pharmacist %}
+                            <p class="font-bold text-slate-800">{{ item.sales_transaction.pharmacist.get_full_name|default:item.sales_transaction.pharmacist.email }}</p>
+                            {% if item.sales_transaction.pharmacist.pha_user_id %}
+                            <p class="font-mono text-[10px] text-slate-400">{{ item.sales_transaction.pharmacist.pha_user_id }}</p>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-slate-400">System</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-14 text-center">
+                            <p class="font-black text-slate-800 text-base">No controlled or prescription-only dispenses recorded yet</p>
+                            <p class="text-xs font-semibold text-slate-400 mt-1">Mark medications as POM or Controlled in the catalog—every dispense will automatically appear here.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

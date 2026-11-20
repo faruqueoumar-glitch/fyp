@@ -216,8 +216,22 @@
                 {% for med in sec_item.medications %}
                 <tr class="hover:bg-slate-50/80 transition">
                   <td class="p-3">
-                    <p class="font-bold text-slate-900 text-xs">{{ med.name }}</p>
-                    <p class="text-slate-400 font-mono text-[10px]">SKU: {{ med.sku }} | Unit: {{ med.unit }}</p>
+                    <div class="flex items-center flex-wrap gap-1.5">
+                      <p class="font-bold text-slate-900 text-xs">{{ med.name }}</p>
+                      <form method="post" action="{% url 'medication_schedule_update' med.id %}" class="inline">
+                        {% csrf_token %}
+                        <select name="drug_schedule" onchange="this.form.submit()" title="PCN / NAFDAC Regulatory Schedule"
+                                class="text-[10px] font-black uppercase rounded-full px-2 py-0.5 border cursor-pointer focus:outline-none
+                                {% if med.drug_schedule == 'CONTROLLED' %}bg-rose-100 text-rose-800 border-rose-300
+                                {% elif med.drug_schedule == 'POM' %}bg-amber-100 text-amber-800 border-amber-300
+                                {% else %}bg-slate-100 text-slate-600 border-slate-200{% endif %}">
+                          <option value="OTC" {% if med.drug_schedule == 'OTC' %}selected{% endif %}>OTC</option>
+                          <option value="POM" {% if med.drug_schedule == 'POM' %}selected{% endif %}>POM / Rx</option>
+                          <option value="CONTROLLED" {% if med.drug_schedule == 'CONTROLLED' %}selected{% endif %}>Controlled</option>
+                        </select>
+                      </form>
+                    </div>
+                    <p class="text-slate-400 font-mono text-[10px] mt-0.5">SKU: {{ med.sku }} | Unit: {{ med.unit }}</p>
                   </td>
                   <td class="p-3 font-mono text-slate-700">
                     <p class="font-bold text-slate-900">₦{{ med.selling_price_per_unit }}</p>

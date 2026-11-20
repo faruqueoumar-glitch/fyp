@@ -456,7 +456,19 @@ class Medication(PharmacyOwnedModel):
     sku = models.CharField(max_length=50)
     section = models.ForeignKey(PharmacySection, on_delete=models.CASCADE, related_name='medications')
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True, related_name='medications')
+    DRUG_SCHEDULES = (
+        ('OTC', 'OTC — Over-the-Counter (General Sale)'),
+        ('POM', 'POM — Prescription-Only Medicine'),
+        ('CONTROLLED', 'Controlled Substance (Narcotic / Psychotropic)'),
+    )
+
     unit = models.CharField(max_length=50, default='Tablets')
+    drug_schedule = models.CharField(
+        max_length=20,
+        choices=DRUG_SCHEDULES,
+        default='OTC',
+        help_text="PCN / NAFDAC regulatory dispensing classification"
+    )
     unit_cost = models.DecimalField(max_digits=10, decimal_places=2, default=100.00, help_text="Unit purchase price in Nigerian Naira")
     selling_price_per_unit = models.DecimalField(max_digits=10, decimal_places=2, default=200.00, help_text="Selling price per unit in Nigerian Naira")
 
@@ -487,6 +499,10 @@ class Medication(PharmacyOwnedModel):
     def reorder_point(self):
         """ROP = (Daily Consumption * Lead Time) + Safety Stock"""
         return (self.daily_consumption * self.lead_time_days) + self.safety_stock
+
+    @property
+    def is_restricted(self):
+        return self.drug_schedule in ('POM', 'CONTROLLED')
 
     @property
     def min_level(self):
@@ -714,6 +730,10 @@ class SalesTransaction(PharmacyOwnedModel):
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default='CASH')
     
     patient_info = models.CharField(max_length=255, blank=True, help_text="Patient name or prescription reference")
+    patient_id_or_phone = models.CharField(max_length=100, blank=True, help_text="Patient phone number or government/hospital ID")
+    prescriber_name = models.CharField(max_length=200, blank=True, help_text="Prescribing doctor/practitioner full name")
+    prescriber_reg_no = models.CharField(max_length=100, blank=True, help_text="Prescriber MDCN / PCN registration number")
+    health_facility = models.CharField(max_length=200, blank=True, help_text="Hospital or clinic issuing prescription")
     notes = models.TextField(blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
