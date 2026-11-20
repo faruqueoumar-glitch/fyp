@@ -2,6 +2,22 @@
 
 {% block title %}Sales Receipt {{ transaction.transaction_ref }} | PharmaAudit OS{% endblock %}
 
+{% block extra_head %}
+<style>
+  @media print {
+    aside, nav, header, footer, .no-print { display: none !important; }
+    body, main, #main-content {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      background: #ffffff !important;
+    }
+    @page { size: auto; margin: 10mm; }
+  }
+</style>
+{% endblock %}
+
 {% block main_content %}
 <div class="max-w-3xl mx-auto space-y-6 animate-fade-in">
     <!-- Top Action Bar (hidden when printing) -->

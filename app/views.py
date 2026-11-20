@@ -1698,7 +1698,11 @@ def sales_receipt_view(request, transaction_ref):
             'items': items_data
         })
         
-    return render(request, 'inventory/sales_receipt.html', {'transaction': sales_tx})
+    pharmacy = getattr(sales_tx, 'pharmacy', None) or getattr(request, 'pharmacy', None) or getattr(request.user, 'pharmacy', None)
+    return render(request, 'inventory/sales_receipt.html', {
+        'transaction': sales_tx,
+        'pharmacy': pharmacy,
+    })
 
 
 def clear_sample_data(request):
