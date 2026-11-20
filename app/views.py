@@ -1705,6 +1705,109 @@ def sales_receipt_view(request, transaction_ref):
     })
 
 
+@login_required
+def sales_history_view(request):
+    """Searchable Sales & Dispensing History Ledger with payment reconciliation and receipt reprint."""
+    import csv
+    from datetime import timedelta
+    from decimal import Decimal
+    from django.core.paginator import Paginator
+    from django.db.models import Q, Sum, Count
+    from django.http import HttpResponse
+
+    pharmacy = getattr(request, 'pharmacy', None) or getattr(request.user, 'pharmacy', None)
+    qs = SalesTransaction.objects.select_related('pharmacist').prefetch_related('items__medication').order_by('-created_at')
+    if pharmacy:
+        qs = qs.filter(pharmacy=pharmacy)
+
+    q = (request.GET.get('q') or '').strip()
+    payment_method = (request.GET.get('payment_method') or '').strip()
+    period = (request.GET.get('period') or '').strip()
+    date_from = (request.GET.get('date_from') or '').strip()
+    date_to = (request.GET.get('date_to') or '').strip()
+
+    today = timezone.localdate()
+    if period == 'today':
+        qs = qs.filter(created_at__date=today)
+    elif period == '7d':
+        qs = qs.filter(created_at__date__gte=today - timedelta(days=6))
+    elif period == '30d':
+        qs = qs.filter(created_at__date__gte=today - timedelta(days=29))
+
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
+    if payment_method:
+        qs = qs.filter(payment_method=payment_method)
+    if q:
+        qs = qs.filter(
+            Q(transaction_ref__icontains=q)
+            | Q(patient_info__icontains=q)
+            | Q(notes__icontains=q)
+            | Q(pharmacist__first_name__icontains=q)
+            | Q(pharmacist__last_name__icontains=q)
+            | Q(pharmacist__email__icontains=q)
+            | Q(items__medication__name__icontains=q)
+            | Q(items__medication__sku__icontains=q)
+        ).distinct()
+
+    agg = qs.aggregate(
+        total_revenue=Sum('total_amount_naira'),
+        total_count=Count('id', distinct=True),
+        cash_total=Sum('total_amount_naira', filter=Q(payment_method='CASH')),
+        pos_total=Sum('total_amount_naira', filter=Q(payment_method='POS_CARD')),
+        transfer_total=Sum('total_amount_naira', filter=Q(payment_method='TRANSFER')),
+        insurance_total=Sum('total_amount_naira', filter=Q(payment_method='INSURANCE')),
+    )
+
+    if request.GET.get('export') == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="sales_ledger_{today.isoformat()}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Transaction Ref', 'Date & Time', 'Patient / Rx Ref', 'Payment Method', 'Items Dispensed', 'Total Amount (NGN)', 'Dispensing Pharmacist', 'Notes'])
+        for tx in qs:
+            dispenser = ((tx.pharmacist.get_full_name() or '').strip() or tx.pharmacist.email) if tx.pharmacist else 'System'
+            items_str = '; '.join(
+                f"{it.medication.name if it.medication else 'Item'} x{it.quantity_sold}"
+                for it in tx.items.all()
+            )
+            writer.writerow([
+                tx.transaction_ref,
+                timezone.localtime(tx.created_at).strftime('%Y-%m-%d %H:%M'),
+                tx.patient_info or 'Walk-in Patient',
+                tx.get_payment_method_display(),
+                items_str,
+                f"{tx.total_amount_naira:.2f}",
+                dispenser,
+                tx.notes or '',
+            ])
+        return response
+
+    paginator = Paginator(qs, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'inventory/sales_history.html', {
+        'pharmacy': pharmacy,
+        'page_obj': page_obj,
+        'transactions': page_obj.object_list,
+        'total_revenue': agg['total_revenue'] or Decimal('0.00'),
+        'total_count': agg['total_count'] or 0,
+        'cash_total': agg['cash_total'] or Decimal('0.00'),
+        'pos_total': agg['pos_total'] or Decimal('0.00'),
+        'transfer_total': agg['transfer_total'] or Decimal('0.00'),
+        'insurance_total': agg['insurance_total'] or Decimal('0.00'),
+        'payment_choices': SalesTransaction.PAYMENT_METHODS,
+        'filters': {
+            'q': q,
+            'payment_method': payment_method,
+            'period': period,
+            'date_from': date_from,
+            'date_to': date_to,
+        },
+    })
+
+
 def clear_sample_data(request):
     """Clear all sample data for a pharmacy, keeping only the pharmacy and user."""
     if not request.user.is_authenticated or not request.user.pharmacy:

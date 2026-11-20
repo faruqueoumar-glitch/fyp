@@ -51,6 +51,7 @@ urlpatterns = [
     path('dispense/cart/clear/', views.cart_clear, name='cart_clear'),
     path('dispense/checkout/', views.checkout_and_dispense, name='checkout_and_dispense'),
     path('dispense/receipt/<str:transaction_ref>/', views.sales_receipt_view, name='sales_receipt'),
+    path('dispense/history/', views.sales_history_view, name='sales_history'),
 
     # FR3 & FR4 Purchase Orders & Auto Draft PO
     path('orders/', views.purchase_orders_view, name='purchase_orders'),
