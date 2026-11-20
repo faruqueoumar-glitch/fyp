@@ -1635,6 +1635,10 @@ def checkout_and_dispense(request):
             request.session['cart'] = {}
             request.session.modified = True
 
+            pharmacy_obj = getattr(request, 'pharmacy', None) or getattr(request.user, 'pharmacy', None)
+            dispenser_name = (request.user.get_full_name() or '').strip() or request.user.email
+            local_created_at = timezone.localtime(sales_tx.created_at)
+
             return JsonResponse({
                 'success': True,
                 'transaction_ref': sales_tx.transaction_ref,
@@ -1642,8 +1646,16 @@ def checkout_and_dispense(request):
                 'payment_method': sales_tx.get_payment_method_display(),
                 'patient_info': sales_tx.patient_info,
                 'notes': sales_tx.notes,
-                'pharmacist': request.user.first_name or request.user.email,
-                'created_at': sales_tx.created_at.strftime('%b %d, %Y %I:%M %p'),
+                'pharmacist': dispenser_name,
+                'created_at': local_created_at.strftime('%b %d, %Y • %I:%M %p'),
+                'branch': {
+                    'shop_name': pharmacy_obj.shop_name if pharmacy_obj else 'PharmaAudit OS',
+                    'branch_code': pharmacy_obj.branch_code if pharmacy_obj else '',
+                    'address': pharmacy_obj.address if pharmacy_obj else '',
+                    'phone_number': pharmacy_obj.phone_number if pharmacy_obj else '',
+                    'pcn_license_no': pharmacy_obj.pcn_license_no if pharmacy_obj else '',
+                    'logo_data': pharmacy_obj.logo_data if pharmacy_obj else '',
+                },
                 'total_units': sum(s['quantity'] for s in dispensed_summary),
                 'items_count': len(dispensed_summary),
                 'dispensed_items': dispensed_summary,
@@ -1671,10 +1683,14 @@ def sales_receipt_view(request, transaction_ref):
             'subtotal': float(item.subtotal_naira)
         } for item in sales_tx.items.all()]
         
+        dispenser_name = (
+            (sales_tx.pharmacist.get_full_name() or '').strip() or sales_tx.pharmacist.email
+            if sales_tx.pharmacist else 'System'
+        )
         return JsonResponse({
             'transaction_ref': sales_tx.transaction_ref,
-            'created_at': sales_tx.created_at.strftime('%b %d, %Y %I:%M %p'),
-            'pharmacist': sales_tx.pharmacist.email if sales_tx.pharmacist else 'System',
+            'created_at': timezone.localtime(sales_tx.created_at).strftime('%b %d, %Y • %I:%M %p'),
+            'pharmacist': dispenser_name,
             'patient_info': sales_tx.patient_info,
             'payment_method': sales_tx.get_payment_method_display(),
             'notes': sales_tx.notes,

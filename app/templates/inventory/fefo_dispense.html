@@ -868,7 +868,25 @@
     }
 
     function showReceiptModal(saleData) {
-        document.getElementById('modalReceiptRef').textContent = `Receipt: ${saleData.transaction_ref}`;
+        if (saleData.branch) {
+            const b = saleData.branch;
+            if (b.shop_name) document.getElementById("modalBranchName").textContent = b.shop_name;
+            if (b.address) document.getElementById("modalBranchAddress").textContent = b.address;
+            if (b.branch_code) { const c = document.getElementById("modalBranchCode"); c.textContent = b.branch_code; c.classList.remove("hidden"); }
+            if (b.phone_number) { document.getElementById("modalBranchPhone").textContent = b.phone_number; document.getElementById("modalBranchPhoneWrap").classList.remove("hidden"); }
+            if (b.pcn_license_no) { document.getElementById("modalBranchPcn").textContent = b.pcn_license_no; document.getElementById("modalBranchPcnWrap").classList.remove("hidden"); }
+            if (b.logo_data) {
+                const img = document.getElementById("modalBranchLogoImg");
+                const fb = document.getElementById("modalBranchLogoFallback");
+                img.src = b.logo_data; img.alt = b.shop_name || "Branch Logo"; img.classList.remove("hidden");
+                if (fb) fb.classList.add("hidden");
+            }
+        }
+        const topRef = document.getElementById("modalReceiptRefTop");
+        if (topRef) topRef.textContent = saleData.transaction_ref;
+        const fullLink = document.getElementById("modalFullReceiptLink");
+        if (fullLink) fullLink.href = `/dispense/receipt/${encodeURIComponent(saleData.transaction_ref)}/`;
+        document.getElementById("modalReceiptRef").textContent = `Receipt: ${saleData.transaction_ref}`;
         document.getElementById('modalReceiptRefText').textContent = saleData.transaction_ref;
         document.getElementById('modalReceiptDate').textContent = saleData.created_at;
         document.getElementById('modalReceiptPayment').textContent = saleData.payment_method;
