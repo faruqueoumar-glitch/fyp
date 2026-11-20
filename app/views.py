@@ -2414,3 +2414,58 @@ def csrf_failure_view(request, reason=""):
     if referer and referer.startswith(request.build_absolute_uri("/")):
         return redirect(referer)
     return redirect("login")
+
+
+def submit_feedback_view(request):
+    """Receive user/admin feedback from the floating widget and email pharmaaudit.support@gmail.com."""
+    import json
+    from django.conf import settings
+    from django.core.mail import send_mail
+    from django.http import JsonResponse
+
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=405)
+
+    try:
+        payload = json.loads(request.body.decode("utf-8")) if request.body else request.POST
+    except Exception:
+        payload = request.POST
+
+    category = (payload.get("category") or "General").strip()[:40]
+    message = (payload.get("message") or "").strip()
+    page_url = (payload.get("page_url") or request.META.get("HTTP_REFERER") or "").strip()[:300]
+
+    if not message:
+        return JsonResponse({"ok": False, "error": "Message cannot be empty."}, status=400)
+
+    user = getattr(request, "user", None)
+    if user and user.is_authenticated:
+        sender_info = f"{user.get_full_name() or user.username} <{user.email or 'no-email'}> (Role: {getattr(user, 'role', 'N/A')})"
+    else:
+        sender_info = "Unauthenticated Visitor"
+
+    pharmacy = getattr(request, "pharmacy", None)
+    branch_info = f"{pharmacy.name} (ID: {pharmacy.id})" if pharmacy else "None / Founder Console"
+
+    subject = f"[PharmaAudit Feedback - {category}] from {sender_info.split('<')[0].strip()}"
+    body = (
+        f"Category: {category}\n"
+        f"User: {sender_info}\n"
+        f"Branch: {branch_info}\n"
+        f"Page URL: {page_url}\n"
+        f"----------------------------------------\n\n"
+        f"{message}\n"
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pharmaudit.example"),
+            recipient_list=["pharmaaudit.support@gmail.com"],
+            fail_silently=False,
+        )
+        return JsonResponse({"ok": True})
+    except Exception as exc:
+        logger.error("Feedback email failed: %s", exc)
+        return JsonResponse({"ok": False, "error": "Email delivery failed."}, status=500)

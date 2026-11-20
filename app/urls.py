@@ -79,4 +79,5 @@ urlpatterns = [
     path('profile/', views.user_profile, name='user_profile'),
     path('profile/id-card/', views.staff_id_card, name='staff_id_card'),
     path('branch/settings/', views.branch_settings, name='branch_settings'),
+    path('feedback/submit/', views.submit_feedback_view, name='submit_feedback'),
 ]
