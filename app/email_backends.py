@@ -1,3 +1,4 @@
+import threading
 import json
 import logging
 import urllib.error
@@ -54,18 +55,18 @@ class BrevoEmailBackend(BaseEmailBackend):
                 method="POST",
             )
 
-            try:
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    if 200 <= resp.status < 300:
-                        sent_count += 1
-            except urllib.error.HTTPError as exc:
-                err_body = exc.read().decode("utf-8", errors="ignore")
-                logger.error("Brevo API HTTP %s: %s", exc.code, err_body)
-                if not self.fail_silently:
-                    raise
-            except Exception as exc:
-                logger.error("Brevo API request failed: %s", exc)
-                if not self.fail_silently:
-                    raise
+            def _send_async(request_obj):
+                try:
+                    with urllib.request.urlopen(request_obj, timeout=10) as resp:
+                        if not (200 <= resp.status < 300):
+                            logger.warning("Brevo API non-2xx status: %s", resp.status)
+                except urllib.error.HTTPError as exc:
+                    err_body = exc.read().decode("utf-8", errors="ignore")
+                    logger.error("Brevo API HTTP %s: %s", exc.code, err_body)
+                except Exception as exc:
+                    logger.error("Brevo API request failed: %s", exc)
+
+            threading.Thread(target=_send_async, args=(req,), daemon=True).start()
+            sent_count += 1
 
         return sent_count

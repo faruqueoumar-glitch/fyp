@@ -560,5 +560,78 @@
       }
     </script>
     {% endif %}
+  
+    <style>
+      #nav-progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 3px;
+        width: 0%;
+        background: linear-gradient(90deg, #0d9488, #2563eb);
+        z-index: 99999;
+        transition: width 0.25s ease, opacity 0.2s ease;
+        opacity: 0;
+        pointer-events: none;
+      }
+      button[data-submitting="true"], input[type="submit"][data-submitting="true"] {
+        opacity: 0.72 !important;
+        cursor: wait !important;
+        pointer-events: none !important;
+      }
+    </style>
+    <div id="nav-progress-bar"></div>
+    <script>
+      (function () {
+        const bar = document.getElementById('nav-progress-bar');
+        function startProgress() {
+          if (!bar) return;
+          bar.style.opacity = '1';
+          bar.style.width = '35%';
+          setTimeout(() => { if (bar.style.opacity === '1') bar.style.width = '72%'; }, 250);
+          setTimeout(() => { if (bar.style.opacity === '1') bar.style.width = '90%'; }, 1200);
+        }
+        window.addEventListener('pageshow', () => {
+          if (bar) { bar.style.opacity = '0'; bar.style.width = '0%'; }
+          document.querySelectorAll('[data-submitting="true"]').forEach(el => {
+            el.removeAttribute('data-submitting');
+            if (el.dataset.origHtml) el.innerHTML = el.dataset.origHtml;
+          });
+        });
+        document.addEventListener('submit', function (e) {
+          const form = e.target;
+          if (!form || form.target === '_blank') return;
+          startProgress();
+          const btn = e.submitter || form.querySelector('button[type="submit"], input[type="submit"]');
+          if (btn && !btn.dataset.submitting) {
+            btn.dataset.submitting = 'true';
+            if (btn.tagName === 'BUTTON') {
+              btn.dataset.origHtml = btn.innerHTML;
+              btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;"><svg style="width:14px;height:14px;animation:spin 0.8s linear infinite" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>Processing...</span>';
+            }
+          }
+        }, true);
+        document.addEventListener('click', function (e) {
+          const link = e.target.closest('a[href]');
+          if (!link) return;
+          const href = link.getAttribute('href');
+          if (!href || href.startsWith('#') || href.startsWith('javascript:') || link.target === '_blank' || e.metaKey || e.ctrlKey) return;
+          startProgress();
+        }, true);
+        const prefetched = new Set();
+        document.addEventListener('pointerover', function (e) {
+          const link = e.target.closest('a[href^="/"]');
+          if (!link) return;
+          const href = link.getAttribute('href');
+          if (!href || prefetched.has(href) || href.includes('logout') || href.includes('delete')) return;
+          prefetched.add(href);
+          const hint = document.createElement('link');
+          hint.rel = 'prefetch';
+          hint.href = href;
+          document.head.appendChild(hint);
+        }, { passive: true });
+      })();
+    </script>
+
   </body>
 </html>

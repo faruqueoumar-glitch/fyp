@@ -25,15 +25,19 @@ class PharmacyContextMiddleware:
 
         active_pharmacy = None
         if pharmacy_id:
-            from app.models import Pharmacy
-            try:
-                pharmacy = Pharmacy.objects.get(id=pharmacy_id)
-                if pharmacy.is_active:
-                    active_pharmacy = pharmacy
-                else:
-                    pharmacy_id = None
-                    request.session.pop('pharmacy_id', None)
-            except Pharmacy.DoesNotExist:
+            cache_key = f"active_pharmacy_obj_{pharmacy_id}"
+            pharmacy = cache.get(cache_key)
+            if pharmacy is None:
+                from app.models import Pharmacy
+                try:
+                    pharmacy = Pharmacy._base_manager.get(id=pharmacy_id)
+                    cache.set(cache_key, pharmacy, timeout=60)
+                except Pharmacy.DoesNotExist:
+                    pharmacy = False
+                    cache.set(cache_key, False, timeout=15)
+            if pharmacy and getattr(pharmacy, 'is_active', False):
+                active_pharmacy = pharmacy
+            else:
                 pharmacy_id = None
                 request.session.pop('pharmacy_id', None)
 
