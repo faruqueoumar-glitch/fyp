@@ -39,17 +39,21 @@ else:
 # Honor the 'X-Forwarded-Proto' header for HTTPS
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+USE_X_FORWARDED_HOST = True
+CSRF_FAILURE_VIEW = 'app.views.csrf_failure_view'
+
 # Trust Render domains for CSRF
 CSRF_TRUSTED_ORIGINS = [
     'https://fyp-2uhr.onrender.com',
     'https://*.onrender.com',
 ]
-if 'CSRF_TRUSTED_ORIGINS' in os.environ:
-    CSRF_TRUSTED_ORIGINS += os.environ.get('CSRF_TRUSTED_ORIGINS').split(',')
-if 'RENDER_EXTERNAL_URL' in os.environ:
-    external_url = os.environ.get('RENDER_EXTERNAL_URL')
-    if external_url not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(external_url)
+for raw_origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(','):
+    origin = raw_origin.strip().rstrip('/')
+    if origin and origin.startswith(('http://', 'https://')) and origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(origin)
+external_url = os.environ.get('RENDER_EXTERNAL_URL', '').strip().rstrip('/')
+if external_url and external_url.startswith(('http://', 'https://')) and external_url not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(external_url)
 
 # WhiteNoise middleware for serving static files
 MIDDLEWARE = [

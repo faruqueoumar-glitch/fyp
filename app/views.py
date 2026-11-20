@@ -2381,3 +2381,14 @@ def branch_settings(request):
     return render(request, 'profile/branch_settings.html', {
         'pharmacy': pharmacy,
     })
+
+
+def csrf_failure_view(request, reason=""):
+    """Gracefully recover from stale/missing CSRF tokens instead of showing a raw 403 page."""
+    from django.middleware.csrf import get_token
+    get_token(request)
+    messages.warning(request, "Your security session was refreshed. Please submit the form again.")
+    referer = request.META.get("HTTP_REFERER")
+    if referer and referer.startswith(request.build_absolute_uri("/")):
+        return redirect(referer)
+    return redirect("login")
