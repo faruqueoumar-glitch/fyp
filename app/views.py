@@ -2119,8 +2119,30 @@ def founder_dashboard_view(request):
                 pharmacy.save()
                 messages.success(request, f'Pharmacy branch "{pharmacy.shop_name}" has been activated.')
             elif action == 'delete':
-                pharmacy.delete()
-                messages.success(request, f'Pharmacy branch "{pharmacy.shop_name}" has been deleted.')
+                from django.db import transaction
+                from app.models import (
+                    SalesTransactionItem, SalesTransaction, StockAuditLedger,
+                    PurchaseOrderItem, PurchaseOrder, MedicationBatch,
+                    Medication, PharmacySection, Supplier
+                )
+                shop_name = pharmacy.shop_name
+                deleted_id = pharmacy.id
+                with transaction.atomic():
+                    SalesTransactionItem.all_objects.filter(pharmacy_id=deleted_id).delete()
+                    SalesTransaction.all_objects.filter(pharmacy_id=deleted_id).delete()
+                    StockAuditLedger.all_objects.filter(pharmacy_id=deleted_id).delete()
+                    PurchaseOrderItem.all_objects.filter(pharmacy_id=deleted_id).delete()
+                    PurchaseOrder.all_objects.filter(pharmacy_id=deleted_id).delete()
+                    MedicationBatch.all_objects.filter(pharmacy_id=deleted_id).delete()
+                    Medication.all_objects.filter(pharmacy_id=deleted_id).delete()
+                    PharmacySection.all_objects.filter(pharmacy_id=deleted_id).delete()
+                    Supplier.all_objects.filter(pharmacy_id=deleted_id).delete()
+                    CustomUser._base_manager.filter(pharmacy_id=deleted_id, is_superuser=True).update(pharmacy=None)
+                    CustomUser._base_manager.filter(pharmacy_id=deleted_id, is_superuser=False).delete()
+                    pharmacy.delete()
+                if request.session.get('pharmacy_id') == deleted_id:
+                    request.session.pop('pharmacy_id', None)
+                messages.success(request, f'Pharmacy branch "{shop_name}" and all associated records have been deleted.')
 
         # User management actions
         user_id = request.POST.get('user_id')
