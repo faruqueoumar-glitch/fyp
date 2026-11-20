@@ -2444,8 +2444,8 @@ def submit_feedback_view(request):
     else:
         sender_info = "Unauthenticated Visitor"
 
-    pharmacy = getattr(request, "pharmacy", None)
-    branch_info = f"{pharmacy.name} (ID: {pharmacy.id})" if pharmacy else "None / Founder Console"
+    pharmacy = getattr(request, "pharmacy", None) or getattr(user, "pharmacy", None)
+    branch_info = f"{str(pharmacy)} (ID: {pharmacy.id})" if pharmacy else "None / Founder Console"
 
     subject = f"[PharmaAudit Feedback - {category}] from {sender_info.split('<')[0].strip()}"
     body = (

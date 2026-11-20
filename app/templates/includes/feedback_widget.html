@@ -175,7 +175,7 @@
 
     let selectedCat = 'Bug';
     const userMeta = "{% if request.user.is_authenticated %}{{ request.user.get_full_name|default:request.user.username|escapejs }} ({{ request.user.role|default:'User'|escapejs }}){% else %}Visitor{% endif %}";
-    const branchMeta = "{% if request.pharmacy %}{{ request.pharmacy.name|escapejs }}{% else %}N/A{% endif %}";
+    const branchMeta = "{% with ph=request.pharmacy|default:request.user.pharmacy %}{% if ph %}{{ ph|escapejs }}{% else %}N/A{% endif %}{% endwith %}";
 
     // Reveal and bounce after 3 seconds
     setTimeout(function () {
