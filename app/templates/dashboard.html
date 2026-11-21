@@ -40,9 +40,9 @@ PharmaAudit OS{% endblock %} {% block main_content %}
           Load Sample Pharmacy Data
         </a>
         {% elif has_sample_data %}
-        <a href="{% url 'clear_sample_data' %}" onclick="return confirm('Clear all sample demo medications, batches, sections, and suppliers?');" class="inline-flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
+        {% if request.user.is_superuser or request.user.role == "ADMIN" %}<form method="post" action="{% url 'clear_sample_data' %}" class="inline" onsubmit="return confirm('Clear all sample demo medications, batches, sections, and suppliers?');">{% csrf_token %}<button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
           Clear Demo Data
-        </a>
+        </button></form>{% endif %}
         {% endif %}
       </div>
     </div>

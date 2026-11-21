@@ -84,7 +84,9 @@ def get_unread_count(request):
 @login_required
 @require_http_methods(["POST"])
 def broadcast_test_notification(request):
-    """Broadcast a test notification to all users in the system."""
+    """Broadcast a test notification (Superuser only)."""
+    if not request.user.is_superuser:
+        return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
     from django.contrib.auth import get_user_model
     from .notification_services import NotificationService
     

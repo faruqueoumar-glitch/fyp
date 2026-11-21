@@ -1945,10 +1945,15 @@ def controlled_register_view(request):
     })
 
 
+@login_required
+@require_POST
 def clear_sample_data(request):
     """Clear all sample data for a pharmacy, keeping only the pharmacy and user."""
-    if not request.user.is_authenticated or not request.user.pharmacy:
-        return redirect('login')
+    if not (request.user.is_superuser or getattr(request.user, 'role', '') == 'ADMIN'):
+        messages.error(request, 'Only Branch Administrators can clear pharmacy data.')
+        return redirect('dashboard')
+    if not request.user.pharmacy:
+        return redirect('dashboard')
 
     pharmacy = request.user.pharmacy
     with pharmacy_context(pharmacy.id):
