@@ -899,16 +899,25 @@
             loadingOverlay.classList.add('hidden');
 
             if (res.ok && data.success) {
-                // Clear fields
-                document.getElementById('patientInfoInput').value = '';
-                document.getElementById('transactionNotesInput').value = '';
-                document.getElementById('cashTenderInput').value = '';
-                
-                // Show receipt modal
-                showReceiptModal(data);
-                
-                // Refresh cart UI
-                fetchCartContents();
+                // Clear fields safely
+                ['patientInfoInput', 'transactionNotesInput', 'cashTenderInput'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+
+                // Show receipt modal & refresh cart without triggering checkout network alert
+                try {
+                    showReceiptModal(data);
+                } catch (uiErr) {
+                    console.error('Receipt modal render error:', uiErr);
+                    alert(data.message || `Sale completed successfully! Ref: ${data.transaction_ref}`);
+                }
+
+                try {
+                    fetchCartContents();
+                } catch (cartErr) {
+                    console.error('Cart refresh error:', cartErr);
+                }
             } else {
                 alert(data.error || 'Failed to complete checkout transaction.');
             }
@@ -920,17 +929,20 @@
     }
 
     function showReceiptModal(saleData) {
+        const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        const showEl = (id) => { const el = document.getElementById(id); if (el) el.classList.remove("hidden"); };
+
         if (saleData.branch) {
             const b = saleData.branch;
-            if (b.shop_name) document.getElementById("modalBranchName").textContent = b.shop_name;
-            if (b.address) document.getElementById("modalBranchAddress").textContent = b.address;
-            if (b.branch_code) { const c = document.getElementById("modalBranchCode"); c.textContent = b.branch_code; c.classList.remove("hidden"); }
-            if (b.phone_number) { document.getElementById("modalBranchPhone").textContent = b.phone_number; document.getElementById("modalBranchPhoneWrap").classList.remove("hidden"); }
-            if (b.pcn_license_no) { document.getElementById("modalBranchPcn").textContent = b.pcn_license_no; document.getElementById("modalBranchPcnWrap").classList.remove("hidden"); }
+            if (b.shop_name) setText("modalBranchName", b.shop_name);
+            if (b.address) setText("modalBranchAddress", b.address);
+            if (b.branch_code) { setText("modalBranchCode", b.branch_code); showEl("modalBranchCode"); }
+            if (b.phone_number) { setText("modalBranchPhone", b.phone_number); showEl("modalBranchPhoneWrap"); }
+            if (b.pcn_license_no) { setText("modalBranchPcn", b.pcn_license_no); showEl("modalBranchPcnWrap"); }
             if (b.logo_data) {
                 const img = document.getElementById("modalBranchLogoImg");
                 const fb = document.getElementById("modalBranchLogoFallback");
-                img.src = b.logo_data; img.alt = b.shop_name || "Branch Logo"; img.classList.remove("hidden");
+                if (img) { img.src = b.logo_data; img.alt = b.shop_name || "Branch Logo"; img.classList.remove("hidden"); }
                 if (fb) fb.classList.add("hidden");
             }
         }
