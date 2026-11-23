@@ -1,27 +1,10 @@
-/* PharmaAudit OS - Base Styles (Tailwind v4 built locally) */
+/* Pharmaudit OS - Base Styles (Tailwind v4 built locally) */
 /* This file is processed by Tailwind CSS during build */
+/* Uses Tailwind v4 syntax: @import "tailwindcss"; */
 
-/* Use system fonts with local fallback - no external CDN dependencies */
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 400 900;
-  src: local('Inter');
-}
+@import "tailwindcss";
 
-@font-face {
-  font-family: 'JetBrains Mono';
-  font-style: normal;
-  font-weight: 400 800;
-  src: local('JetBrains Mono');
-}
-
-/* Tailwind base styles */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Custom PharmaAudit overrides */
+/* Custom Pharmaudit overrides */
 :root {
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 64px;

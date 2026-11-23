@@ -1,0 +1,10 @@
+{
+  "name": "PharmaAudit OS",
+  "short_name": "PharmaAudit",
+  "description": "Pharmacy Inventory and Audit Management System",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a"
+}
