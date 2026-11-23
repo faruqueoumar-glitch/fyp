@@ -8,16 +8,14 @@
       {% block title %}PharmaAudit & Stock Optimization OS{% endblock %}
     </title>
 
-    <!-- Google Fonts: Inter & JetBrains Mono -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Local Fonts: Inter & JetBrains Mono -->
+    <link rel="stylesheet" href="{% static 'fonts/Inter/Inter-400-normal.woff2' %}" type="font/woff2" as="font" crossorigin>
+    <link rel="stylesheet" href="{% static 'fonts/Inter/Inter-700-bold.woff2' %}" type="font/woff2" as="font" crossorigin>
+    <link rel="stylesheet" href="{% static 'fonts/JetBrainsMono/JetBrainsMono-400-normal.woff2' %}" type="font/woff2" as="font" crossorigin>
+    <link rel="stylesheet" href="{% static 'fonts/JetBrainsMono/JetBrainsMono-700-bold.woff2' %}" type="font/woff2" as="font" crossorigin>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS Local Build -->
+    <script src="{% static 'src.css' %}" id="tailwind-css"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -68,6 +66,19 @@
       }
       aside::-webkit-scrollbar-thumb:hover {
         background: #475569;
+      }
+
+      /* Mobile-first responsive breakpoints */
+      @media (min-width: 360px) {
+        /* Android phone minimum */
+      }
+
+      @media (min-width: 768px) {
+        /* Tablet */
+      }
+
+      @media (min-width: 1280px) {
+        /* Desktop */
       }
     </style>
     {% block extra_head %}{% endblock %} {% block extra_css %}{% endblock %}

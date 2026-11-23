@@ -10,3 +10,5 @@ wheels/
 .venv
 db.sqlite3
 .env
+node_modules/
+node_modules/

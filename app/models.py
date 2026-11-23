@@ -118,10 +118,22 @@ class Pharmacy(models.Model):
         super().save(*args, **kwargs)
 
 
+def default_uuid():
+    """Generate a default UUID for model fields."""
+    return uuid.uuid4
+
+
 class PharmacyOwnedModel(models.Model):
     pharmacy = models.ForeignKey(
         Pharmacy, on_delete=models.PROTECT, related_name='%(class)s_records'
     )
+    uuid = models.UUIDField(unique=True, editable=False, help_text='Globally unique identifier for offline sync collision prevention')
+    device_id = models.CharField(max_length=36, null=True, blank=True, help_text='Device ID for offline transaction tracking (Desktop/Android)')
+
+    def save(self, *args, **kwargs):
+        if not self.uuid:
+            self.uuid = uuid.uuid4()
+        super().save(*args, **kwargs)
 
     objects = TenantScopedManager()
     all_objects = models.Manager()
@@ -567,6 +579,7 @@ class MedicationBatch(PharmacyOwnedModel):
     manufacture_date = models.DateField()
     expiry_date = models.DateField()
     received_date = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['expiry_date']
@@ -666,6 +679,7 @@ class StockAuditLedger(PharmacyOwnedModel):
 
     transaction_id = models.CharField(max_length=64, editable=False)
     timestamp = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True, db_index=True)
     user_identity = models.CharField(max_length=150, default='system')
     action_type = models.CharField(max_length=30, choices=ACTION_TYPES)
     affected_entity = models.CharField(max_length=100, default='Medication')
@@ -771,6 +785,7 @@ class SalesTransactionItem(PharmacyOwnedModel):
     quantity_sold = models.PositiveIntegerField()
     unit_price_naira = models.DecimalField(max_digits=10, decimal_places=2)
     subtotal_naira = models.DecimalField(max_digits=12, decimal_places=2)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-sales_transaction__created_at', 'medication__name']
