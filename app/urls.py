@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .sync_views import SyncPushView, SyncPullView, SyncStatusView
 
 urlpatterns = [
     # Dashboard & Auth
@@ -27,6 +28,11 @@ urlpatterns = [
     path('offline/', views.offline_view, name='offline'),
     path('reset/<uidb64>/<token>/', views.password_reset_confirm_view, name='password_reset_confirm'),
     path('reset/done/', views.password_reset_complete_view, name='password_reset_complete'),
+
+    # Sync Engine Endpoints
+    path('api/sync/push/', SyncPushView.as_view(), name='sync_push'),
+    path('api/sync/pull/', SyncPullView.as_view(), name='sync_pull'),
+    path('api/sync/status/', SyncStatusView.as_view(), name='sync_status'),
 
     # Master Data & User Management (Sections, Suppliers, Users)
     path('sections/', views.sections_list_view, name='sections_list'),

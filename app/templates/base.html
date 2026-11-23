@@ -15,33 +15,7 @@
     <link rel="stylesheet" href="{% static 'fonts/JetBrainsMono/JetBrainsMono-700-bold.woff2' %}" type="font/woff2" as="font" crossorigin>
 
     <!-- Tailwind CSS Local Build -->
-    <script src="{% static 'tailwind.min.css' %}" id="tailwind-css"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              silver: {
-                50: "#f8fafc",
-                100: "#f1f5f9",
-                200: "#e2e8f0",
-                300: "#cbd5e1",
-                400: "#94a3b8",
-                500: "#64748b",
-                600: "#475569",
-                700: "#334155",
-                800: "#1e293b",
-                900: "#0f172a",
-              },
-            },
-            fontFamily: {
-              sans: ['"Inter"', "sans-serif"],
-              mono: ['"JetBrains Mono"', "monospace"],
-            },
-          },
-        },
-      };
-    </script>
+    <link rel="stylesheet" href="{% static 'tailwind.min.css' %}" id="tailwind-css">
 
     <!-- Core Brand Styling & Custom CSS -->
     <style>
@@ -344,7 +318,17 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a2 2 0 01-2 2 2 2 0 01-2-2h-2v4a2 2 0 01-2 2 2 2 0 01-2-2h-2v-4a2 2 0 01-2-2 2 2 0 012-2h2v-4a2 2 0 012-2 2 2 0 012h2v4a2 2 0 012 2 2 2 0 01-2h-2z"/>
         </svg>
       </span>
+    <!-- Sync Status Pill -->
+    <div id="syncPill" class="fixed top-4 left-1/4 -translate-x-1/4 z-50 px-4 py-2 rounded-full bg-slate-100 text-slate-600 text-sm font-medium shadow-md transition-colors duration-300 opacity-0 scale-95">
+      <span id="syncPillText" class="flex items-center gap-2">
+        Local Offline
+        <svg id="syncIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a2 2 0 01-2 2 2 2 0 01-2-2h-2v4a2 2 0 01-2 2 2 2 0 01-2-2h-2v-4a2 2 0 01-2-2 2 2 0 012-2h2v-4a2 2 0 012h2v-4a2 2 0 012h2v-4a2 2 0 012h2v-4a2 2 0 012h2v-4a2 2 0 012h2v-4a2 2 0 012h2v-4a2 2 0 012h2v-4a2 2 0 012h2v-4a2 2 0 012h2v4a2 2 0 012 2 2 2 0 01-2h-2z"/>
+        </svg>
+      </span>
     </div>
+
+
 
     <!-- Service Worker Registration -->
     <script>

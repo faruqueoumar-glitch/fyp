@@ -8,8 +8,15 @@ class PharmacyConfig(AppConfig):
     name = 'app'
 
     def ready(self):
-        # Do not start background worker during test suite runs
-        if 'test' in sys.argv:
+        # Skip background thread startup during management commands
+        skip_commands = ['test', 'makemigrations', 'migrate', 'collectstatic', 'shell', 'check']
+        if any(cmd in sys.argv for cmd in skip_commands):
+            return
+
+        # Guard: only start background threads under runserver when RUN_MAIN == 'true'
+        # (prevents duplicate threads under autoreloader)
+        runserver = 'runserver' in sys.argv
+        if runserver and os.environ.get('RUN_MAIN') != 'true':
             return
 
         # Start the keep-alive background thread.
@@ -20,3 +27,23 @@ class PharmacyConfig(AppConfig):
         if run_main == 'true' or run_main is None:
             from app.keep_alive import start_render_keep_alive
             start_render_keep_alive()
+
+        # ── Sync Engine startup ──────────────────────────────────────────────
+        # Connect pre_save signals for device_id stamping on syncable models
+        from .sync_engine import stamp_device_id
+        from .models import CustomUser, Medication, MedicationBatch, SalesTransaction, SalesTransactionItem, StockAuditLedger
+        for model in [CustomUser, Medication, MedicationBatch, SalesTransaction,
+                       SalesTransactionItem, StockAuditLedger]:
+            from django.db.models.signals import pre_save
+            pre_save.connect(stamp_device_id, sender=model)
+
+        # Start ZeroconfPeerManager and BackgroundSyncWorker
+        from .sync_engine import ZeroconfPeerManager, BackgroundSyncWorker
+        zeroconf_manager = ZeroconfPeerManager()
+        try:
+            zeroconf_manager.start()
+        except Exception:
+            pass
+
+        worker = BackgroundSyncWorker()
+        worker.start()
