@@ -13,3 +13,12 @@ db.sqlite3
 node_modules/
 node_modules/
 device_config.json
+
+# Native build artifacts
+build/
+dist/
+*.spec.bak
+android_app/build/
+android_app/.gradle/
+android_app/app/build/
+android_app/app/src/main/python/backend/
