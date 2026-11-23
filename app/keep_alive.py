@@ -23,7 +23,10 @@ def start_render_keep_alive():
     """
     Background daemon thread function that pings the Render public URL (or local host)
     every 10 minutes to prevent the Render free tier backend from spinning down due to inactivity.
+    Disabled by default to conserve Render free-tier monthly compute hours; set ENABLE_KEEP_ALIVE=true to enable.
     """
+    if os.environ.get('ENABLE_KEEP_ALIVE', '').lower() not in ('1', 'true', 'yes'):
+        return
     def _ping_loop():
         # Wait 10 seconds after server startup before starting ping loop
         time.sleep(10)
