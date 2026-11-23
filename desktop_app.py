@@ -10,7 +10,7 @@ sys.path.insert(0, str(BASE_DIR))
 sys.path.insert(0, str(BASE_DIR / "src"))
 
 os.environ["PHARMAAUDIT_STANDALONE"] = "1"
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "src.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "src.settings.dev")
 
 import django
 django.setup()

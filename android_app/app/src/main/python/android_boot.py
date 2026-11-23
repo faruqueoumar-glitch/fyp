@@ -20,7 +20,7 @@ def start(files_dir: str):
 
     os.environ["PHARMAAUDIT_STANDALONE"] = "1"
     os.environ["PHARMAAUDIT_DATA_DIR"] = files_dir
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "src.settings")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "src.settings.dev")
 
     import django
     django.setup()

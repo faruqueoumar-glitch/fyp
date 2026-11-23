@@ -2,8 +2,8 @@
 from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 datas = [
-    ("app/templates", "app/templates"),
-    ("src/staticfiles", "src/staticfiles"),
+    ("app", "app"),
+    ("src", "src"),
 ]
 binaries = []
 hiddenimports = [
@@ -14,10 +14,11 @@ hiddenimports = [
     "app.apps",
     "app.sync_engine",
     "app.sync_views",
-    "src.settings",
+    "src.settings.dev",
+    "src.settings.base",
     "src.urls",
     "src.wsgi",
-] + collect_submodules("django") + collect_submodules("zeroconf")
+] + collect_submodules("django") + collect_submodules("zeroconf") + collect_submodules("app") + collect_submodules("src")
 
 for pkg in ("webview", "waitress"):
     tmp_ret = collect_all(pkg)
