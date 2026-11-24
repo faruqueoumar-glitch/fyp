@@ -89,3 +89,28 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@pharmaudit.e
 # Use console email backend for local testing
 if not EMAIL_HOST:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+if os.environ.get("PHARMAAUDIT_STANDALONE") == "1":
+    _standalone_dir = Path(
+        os.environ.get("PHARMAAUDIT_DATA_DIR")
+        or (
+            Path(os.environ["APPDATA"]) / "PharmaAuditOS"
+            if os.name == "nt"
+            else Path.home() / ".local" / "share" / "PharmaAuditOS"
+        )
+    )
+    _standalone_dir.mkdir(parents=True, exist_ok=True)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": _standalone_dir / "db.sqlite3",
+        }
+    }
+
+if os.environ.get("PHARMAAUDIT_STANDALONE") == "1":
+    import sys as _sys
+    _bundle_root = Path(getattr(_sys, "_MEIPASS", BASE_DIR.parent))
+    STATIC_URL = "/static/"
+    STATIC_ROOT = _bundle_root / "src" / "staticfiles"
+    if "whitenoise.middleware.WhiteNoiseMiddleware" not in MIDDLEWARE:
+        MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")

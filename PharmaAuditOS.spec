@@ -18,7 +18,7 @@ hiddenimports = [
     "src.settings.base",
     "src.urls",
     "src.wsgi",
-] + collect_submodules("django") + collect_submodules("zeroconf") + collect_submodules("app") + collect_submodules("src")
+] + collect_submodules("django") + collect_submodules("whitenoise") + collect_submodules("zeroconf") + collect_submodules("app") + collect_submodules("src")
 
 for pkg in ("webview", "waitress"):
     tmp_ret = collect_all(pkg)

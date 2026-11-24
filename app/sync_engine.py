@@ -107,7 +107,7 @@ class ZeroconfPeerManager:
         self.zeroconf = Zeroconf()
         self._advertise()
         self.browser = ServiceBrowser(
-            self.zeroconf, "_pharmaaudit._tcp.local.", self._on_peer_discovered
+            self.zeroconf, "_pharmaaudit._tcp.local.", handlers=[self._on_peer_discovered]
         )
 
     def stop(self):
@@ -123,21 +123,27 @@ class ZeroconfPeerManager:
         device_id = get_current_device_id()
         pharmacy_id = get_current_pharmacy_id() or 'unknown'
         properties = {"device_id": device_id, "pharmacy_id": str(pharmacy_id)}
-        txt = '\0'.join(f"{k}={v}" for k, v in properties.items()).encode('utf-8')
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            local_ip = s.getsockname()[0]
+            s.close()
+        except Exception:
+            local_ip = "127.0.0.1"
         info = ServiceInfo(
             "_pharmaaudit._tcp.local.",
-            "PharmaAudit-{}.local".format(device_id[:8].lower()).encode('utf-8'),
-            addresses=[],
-            port=80,
-            properties=txt,
-            server=socket.getfqdn()
+            f"PharmaAudit-{device_id[:8].lower()}._pharmaaudit._tcp.local.",
+            addresses=[socket.inet_aton(local_ip)],
+            port=8765,
+            properties=properties,
+            server=f"{socket.gethostname()}.local.",
         )
         try:
             self.zeroconf.register_service(info)
         except Exception:
             pass
 
-    def _on_peer_discovered(self, zc, service_type, name):
+    def _on_peer_discovered(self, zeroconf=None, service_type=None, name=None, state_change=None, **kwargs):
         try:
             info = self.zeroconf.get_service_info(service_type, name, timeout=5000)
             if info:

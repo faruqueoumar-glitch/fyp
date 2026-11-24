@@ -3,13 +3,26 @@ import sys
 import threading
 import time
 import urllib.request
+import webbrowser
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 sys.path.insert(0, str(BASE_DIR / "src"))
 
+DATA_DIR = Path(
+    os.environ.get("PHARMAAUDIT_DATA_DIR")
+    or (
+        Path(os.environ["APPDATA"]) / "PharmaAuditOS"
+        if os.name == "nt"
+        else Path.home() / ".local" / "share" / "PharmaAuditOS"
+    )
+)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 os.environ["PHARMAAUDIT_STANDALONE"] = "1"
+os.environ["PHARMAAUDIT_DATA_DIR"] = str(DATA_DIR)
+os.environ.setdefault("DATABASE_URL", f"sqlite:///{DATA_DIR / 'db.sqlite3'}")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "src.settings.dev")
 
 import django
@@ -47,11 +60,15 @@ if __name__ == "__main__":
     server_thread = threading.Thread(target=start_server, daemon=True)
     server_thread.start()
     wait_for_server(LOCAL_URL)
-    webview.create_window(
-        "PharmaAudit OS",
-        LOCAL_URL,
-        width=1280,
-        height=820,
-        min_size=(360, 640),
-    )
-    webview.start()
+    try:
+        webview.create_window(
+            "PharmaAudit OS",
+            LOCAL_URL,
+            width=1280,
+            height=820,
+            min_size=(360, 640),
+        )
+        webview.start(gui="qt")
+    except Exception:
+        webbrowser.open(LOCAL_URL)
+        server_thread.join()
