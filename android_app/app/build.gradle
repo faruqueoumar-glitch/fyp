@@ -48,7 +48,7 @@ android {
 
 tasks.register("syncDjangoBackend", Copy) {
     from("${projectDir}/../../") {
-        include "manage.py", "app/**", "src/**"
+        include "manage.py", "app/**", "src/**", "notifications/**"
         exclude "**/__pycache__/**", "**/*.pyc", "*.sqlite3", "device_config.json", "src/settings/*.bak"
     }
     into "${projectDir}/src/main/python/backend"
