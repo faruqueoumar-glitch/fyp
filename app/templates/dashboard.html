@@ -1,14 +1,23 @@
-{% extends 'base.html' %} {% block title %}Real-Time Inventory Dashboard |
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Real-Time Inventory Dashboard |
 PharmaAudit OS{% endblock %} {% block main_content %}
-<div class="space-y-8">
+<div class="space-y-6">
   <!-- Header Integrity Banner -->
   <div
     class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-lg shadow-slate-200/50"
   >
-   
+    <div class="mb-4 pb-4 border-b border-slate-200/70 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        {% include 'includes/brand_logo.html' with theme='light' icon_class='w-10 h-10' text_class='text-xl sm:text-2xl' %}
+      </div>
+      <span class="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+        Clinical Inventory &amp; Audit Intelligence
+      </span>
+    </div>
 
     <!-- Pharmacy Tenant & Sample Data Banner -->
-    <div class="mb-6 pb-6 border-b border-slate-200/80 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div class="mb-5 pb-5 border-b border-slate-200/80 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
         <div class="flex items-center gap-2.5">
           <span class="px-2.5 py-0.5 bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider rounded-full">
@@ -131,58 +140,6 @@ PharmaAudit OS{% endblock %} {% block main_content %}
           Immediate intake required
         </p>
       </div>
-    </div>
-  </div>
-
-  <!-- Pharmacy Sections Stock Overview Widget -->
-  <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50 space-y-5">
-    <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-      <div>
-        <span class="text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200/70 px-2.5 py-1 rounded-full uppercase tracking-wider">Departmental Stock Distribution</span>
-        <h3 class="text-lg font-bold text-slate-900 tracking-tight mt-2">Pharmacy Sections & Inventory Valuation</h3>
-      </div>
-      <a href="{% url 'sections_list' %}" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 transition flex items-center space-x-1">
-        <span>View Section Details</span>
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-      </a>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {% for sec_item in sections_summary %}
-      <div class="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-50 transition space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="px-2.5 py-0.5 bg-slate-900 text-white font-mono text-[10px] font-bold rounded-md uppercase">
-            {{ sec_item.section.code }}
-          </span>
-          <span class="text-[11px] font-mono font-bold px-2 py-0.5 bg-slate-200 text-slate-800 rounded-full">
-            {{ sec_item.skus_count }} SKUs
-          </span>
-        </div>
-
-        <div>
-          <h4 class="font-bold text-sm text-slate-900 leading-tight">{{ sec_item.section.name }}</h4>
-          <p class="text-xs text-slate-500 line-clamp-1 mt-0.5">{{ sec_item.section.description }}</p>
-        </div>
-
-        <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs font-mono">
-          <div>
-            <span class="text-[10px] text-slate-400 uppercase block font-sans">Total Units</span>
-            <span class="font-extrabold text-slate-900">{{ sec_item.total_units }}</span>
-          </div>
-          <div class="text-right">
-            <span class="text-[10px] text-slate-400 uppercase block font-sans">Valuation</span>
-            <span class="font-extrabold text-emerald-700">₦{{ sec_item.valuation|floatformat:2 }}</span>
-          </div>
-        </div>
-
-        {% if sec_item.alert_count > 0 %}
-        <div class="mt-1 text-[11px] text-amber-800 font-semibold bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-lg flex items-center justify-between">
-          <span>{{ sec_item.alert_count }} SKU(s) at or below ROP</span>
-          <a href="{% url 'medications_list' %}?section={{ sec_item.section.id }}" class="underline font-bold text-amber-900">Review</a>
-        </div>
-        {% endif %}
-      </div>
-      {% endfor %}
     </div>
   </div>
 
@@ -321,6 +278,58 @@ PharmaAudit OS{% endblock %} {% block main_content %}
     {% endif %}
   </div>
 
+
+  <!-- Pharmacy Sections Stock Overview Widget -->
+  <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50 space-y-5">
+    <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+      <div>
+        <span class="text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200/70 px-2.5 py-1 rounded-full uppercase tracking-wider">Departmental Stock Distribution</span>
+        <h3 class="text-lg font-bold text-slate-900 tracking-tight mt-2">Pharmacy Sections & Inventory Valuation</h3>
+      </div>
+      <a href="{% url 'sections_list' %}" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 transition flex items-center space-x-1">
+        <span>View Section Details</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for sec_item in sections_summary %}
+      <div class="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-50 transition space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="px-2.5 py-0.5 bg-slate-900 text-white font-mono text-[10px] font-bold rounded-md uppercase">
+            {{ sec_item.section.code }}
+          </span>
+          <span class="text-[11px] font-mono font-bold px-2 py-0.5 bg-slate-200 text-slate-800 rounded-full">
+            {{ sec_item.skus_count }} SKUs
+          </span>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-sm text-slate-900 leading-tight">{{ sec_item.section.name }}</h4>
+          <p class="text-xs text-slate-500 line-clamp-1 mt-0.5">{{ sec_item.section.description }}</p>
+        </div>
+
+        <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs font-mono">
+          <div>
+            <span class="text-[10px] text-slate-400 uppercase block font-sans">Total Units</span>
+            <span class="font-extrabold text-slate-900">{{ sec_item.total_units }}</span>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] text-slate-400 uppercase block font-sans">Valuation</span>
+            <span class="font-extrabold text-emerald-700">₦{{ sec_item.valuation|floatformat:2 }}</span>
+          </div>
+        </div>
+
+        {% if sec_item.alert_count > 0 %}
+        <div class="mt-1 text-[11px] text-amber-800 font-semibold bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-lg flex items-center justify-between">
+          <span>{{ sec_item.alert_count }} SKU(s) at or below ROP</span>
+          <a href="{% url 'medications_list' %}?section={{ sec_item.section.id }}" class="underline font-bold text-amber-900">Review</a>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
   <!-- Main Grid: FR4 ROP Engine & FR6 ABC & FR7 Expiry Module -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
     <!-- FR4: Automated ROP Alert Engine & Draft PO Generation -->
@@ -410,13 +419,13 @@ PharmaAudit OS{% endblock %} {% block main_content %}
     </div>
 
     <!-- FR6: ABC Classification Breakdown & FR7 Expiry Alert Module -->
-    <div class="space-y-8">
+    <div class="space-y-6">
       <!-- FR6: ABC Classification Summary Card -->
       <div
         class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50"
       >
         <div
-          class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6"
+          class="flex items-center justify-between border-b border-slate-100 pb-4 mb-5"
         >
           <div>
             <span
@@ -598,7 +607,7 @@ PharmaAudit OS{% endblock %} {% block main_content %}
     class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50"
   >
     <div
-      class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6"
+      class="flex items-center justify-between border-b border-slate-100 pb-4 mb-5"
     >
       <div>
         <span

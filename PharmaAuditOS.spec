@@ -4,6 +4,7 @@ from PyInstaller.utils.hooks import collect_all, collect_submodules
 datas = [
     ("app", "app"),
     ("src", "src"),
+    ("notifications", "notifications"),
 ]
 binaries = []
 hiddenimports = [
@@ -18,7 +19,7 @@ hiddenimports = [
     "src.settings.base",
     "src.urls",
     "src.wsgi",
-] + collect_submodules("django") + collect_submodules("whitenoise") + collect_submodules("zeroconf") + collect_submodules("app") + collect_submodules("src")
+] + collect_submodules("django") + collect_submodules("whitenoise") + collect_submodules("zeroconf") + collect_submodules("app") + collect_submodules("notifications") + collect_submodules("src")
 
 for pkg in ("webview", "waitress"):
     tmp_ret = collect_all(pkg)
@@ -51,6 +52,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
+    icon='build_assets/app_icon.ico'
 )
 coll = COLLECT(
     exe,

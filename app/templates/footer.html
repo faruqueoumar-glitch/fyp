@@ -1,3 +1,4 @@
+{% load static %}
 <!-- Whole Document Global Footer -->
 <footer
   class="border-t border-slate-800 bg-slate-900 text-white py-4 px-6 lg:px-8 mt-12"
@@ -10,7 +11,7 @@
         Pharmaceutical Stock Auditing & Inventory Optimization System
       </h3>
       <p class="text-xs text-slate-400 font-mono mt-1">
-        PharmaAudit OS • Inventory, Sales & Stock Auditing System
+        <span class="inline-flex items-center space-x-2"><img src="{% static 'img/pharmaaudit-logo.svg' %}" alt="PharmaAudit OS" class="w-5 h-5" /><span style="font-weight:900;"><span class="text-white">Pharma</span><span class="text-emerald-400">Audit</span> <span class="text-cyan-400">OS</span></span><span>• Inventory, Sales &amp; Stock Auditing System</span></span>
       </p>
     </div>
     <div

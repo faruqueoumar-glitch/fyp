@@ -1,0 +1,15 @@
+{% load static %}
+<span class="inline-flex items-center space-x-2.5 select-none">
+  <img
+    src="{% static 'img/pharmaaudit-logo.svg' %}"
+    alt="PharmaAudit OS Logo"
+    class="{{ icon_class|default:'w-9 h-9' }} flex-shrink-0 drop-shadow-sm"
+  />
+  <span class="inline-flex items-center tracking-tight {{ text_class|default:'text-lg' }}" style="font-weight:900;letter-spacing:-0.025em;">
+    <span class="{% if theme == 'dark' %}text-white{% else %}text-slate-900{% endif %}">Pharma</span><span style="background:linear-gradient(90deg,#06b6d4 0%,#10b981 55%,#059669 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Audit</span>
+    <span
+      class="ml-1.5 px-1.5 py-0.5 rounded-md text-[0.72em] uppercase tracking-wider text-white shadow-xs"
+      style="background:linear-gradient(135deg,#0891b2 0%,#10b981 100%);font-weight:900;"
+    >OS</span>
+  </span>
+</span>

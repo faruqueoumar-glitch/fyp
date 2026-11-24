@@ -16,7 +16,7 @@
     <header class="w-full border-b border-slate-100 bg-white/95 backdrop-blur sticky top-0 z-30">
       <div class="max-w-7xl mx-auto px-6 sm:px-10 h-16 flex items-center justify-between">
         <a href="{% url 'home' %}" class="font-extrabold tracking-tight text-lg text-slate-900">
-          PharmaAudit <span class="text-emerald-700">OS</span>
+          {% include 'includes/brand_logo.html' with theme='light' icon_class='w-10 h-10' text_class='text-xl' %}
         </a>
 
         <div class="flex items-center gap-5">
@@ -37,7 +37,7 @@
         <div class="max-w-xl">
           <div class="inline-flex items-center justify-center p-3 mb-7 bg-white rounded-3xl border-2 border-slate-200/90 shadow-md shadow-slate-200/60">
             <img
-              src="{% static 'img/login-hero-white-green-navy.png' %}"
+              src="{% static 'img/pharmaaudit-logo.svg' %}"
               alt="PharmaAudit OS Emblem"
               style="filter: brightness(1.09) contrast(1.15);"
               class="h-28 w-28 rounded-2xl object-contain mix-blend-multiply"
@@ -133,7 +133,7 @@
     <!-- Minimal Footer -->
     <footer class="border-t border-slate-100 bg-white py-4 px-6 sm:px-10">
       <div class="max-w-7xl mx-auto flex items-center justify-between text-xs text-slate-400">
-        <p>PharmaAudit OS</p>
+        <div>{% include 'includes/brand_logo.html' with theme='light' icon_class='w-7 h-7' text_class='text-sm' %}</div>
         <p>Precision Pharmacy Inventory &amp; Compliance</p>
       </div>
     </footer>

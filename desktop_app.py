@@ -37,6 +37,17 @@ HOST = "0.0.0.0"
 PORT = 8765
 LOCAL_URL = f"http://127.0.0.1:{PORT}"
 
+NAV_BAR_JS = """
+(function() {
+  if (window.__paDesktopKeysBound) return;
+  window.__paDesktopKeysBound = true;
+  document.addEventListener('keydown', function(e) {
+    if (e.altKey && e.key === 'ArrowLeft') window.history.back();
+    if (e.altKey && e.key === 'ArrowRight') window.history.forward();
+  });
+})();
+"""
+
 
 def start_server():
     call_command("migrate", interactive=False)
@@ -56,18 +67,26 @@ def wait_for_server(url: str, timeout: float = 20.0) -> bool:
     return False
 
 
+def on_loaded(window):
+    try:
+        window.evaluate_js(NAV_BAR_JS)
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
     server_thread = threading.Thread(target=start_server, daemon=True)
     server_thread.start()
     wait_for_server(LOCAL_URL)
     try:
-        webview.create_window(
+        win = webview.create_window(
             "PharmaAudit OS",
             LOCAL_URL,
             width=1280,
             height=820,
             min_size=(360, 640),
         )
+        win.events.loaded += lambda: on_loaded(win)
         webview.start(gui="qt")
     except Exception:
         webbrowser.open(LOCAL_URL)

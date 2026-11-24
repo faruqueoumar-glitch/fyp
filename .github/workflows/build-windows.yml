@@ -1,0 +1,53 @@
+name: Build Windows Executable (.exe)
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Collect static files
+        env:
+          DJANGO_SETTINGS_MODULE: src.settings.dev
+          PYTHONPATH: ${{ github.workspace }};${{ github.workspace }}\src
+        run: |
+          python manage.py collectstatic --noinput
+
+      - name: Build Windows .exe with custom app icon
+        env:
+          DJANGO_SETTINGS_MODULE: src.settings.dev
+          PYTHONPATH: ${{ github.workspace }};${{ github.workspace }}\src
+        run: |
+          pyinstaller --clean --noconfirm PharmaAuditOS.spec
+
+      - name: Package Windows release zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/PharmaAuditOS/* -DestinationPath PharmaAuditOS-Windows-x64.zip
+
+      - name: Upload Windows .exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PharmaAuditOS-Windows-x64
+          path: PharmaAuditOS-Windows-x64.zip
+          retention-days: 30

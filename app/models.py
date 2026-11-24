@@ -127,7 +127,7 @@ class PharmacyOwnedModel(models.Model):
     pharmacy = models.ForeignKey(
         Pharmacy, on_delete=models.PROTECT, related_name='%(class)s_records'
     )
-    uuid = models.UUIDField(unique=True, editable=False, help_text='Globally unique identifier for offline sync collision prevention')
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, help_text='Globally unique identifier for offline sync collision prevention')
     device_id = models.CharField(max_length=36, null=True, blank=True, help_text='Device ID for offline transaction tracking (Desktop/Android)')
 
     def save(self, *args, **kwargs):

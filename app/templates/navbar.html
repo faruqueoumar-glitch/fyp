@@ -1,13 +1,22 @@
+{% load static %}
 <!-- Mobile Top Bar -->
 <header
   class="lg:hidden bg-slate-900 text-white border-b border-slate-800 px-4 py-3.5 flex items-center justify-between sticky top-0 z-50 shadow-md"
->
+ style="overflow:visible;position:relative;z-index:40;">
   <div class="flex items-center space-x-3">
-    <h1 class="font-bold text-sm tracking-wide text-white leading-tight">
-      PharmaAudit OS
-    </h1>
+    {% include 'includes/brand_logo.html' with theme='dark' icon_class='w-8 h-8' text_class='text-base' %}
   </div>
   <div class="flex items-center space-x-2">
+    <a
+      href="{% url 'notifications:list' %}"
+      title="Real-Time Alerts"
+      aria-label="Real-Time Alerts"
+      class="relative p-2 bg-slate-800 border border-slate-700 rounded-xl text-slate-200 hover:text-white hover:bg-slate-700 transition"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9" />
+      </svg>
+    </a>
     <button
       id="mobileMenuBtn"
       onclick="toggleSidebar()"
@@ -50,11 +59,28 @@
 <header
   class="border-b border-slate-200 px-6 lg:px-8 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/95 backdrop-blur-md sticky top-0 z-40 shadow-xs"
 >
-  <div>
+  <div class="flex items-center space-x-3.5">
+    <button
+      id="desktopMenuBtn"
+      type="button"
+      onmouseenter="openSidebarHover()"
+      onclick="toggleSidebar()"
+      title="Menu (Hover or Click)"
+      aria-label="Open Navigation Menu"
+      style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:0.75rem;flex-shrink:0;" class="bg-slate-900 text-slate-200 hover:text-white hover:bg-slate-800 border border-slate-800 shadow-xs transition-all cursor-pointer"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+    <div>
     <div
       class="flex items-center space-x-2 text-xs font-mono font-medium text-slate-500 uppercase tracking-wider"
     >
-      <span>PharmaAudit OS</span>
+      <span class="inline-flex items-center space-x-1.5">
+        <img src="{% static 'img/pharmaaudit-logo.svg' %}" alt="PharmaAudit OS" class="w-4 h-4" />
+        <span style="font-weight:900;"><span class="text-slate-900">Pharma</span><span class="text-emerald-600">Audit</span> <span class="text-cyan-700">OS</span></span>
+      </span>
       <span class="text-slate-300">/</span>
       <span class="text-slate-900 font-bold" id="navTitle">{{ current_url|default:'overview'|title }}</span>
     </div>
@@ -67,43 +93,89 @@
     {% else %}
     <h2 class="text-xl font-extrabold tracking-tight text-slate-900 mt-0.5">{{ user.get_role_display }}</h2>
     {% endif %}
+    </div>
   </div>
+    <!-- Desktop Navigation Controls -->
+    <!-- Right pillar: navigation pills above bell + profile -->
+    <div style="display:flex; flex-direction:column; align-items:flex-end; justify-content:flex-end; gap:0.35rem; margin-left:auto;">
+      <!-- Navigation pills -->
+      <div style="display:inline-flex;align-items:center;gap:0.45rem;background:rgba(241,245,249,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(203,213,225,0.85);border-radius:9999px;padding:0.35rem 0.45rem;box-shadow:0 4px 12px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.9);position:relative;z-index:50;pointer-events:auto;">
+          <button type="button" onclick="window.history.back()" title="Back (Alt+Left)"
+            style="width:32px;height:32px;border-radius:9999px;border:none;background:#94a3b8;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.18s ease;box-shadow:0 1px 2px rgba(15,23,42,0.1);"
+            onmouseover="this.style.background='#334155';this.style.transform='translateY(-1px)';"
+            onmouseout="this.style.background='#94a3b8';this.style.transform='translateY(0)';">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <button type="button" onclick="window.history.forward()" title="Forward (Alt+Right)"
+            style="width:32px;height:32px;border-radius:9999px;border:none;background:#94a3b8;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.18s ease;box-shadow:0 1px 2px rgba(15,23,42,0.1);"
+            onmouseover="this.style.background='#334155';this.style.transform='translateY(-1px)';"
+            onmouseout="this.style.background='#94a3b8';this.style.transform='translateY(0)';">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+          <button type="button" onclick="window.location.reload()" title="Reload Page"
+            style="width:32px;height:32px;border-radius:9999px;border:none;background:#94a3b8;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.18s ease;box-shadow:0 1px 2px rgba(15,23,42,0.1);"
+            onmouseover="this.style.background='#334155';this.style.transform='translateY(-1px)';"
+            onmouseout="this.style.background='#94a3b8';this.style.transform='translateY(0)';">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"></path><polyline points="21 3 21 8 16 8"></polyline></svg>
+          </button>
+          <button type="button" onclick="window.location='/'" title="Dashboard Home"
+            style="width:52px;height:32px;border-radius:9999px;border:none;background:#0d9468;color:#ffffff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.18s ease;box-shadow:0 3px 8px rgba(13,148,104,0.32);"
+            onmouseover="this.style.background='#059669';this.style.transform='translateY(-1px)';this.style.boxShadow='0 5px 12px rgba(5,150,105,0.42)';"
+            onmouseout="this.style.background='#0d9468';this.style.transform='translateY(0)';this.style.boxShadow='0 3px 8px rgba(13,148,104,0.32)';">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"></path></svg>
+          </button>
+        </div>
+      <!-- Alert bell + profile row -->
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <a
+          href="{% url "notifications:list" %}"
+          title="Real-Time Alerts"
+          aria-label="Real-Time Alerts"
+          style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:9999px;position:relative;flex-shrink:0;" class="border transition-all duration-200 {% if request.resolver_match.namespace == "notifications" %}bg-slate-900 text-white border-slate-900 shadow-sm{% else %}bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900{% endif %}"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9" /></svg>
+          <span
+            id="navAlertBadge"
+            style="display:none;position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9999px;align-items:center;justify-content:center;" class="bg-rose-600 text-white text-[10px] font-bold shadow"
+          >0</span>
+        </a>
+        <!-- Account Profile Menu -->
+        <div class="relative" id="userProfileMenuWrapper">
+          <button
+            type="button"
+            id="userProfileBtn"
+            aria-expanded="false"
+            aria-haspopup="true"
+            onclick="event.stopPropagation(); const m = document.getElementById("userProfileDropdown"); const isHidden = (m.style.display === "none" || getComputedStyle(m).display === "none"); m.style.display = isHidden ? "block" : "none"; m.classList.toggle("hidden", !isHidden); this.setAttribute("aria-expanded", String(isHidden));
+              title="{{ user.get_full_name|default:user.username }} ({{ user.get_role_display|default:"Branch Admin" }})"
+              aria-label="Account Profile Menu"
+              style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:2.625rem;height:2.625rem;border-radius:0.85rem;background:#0f172a;border:1px solid #1e293b;box-shadow:0 4px 12px rgba(15,23,42,0.18);cursor:pointer;flex-shrink:0;"
+              class="hover:bg-slate-800 transition-all duration-200 focus:outline-none"
+            >
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="url(#paProfileGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 5px rgba(16,185,129,0.45));">
+                <defs>
+                  <linearGradient id="paProfileGrad" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#22d3ee"/>
+                    <stop offset="100%" stop-color="#10b981"/>
+                  </linearGradient>
+                </defs>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span
+                style="position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:9999px;background:#10b981;box-shadow:0 0 6px #10b981;"
+              ></span>
+            </button>
 
-  <div class="flex items-center space-x-3">
-    <!-- Account Profile Menu -->
-    <div class="relative" id="userProfileMenuWrapper">
-      <button
-        type="button"
-        id="userProfileBtn"
-        aria-expanded="false"
-        aria-haspopup="true"
-        class="inline-flex items-center space-x-2.5 px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-900 text-xs font-semibold text-slate-100 hover:bg-slate-800 transition shadow-xs cursor-pointer"
-      >
-        {% if user.is_superuser and current_url == 'founder_dashboard' or user.is_superuser and current_url == 'founder_users' or user.is_superuser and current_url == 'help' %}
-          <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" aria-hidden="true"></span>
-          <span>FOUNDER / SUPERUSER</span>
-        {% elif user.is_superuser %}
-          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" aria-hidden="true"></span>
-          <span>BRANCH VIEW</span>
-        {% elif user.is_admin or user.role == 'admin' %}
-          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" aria-hidden="true"></span>
-          <span>BRANCH ADMIN</span>
-        {% else %}
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true"></span>
-          <span>{{ request.user.role|default:'STAFF'|upper }}</span>
-        {% endif %}
-        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      <div
-        id="userProfileDropdown"
-        class="hidden absolute right-0 mt-2 w-64 rounded-xl bg-slate-900 p-3 shadow-2xl border border-slate-700 z-50 origin-top-right text-slate-200"
-        role="menu"
-        aria-orientation="vertical"
-        aria-labelledby="userProfileBtn"
-      >
+          <div
+            id="userProfileDropdown"
+            style="position:absolute;right:0;top:calc(100% + 0.5rem);width:16rem;z-index:9999;"
+            class="hidden rounded-xl bg-slate-900 p-3 shadow-2xl border border-slate-700 origin-top-right text-slate-200"
+            role="menu"
+            aria-orientation="vertical"
+            aria-labelledby="userProfileBtn"
+          >
+        
         <div class="px-2 py-2 mb-2 border-b border-slate-800">
           <div class="text-sm font-semibold text-white truncate">
             {{ request.user.get_full_name|default:request.user.email }}
@@ -219,11 +291,11 @@
           </svg>
           <span>Sign Out</span>
         </a>
+          </div>
+        </div>
       </div>
     </div>
-
-  </div>
-</header>
+  </header>
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
@@ -244,6 +316,44 @@
           profileBtn.setAttribute('aria-expanded', 'false');
         }
       });
+    }
+
+    const alertBadge = document.getElementById('navAlertBadge');
+    if (alertBadge) {
+      fetch('/notifications/unread-count/')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data && typeof data.unread_count === 'number' && data.unread_count > 0) {
+            alertBadge.textContent = data.unread_count > 99 ? '99+' : String(data.unread_count);
+            alertBadge.style.display = 'flex';
+          }
+        })
+        .catch(() => {});
+    }
+  });
+</script>
+
+<script>
+  document.addEventListener("click", function (e) {
+    const menu = document.getElementById("userProfileDropdown");
+    const btn = document.getElementById("userProfileBtn");
+    if (menu && btn && menu.style.display !== "none") {
+      if (!menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.style.display = "none";
+        menu.classList.add("hidden");
+        btn.setAttribute("aria-expanded", "false");
+      }
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      const menu = document.getElementById("userProfileDropdown");
+      const btn = document.getElementById("userProfileBtn");
+      if (menu && menu.style.display !== "none") {
+        menu.style.display = "none";
+        menu.classList.add("hidden");
+        if (btn) btn.setAttribute("aria-expanded", "false");
+      }
     }
   });
 </script>
