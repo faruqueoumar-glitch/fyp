@@ -57,6 +57,10 @@ tasks.register("syncDjangoBackend", Copy) {
 tasks.named("preBuild") {
     dependsOn("syncDjangoBackend")
 }
+tasks.matching { it.name.endsWith("PythonSources") }.configureEach {
+    dependsOn("syncDjangoBackend")
+}
+
 
 dependencies {
     implementation "androidx.core:core-ktx:1.12.0"
