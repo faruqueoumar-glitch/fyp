@@ -2,6 +2,7 @@ package com.pharmaaudit.os
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.text.TextUtils
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -31,6 +32,11 @@ class MainActivity : AppCompatActivity() {
         }
         setContentView(webView)
 
+        showHtml(
+            "<h2>Starting PharmaAudit OS...</h2>" +
+            "<p>Initializing local database and server. Please wait a few seconds.</p>"
+        )
+
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (webView.canGoBack()) {
@@ -43,22 +49,38 @@ class MainActivity : AppCompatActivity() {
         })
 
         thread(start = true, isDaemon = true) {
-            if (!Python.isStarted()) {
-                Python.start(AndroidPlatform(applicationContext))
+            try {
+                if (!Python.isStarted()) {
+                    Python.start(AndroidPlatform(applicationContext))
+                }
+                val py = Python.getInstance()
+                py.getModule("android_boot").callAttr("start", filesDir.absolutePath)
+            } catch (t: Throwable) {
+                val trace = TextUtils.htmlEncode(t.stackTraceToString())
+                runOnUiThread {
+                    showHtml(
+                        "<h2 style='color:#b91c1c'>PharmaAudit OS Startup Error</h2>" +
+                        "<pre style='white-space:pre-wrap;font-size:12px;'>$trace</pre>"
+                    )
+                }
             }
-            val py = Python.getInstance()
-            py.getModule("android_boot").callAttr("start", filesDir.absolutePath)
         }
 
         thread(start = true, isDaemon = true) {
-            waitForServer(localUrl)
-            runOnUiThread {
-                webView.loadUrl(localUrl)
+            if (waitForServer(localUrl)) {
+                runOnUiThread {
+                    webView.loadUrl(localUrl)
+                }
             }
         }
     }
 
-    private fun waitForServer(targetUrl: String, timeoutMs: Long = 25000L) {
+    private fun showHtml(body: String) {
+        val html = "<html><body style='font-family:sans-serif;padding:24px;'>$body</body></html>"
+        webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
+    }
+
+    private fun waitForServer(targetUrl: String, timeoutMs: Long = 35000L): Boolean {
         val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {
             try {
@@ -67,12 +89,13 @@ class MainActivity : AppCompatActivity() {
                 conn.readTimeout = 1000
                 if (conn.responseCode < 500) {
                     conn.disconnect()
-                    return
+                    return true
                 }
                 conn.disconnect()
             } catch (_: Exception) {
-                Thread.sleep(250)
+                Thread.sleep(300)
             }
         }
+        return false
     }
 }

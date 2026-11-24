@@ -27,6 +27,8 @@ android {
                 install "zeroconf==0.35.0"
                 install "requests==2.32.3"
                 install "whitenoise==6.7.0"
+                install "dj-database-url"
+                install "python-dotenv"
             }
         }
     }
