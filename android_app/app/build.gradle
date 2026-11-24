@@ -20,7 +20,7 @@ android {
         }
 
         python {
-            version "3.11"
+            version "3.12"
             pip {
                 install "Django==6.1.3"
                 install "waitress==3.0.0"
