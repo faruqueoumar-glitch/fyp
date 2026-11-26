@@ -1,0 +1,200 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | PharmaAudit OS Admin{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  :root {
+    --primary: #065f46;
+    --secondary: #0f172a;
+    --accent: #6ee7b7;
+    --primary-fg: #ffffff;
+    --body-fg: #0f172a;
+    --body-bg: #f4f7f8;
+    --body-quiet-color: #64748b;
+    --body-loud-color: #090d16;
+    --header-color: #ffffff;
+    --header-branding-color: #ffffff;
+    --header-bg: linear-gradient(135deg, #0f172a 0%, #064e3b 100%);
+    --header-link-color: #d1fae5;
+    --breadcrumbs-fg: #475569;
+    --breadcrumbs-link-fg: #047857;
+    --breadcrumbs-bg: #ffffff;
+    --link-fg: #047857;
+    --link-hover-color: #064e3b;
+    --link-selected-fg: #065f46;
+    --hairline-color: #e2e8f0;
+    --border-color: #cbd5e1;
+    --darkened-bg: #f8fafc;
+    --selected-bg: #ecfdf5;
+    --selected-row: #d1fae5;
+    --button-fg: #ffffff;
+    --button-bg: #047857;
+    --button-hover-bg: #065f46;
+    --default-button-bg: #0f172a;
+    --default-button-hover-bg: #1e293b;
+    --object-tools-fg: #ffffff;
+    --object-tools-bg: #0f172a;
+    --object-tools-hover-bg: #047857;
+  }
+
+  html[data-theme="dark"], html[data-theme="auto"], body {
+    background: #f4f7f8 !important;
+    color: #0f172a !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  }
+
+  /* Hide Django's dark/light theme toggle button so light frosted theme stays consistent */
+  .theme-toggle { display: none !important; }
+
+  /* Desktop Navigation Bar at Very Top */
+  .pa-desktop-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+  }
+  .pa-nav-left, .pa-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pa-brand-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 900;
+    font-size: 13px;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+  }
+  .pa-brand-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  }
+  .pa-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 800;
+    text-decoration: none !important;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a !important;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .pa-nav-btn:hover {
+    background: #f1f5f9;
+    transform: translateY(-1px);
+  }
+  .pa-nav-btn-primary {
+    background: #047857 !important;
+    border-color: #047857 !important;
+    color: #ffffff !important;
+  }
+  .pa-nav-btn-primary:hover {
+    background: #065f46 !important;
+  }
+  .pa-nav-icon-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  /* Polished Rounded Cards for Django Admin Tables & Modules */
+  #header {
+    background: linear-gradient(135deg, #0f172a 0%, #064e3b 100%) !important;
+    padding: 14px 24px !important;
+    border-bottom: none !important;
+  }
+  div.breadcrumbs {
+    background: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 10px 24px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+  }
+  #content {
+    padding: 24px !important;
+  }
+  .module {
+    background: #ffffff !important;
+    border-radius: 18px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 8px 24px -6px rgba(15, 23, 42, 0.06) !important;
+    overflow: hidden !important;
+    margin-bottom: 20px !important;
+  }
+  .module caption, .module h2 {
+    background: linear-gradient(90deg, #0f172a 0%, #065f46 100%) !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 12px !important;
+    letter-spacing: 0.06em !important;
+    padding: 12px 16px !important;
+  }
+  .module table th, .module table td {
+    padding: 11px 16px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    font-size: 13px !important;
+  }
+  .module table tr:hover td, .module table tr:hover th {
+    background: #ecfdf5 !important;
+  }
+  #content-related {
+    background: #ffffff !important;
+    border-radius: 18px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 8px 24px -6px rgba(15, 23, 42, 0.06) !important;
+    padding: 6px !important;
+  }
+  #content-related .module {
+    border: none !important;
+    box-shadow: none !important;
+  }
+</style>
+{% endblock %}
+
+{% block nav-global %}
+<div class="pa-desktop-nav">
+  <div class="pa-nav-left">
+    <span class="pa-brand-badge">
+      <span class="pa-brand-dot"></span>
+      <span>PHARMAAUDIT OS / SYSTEM DATABASE</span>
+    </span>
+  </div>
+  <div class="pa-nav-right">
+    <button type="button" onclick="window.history.back()" title="Back" class="pa-nav-btn pa-nav-icon-btn">&larr;</button>
+    <button type="button" onclick="window.history.forward()" title="Forward" class="pa-nav-btn pa-nav-icon-btn">&rarr;</button>
+    <button type="button" onclick="window.location.reload()" title="Reload" class="pa-nav-btn pa-nav-icon-btn">&#8635;</button>
+    <a href="{% url 'founder_dashboard' %}" class="pa-nav-btn pa-nav-btn-primary">Founder Console</a>
+    <a href="{% url 'founder_users' %}" class="pa-nav-btn">Platform Users</a>
+    <a href="{% url 'dashboard' %}" class="pa-nav-btn">Branch Dashboard</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+  <a href="{% url 'admin:index' %}" style="color: #ffffff; font-weight: 900; letter-spacing: -0.02em;">
+    PharmaAudit OS &mdash; System Database Administration
+  </a>
+</h1>
+{% endblock %}

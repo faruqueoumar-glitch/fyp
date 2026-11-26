@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="paHexGrad" x1="12" y1="12" x2="108" y2="108" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="50%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="paFillGrad" x1="25" y1="20" x2="95" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.28"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer Hexagon Frame -->
+  <polygon points="60,8 106,34 106,86 60,112 14,86 14,34" fill="#0f172a" stroke="url(#paHexGrad)" stroke-width="6.5" stroke-linejoin="round"/>
+  <polygon points="60,16 99,38 99,82 60,104 21,82 21,38" fill="url(#paFillGrad)"/>
+  <!-- Ascending Audit Bar Chart -->
+  <rect x="34" y="50" width="6.5" height="11" rx="1.8" fill="url(#paHexGrad)"/>
+  <rect x="44" y="43" width="6.5" height="18" rx="1.8" fill="url(#paHexGrad)"/>
+  <rect x="54" y="36" width="6.5" height="25" rx="1.8" fill="url(#paHexGrad)"/>
+  <rect x="64" y="29" width="6.5" height="32" rx="1.8" fill="url(#paHexGrad)"/>
+  <!-- Pestle -->
+  <path d="M84 32C86.5 34.2 86.8 38 84.5 40.5L60.5 67C58.3 69.4 54.6 69.6 52.2 67.4C49.8 65.2 49.6 61.5 51.8 59.1L75.8 32.6C78 30.1 81.6 29.8 84 32Z" fill="url(#paHexGrad)"/>
+  <!-- Mortar Bowl -->
+  <path d="M31 64H52L48.5 69H38.5C40.5 76.5 46.5 82 54 83.5L51 89H69L66 83.5C73.5 82 79.5 76.5 81.5 69H71.5L75 64H89C87.5 75.5 80 84.5 70.5 88.5L74.5 95H45.5L49.5 88.5C40 84.5 32.5 75.5 31 64Z" fill="url(#paHexGrad)"/>
+</svg>

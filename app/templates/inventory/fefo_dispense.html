@@ -174,26 +174,54 @@
                     </span>
                 </div>
 
-                <!-- Drug Selector Row with Bold Available Stock & Quantity -->
-                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+                <!-- Buyer Type Bar: End-User vs Retailer/Reseller -->
+                <div class="mb-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <span class="block font-black text-slate-800 uppercase text-[11px]">Buyer Type &amp; Pricing Mode</span>
+                        <span class="text-[11px] font-semibold text-slate-500">Select Reseller / Retailer to default to discounted Sachet / Carton tiers.</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select id="buyerTypeSelect" onchange="onBuyerTypeChange()"
+                                class="px-3.5 py-2 bg-white border-2 border-slate-300 rounded-xl text-slate-900 text-xs font-black focus:outline-none focus:ring-2 focus:ring-slate-900">
+                            <option value="END_USER">End-User (Walk-In Retail)</option>
+                            <option value="RESELLER">Reseller / Retailer (Bulk Discount)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Drug Selector Row with Package Tier (Unit / Sachet / Carton), Stock & Quantity -->
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
                     
                     <!-- Medication Dropdown -->
-                    <div class="sm:col-span-6">
+                    <div class="sm:col-span-4">
                         <label class="block font-black text-slate-800 uppercase text-[11px] mb-1.5">
                             Medication Catalog Item
                         </label>
                         <select id="medicationSelect" onchange="onMedicationSelectChange()" 
-                                class="w-full px-4 py-3 bg-white border-2 border-slate-300 rounded-2xl text-slate-900 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition shadow-xs">
+                                class="w-full px-3.5 py-3 bg-white border-2 border-slate-300 rounded-2xl text-slate-900 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition shadow-xs">
                             <option value="">-- Choose medication --</option>
                             {% for m in medications %}
                             <option value="{{ m.id }}" {% if selected_med_id == m.id|stringformat:"s" %}selected{% endif %}>
-                                {{ m.name }} [{{ m.sku }}] — ₦{{ m.selling_price_per_unit|floatformat:2 }} (Stock: {{ m.non_expired_stock }} {{ m.unit }})
+                                {{ m.name }} [{{ m.sku }}] — Unit: ₦{{ m.selling_price_per_unit|floatformat:2 }} | Sachet: ₦{{ m.sachet_selling_price|floatformat:2 }} | Carton: ₦{{ m.carton_selling_price|floatformat:2 }} (Stock: {{ m.non_expired_stock }} {{ m.unit }})
                             </option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <!-- Available Stock Pill (Prominently displayed beside Quantity) -->
+                    <!-- Package Tier Selector -->
+                    <div class="sm:col-span-2">
+                        <label class="block font-black text-slate-800 uppercase text-[11px] mb-1.5">
+                            Package Tier
+                        </label>
+                        <select id="packTierSelect" onchange="onPackTierChange()"
+                                class="w-full px-3 py-3 bg-white border-2 border-emerald-400 rounded-2xl text-slate-900 text-xs font-black focus:outline-none focus:ring-2 focus:ring-emerald-700 transition shadow-xs">
+                            <option value="UNIT">Unit</option>
+                            <option value="SACHET">Sachet</option>
+                            <option value="CARTON">Carton</option>
+                        </select>
+                    </div>
+
+                    <!-- Available Stock Pill -->
                     <div class="sm:col-span-2">
                         <label class="block font-black text-slate-800 uppercase text-[11px] mb-1.5 text-center">
                             In Stock
@@ -598,25 +626,58 @@
             stockNumberEl.className = 'text-base font-black text-emerald-800 font-mono';
         }
 
-        // Update clean preview banner
-        document.getElementById('previewMedName').textContent = med.name;
-        document.getElementById('previewMedSku').textContent = `${med.sku} • ${med.section}`;
-        document.getElementById('previewMedPrice').textContent = formatNaira(med.selling_price);
-        
-        const qty = parseInt(qtyInput.value) || 1;
-        document.getElementById('previewMedSubtotal').textContent = formatNaira(med.selling_price * qty);
+        // Populate tier dropdown labels with exact pack sizes & prices
+        const tierSelect = document.getElementById('packTierSelect');
+        if (tierSelect) {
+            tierSelect.options[0].text = `Unit (1 ${med.unit}) — ${formatNaira(med.selling_price)}`;
+            tierSelect.options[1].text = `Sachet (${med.units_per_sachet} ${med.unit}) — ${formatNaira(med.sachet_selling_price)}`;
+            tierSelect.options[2].text = `Carton (${med.units_per_carton} ${med.unit}) — ${formatNaira(med.carton_selling_price)}`;
+        }
+        updateTierPreviewBanner();
+    }
 
+    function getActiveTierInfo(med) {
+        const tier = (document.getElementById('packTierSelect')?.value || 'UNIT').toUpperCase();
+        if (tier === 'SACHET') {
+            return { tier: 'SACHET', label: `Sachet (${med.units_per_sachet} ${med.unit})`, multiplier: med.units_per_sachet || 1, price: med.sachet_selling_price || (med.selling_price * (med.units_per_sachet || 1)) };
+        }
+        if (tier === 'CARTON') {
+            return { tier: 'CARTON', label: `Carton (${med.units_per_carton} ${med.unit})`, multiplier: med.units_per_carton || 1, price: med.carton_selling_price || (med.selling_price * (med.units_per_carton || 1)) };
+        }
+        return { tier: 'UNIT', label: `Unit (1 ${med.unit})`, multiplier: 1, price: med.selling_price };
+    }
+
+    function onBuyerTypeChange() {
+        const buyerType = document.getElementById('buyerTypeSelect').value;
+        const tierSelect = document.getElementById('packTierSelect');
+        if (tierSelect) {
+            tierSelect.value = buyerType === 'RESELLER' ? 'CARTON' : 'UNIT';
+        }
+        updateTierPreviewBanner();
+    }
+
+    function onPackTierChange() {
+        updateTierPreviewBanner();
+    }
+
+    function updateTierPreviewBanner() {
+        const medId = document.getElementById('medicationSelect').value;
+        const infoDiv = document.getElementById('selectedDrugInfo');
+        const qtyInput = document.getElementById('quantityInput');
+        if (!medId || !CATALOG[medId]) return;
+        const med = CATALOG[medId];
+        const tierInfo = getActiveTierInfo(med);
+        const qty = parseInt(qtyInput.value) || 1;
+        const totalBaseUnits = qty * tierInfo.multiplier;
+        document.getElementById('previewMedName').textContent = med.name;
+        document.getElementById('previewMedSku').textContent = `${med.sku} • ${tierInfo.label} • Deducts ${totalBaseUnits} ${med.unit}`;
+        document.getElementById('previewMedPrice').textContent = formatNaira(tierInfo.price);
+        document.getElementById('previewMedSubtotal').textContent = formatNaira(tierInfo.price * qty);
         infoDiv.classList.remove('hidden');
     }
 
     function onQuantityInputChange() {
-        const medId = document.getElementById('medicationSelect').value;
-        const qtyInput = document.getElementById('quantityInput');
-        if (medId && CATALOG[medId]) {
-            const med = CATALOG[medId];
-            const qty = parseInt(qtyInput.value) || 1;
-            document.getElementById('previewMedSubtotal').textContent = formatNaira(med.selling_price * qty);
-        }
+        updateTierPreviewBanner();
     }
 
     function adjustQuickQty(delta) {
@@ -690,7 +751,7 @@
                         <p class="font-black text-slate-900 text-sm">${item.name}</p>
                         ${item.drug_schedule === 'CONTROLLED' ? '<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 font-black text-[9px] uppercase">Controlled</span>' : (item.drug_schedule === 'POM' ? '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-black text-[9px] uppercase">Rx Only</span>' : '')}
                     </div>
-                    <p class="font-mono font-bold text-[11px] text-slate-500">${item.sku} • ${item.unit}</p>
+                    <p class="font-mono font-bold text-[11px] text-slate-500">${item.sku} • <span class="text-emerald-800">${item.tier_label || item.unit}</span> (${item.base_units || item.quantity} ${item.unit})</p>
                 </td>
                 <td class="px-6 py-4 text-center">
                     <span class="inline-flex items-center px-2.5 py-1 rounded-xl bg-emerald-100 border border-emerald-300 font-mono font-black text-emerald-900 text-xs">
@@ -699,9 +760,9 @@
                 </td>
                 <td class="px-6 py-4">
                     <div class="flex items-center justify-center space-x-1.5">
-                        <button type="button" onclick="updateCartItemQty(${item.medication_id}, ${item.quantity - 1})" class="w-7 h-7 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-900 font-black flex items-center justify-center transition shadow-xs">-</button>
-                        <input type="number" min="1" value="${item.quantity}" onchange="updateCartItemQty(${item.medication_id}, parseInt(this.value))" class="w-14 px-2 py-1 bg-white border-2 border-slate-300 rounded-lg text-center font-mono font-black text-xs text-slate-900 focus:ring-1 focus:ring-slate-900">
-                        <button type="button" onclick="updateCartItemQty(${item.medication_id}, ${item.quantity + 1})" class="w-7 h-7 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-900 font-black flex items-center justify-center transition shadow-xs">+</button>
+                        <button type="button" onclick="updateCartItemQty('${item.cart_key}', ${item.pack_quantity - 1})" class="w-7 h-7 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-900 font-black flex items-center justify-center transition shadow-xs">-</button>
+                        <input type="number" min="1" value="${item.quantity}" onchange="updateCartItemQty('${item.cart_key}', parseInt(this.value))" class="w-14 px-2 py-1 bg-white border-2 border-slate-300 rounded-lg text-center font-mono font-black text-xs text-slate-900 focus:ring-1 focus:ring-slate-900">
+                        <button type="button" onclick="updateCartItemQty('${item.cart_key}', ${item.pack_quantity + 1})" class="w-7 h-7 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-900 font-black flex items-center justify-center transition shadow-xs">+</button>
                     </div>
                 </td>
                 <td class="px-6 py-4 text-right font-mono font-black text-slate-900 text-xs">
@@ -711,7 +772,7 @@
                     ${formatNaira(item.subtotal)}
                 </td>
                 <td class="px-4 py-4 text-center">
-                    <button type="button" onclick="removeCartItem(${item.medication_id})" class="w-8 h-8 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-100 flex items-center justify-center transition" title="Remove item">
+                    <button type="button" onclick="removeCartItem('${item.cart_key}')" class="w-8 h-8 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-100 flex items-center justify-center transition" title="Remove item">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </td>
@@ -766,7 +827,7 @@
                     'X-CSRFToken': '{{ csrf_token }}',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify({ medication_id: medId, quantity: qty })
+                body: JSON.stringify({ medication_id: medId, quantity: qty, pack_tier: document.getElementById('packTierSelect')?.value || 'UNIT', buyer_type: document.getElementById('buyerTypeSelect')?.value || 'END_USER' })
             });
             const data = await res.json();
             if (res.ok) {
@@ -891,6 +952,7 @@
                     prescriber_reg_no: (document.getElementById('prescriberRegNo')?.value || '').trim(),
                     health_facility: (document.getElementById('healthFacility')?.value || '').trim(),
                     payment_method: paymentMethod,
+                    buyer_type: document.getElementById('buyerTypeSelect')?.value || 'END_USER',
                     notes: notes
                 })
             });

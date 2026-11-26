@@ -1,64 +1,140 @@
 {% extends 'base.html' %}
-
-{% block title %}Receive Goods Batch Intake | PharmaAudit OS{% endblock %}
+{% block title %}Record Purchase & Stock Intake | PharmaAudit OS{% endblock %}
 
 {% block main_content %}
-<div class="max-w-3xl mx-auto space-y-6">
-    <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-md shadow-slate-200/50">
-        <div class="border-b border-slate-100 pb-5 mb-8">
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Receive Stock Batch Intake</h1>
-            <p class="text-sm text-slate-500 mt-1">Captures drug identity, supplier, batch number, manufacture date, expiry date, and quantity received.</p>
+<div class="max-w-4xl mx-auto py-4">
+  <div class="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-xl shadow-slate-900/5 overflow-hidden">
+    <!-- Compact Modal-Style Header -->
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div>
+        <h2 class="text-lg font-extrabold text-slate-900 tracking-tight">Record Purchase</h2>
+        <p class="text-[11px] text-slate-500">Supplier invoice intake &amp; multi-item FEFO batch stock update</p>
+      </div>
+      <a href="{% url 'dashboard' %}" title="Close" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 text-lg font-bold transition">&times;</a>
+    </div>
+
+    <form method="post" id="recordPurchaseForm" class="p-6 space-y-5">
+      {% csrf_token %}
+      <input type="hidden" name="multi_purchase_mode" value="1">
+
+      <!-- Top 2-Column Purchase Metadata (Supplier, Invoice Number, Amount Paid) -->
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+        <div>
+          <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Supplier</label>
+          <select name="supplier_id" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+            <option value="">&mdash; Select &mdash;</option>
+            {% for sup in suppliers %}
+            <option value="{{ sup.id }}">{{ sup.name }}</option>
+            {% endfor %}
+          </select>
         </div>
 
-        <form method="POST" action="{% url 'receive_batch' %}" class="space-y-6 text-sm">
-            {% csrf_token %}
+        <div>
+          <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Invoice Number</label>
+          <input type="text" name="invoice_number" placeholder="e.g. INV-2026-0412" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+        </div>
 
-            <div>
-                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Select Medication Item</label>
-                {{ form.medication }}
-                {% if form.medication.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.medication.errors.0 }}</p>{% endif %}
+        <div>
+          <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Amount Paid (₦)</label>
+          <input type="number" step="0.01" min="0" name="amount_paid" placeholder="0.00" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-mono font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="border-t border-slate-100 pt-4">
+        <!-- Repeatable Purchase Line Items Container -->
+        <div id="purchaseItemsContainer" class="space-y-3">
+          <div class="purchase-item-row p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80 relative">
+            <div style="display: grid; grid-template-columns: 2fr 1.1fr 1.2fr 0.8fr 0.9fr; gap: 10px; align-items: end;">
+              <div>
+                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Medicine *</label>
+                <select name="item_medication_id[]" required onchange="syncMedDefaults(this)" class="med-select w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+                  <option value="">Search / Select drug...</option>
+                  {% for m in medications %}
+                  <option value="{{ m.id }}" data-cost="{{ m.unit_cost }}" data-sale="{{ m.selling_price_per_unit }}" data-unit="{{ m.unit }}">
+                    {{ m.name }} ({{ m.sku }})
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Batch #</label>
+                <input type="text" name="item_batch_number[]" placeholder="BAT-001" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Expiry *</label>
+                <input type="date" name="item_expiry_date[]" required class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Packs / Qty *</label>
+                <input type="number" name="item_packs[]" min="1" required placeholder="0" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Cost (₦)</label>
+                <input type="number" step="0.01" min="0" name="item_cost[]" placeholder="0.00" class="item-cost w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+              </div>
             </div>
 
-            <div>
-                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Supplier</label>
-                {{ form.supplier }}
-                {% if form.supplier.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.supplier.errors.0 }}</p>{% endif %}
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+              <div style="width: 140px;">
+                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Sale Price (₦)</label>
+                <input type="number" step="0.01" min="0" name="item_sale_price[]" placeholder="0.00" class="item-sale w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-mono font-semibold text-emerald-800 focus:border-emerald-600 focus:outline-none">
+              </div>
+              <button type="button" onclick="removePurchaseRow(this)" class="remove-row-btn hidden text-[11px] font-bold text-rose-600 hover:text-rose-800 px-2 py-1 rounded-md hover:bg-rose-50 transition">
+                &times; Remove item
+              </button>
             </div>
+          </div>
+        </div>
 
-            <div>
-                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Manufacturer Batch Number</label>
-                {{ form.batch_number }}
-                {% if form.batch_number.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.batch_number.errors.0 }}</p>{% endif %}
-            </div>
+        <!-- + Add another item button -->
+        <div class="mt-3">
+          <button type="button" onclick="addPurchaseRow()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 shadow-2xs transition">
+            <span>+ Add another item</span>
+          </button>
+        </div>
+      </div>
 
-            <div>
-                <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Initial Received Quantity (Units)</label>
-                {{ form.initial_quantity }}
-                {% if form.initial_quantity.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.initial_quantity.errors.0 }}</p>{% endif %}
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Manufacture Date</label>
-                    {{ form.manufacture_date }}
-                    {% if form.manufacture_date.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.manufacture_date.errors.0 }}</p>{% endif %}
-                </div>
-
-                <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-2">Expiry Date (FEFO Key)</label>
-                    {{ form.expiry_date }}
-                    {% if form.expiry_date.errors %}<p class="text-rose-600 font-medium text-xs mt-1">{{ form.expiry_date.errors.0 }}</p>{% endif %}
-                </div>
-            </div>
-
-            <div class="pt-6 border-t border-slate-100 flex items-center justify-end space-x-4">
-                <a href="{% url 'medications_list' %}" class="px-5 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition">Cancel</a>
-                <button type="submit" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-md transition flex items-center space-x-2">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                    <span>Commit Goods Receipt Intake & Sign Audit Log</span>
-                </button>
-            </div>
-        </form>
-    </div>
+      <!-- Full-Width Emerald Submit Button -->
+      <div class="pt-2">
+        <button type="submit" style="background-color: #047857; color: #ffffff;" class="w-full py-3 rounded-xl hover:opacity-95 text-xs font-extrabold tracking-wide shadow-md transition cursor-pointer">
+          Save Purchase &amp; Update Stock
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
+
+<script>
+function syncMedDefaults(selectEl) {
+  const row = selectEl.closest('.purchase-item-row');
+  const opt = selectEl.options[selectEl.selectedIndex];
+  if (!row || !opt) return;
+  const costInput = row.querySelector('.item-cost');
+  const saleInput = row.querySelector('.item-sale');
+  if (costInput && opt.dataset.cost) costInput.value = opt.dataset.cost;
+  if (saleInput && opt.dataset.sale) saleInput.value = opt.dataset.sale;
+}
+
+function addPurchaseRow() {
+  const container = document.getElementById('purchaseItemsContainer');
+  const firstRow = container.querySelector('.purchase-item-row');
+  const clone = firstRow.cloneNode(true);
+  clone.querySelectorAll('input').forEach(inp => inp.value = '');
+  clone.querySelectorAll('select').forEach(sel => sel.selectedIndex = 0);
+  const removeBtn = clone.querySelector('.remove-row-btn');
+  if (removeBtn) removeBtn.classList.remove('hidden');
+  container.appendChild(clone);
+}
+
+function removePurchaseRow(btn) {
+  const container = document.getElementById('purchaseItemsContainer');
+  if (container.querySelectorAll('.purchase-item-row').length > 1) {
+    btn.closest('.purchase-item-row').remove();
+  }
+}
+</script>
 {% endblock %}

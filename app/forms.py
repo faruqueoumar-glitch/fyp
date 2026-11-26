@@ -144,7 +144,7 @@ class MedicationForm(forms.ModelForm):
     class Meta:
         model = Medication
         fields = [
-            'name', 'sku', 'section', 'supplier', 'unit', 'unit_cost', 'selling_price_per_unit',
+            'name', 'sku', 'section', 'supplier', 'unit', 'unit_cost', 'selling_price_per_unit', 'units_per_sachet', 'sachet_selling_price', 'units_per_carton', 'carton_selling_price',
             'annual_demand', 'ordering_cost', 'holding_cost',
             'daily_consumption', 'lead_time_days', 'safety_stock', 'max_level'
         ]
@@ -154,6 +154,10 @@ class MedicationForm(forms.ModelForm):
             'section': forms.Select(attrs={'class': SELECT_CLASS}),
             'supplier': forms.Select(attrs={'class': SELECT_CLASS}),
             'unit_cost': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01', 'placeholder': '100.00', 'min': '10'}),
+            'units_per_sachet': forms.NumberInput(attrs={'class': INPUT_CLASS, 'min': '1', 'placeholder': '10'}),
+            'sachet_selling_price': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01', 'placeholder': '1800.00'}),
+            'units_per_carton': forms.NumberInput(attrs={'class': INPUT_CLASS, 'min': '1', 'placeholder': '100'}),
+            'carton_selling_price': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01', 'placeholder': '16000.00'}),
             'selling_price_per_unit': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01', 'placeholder': '200.00', 'min': '50'}),
             'annual_demand': forms.NumberInput(attrs={'class': INPUT_CLASS, 'placeholder': '3600'}),
             'ordering_cost': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01', 'placeholder': '500.00'}),

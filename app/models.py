@@ -96,6 +96,21 @@ class Pharmacy(models.Model):
         help_text='Customer assurance statement printed on retail receipts against smuggling & drug abuse',
     )
 
+
+    ACTIVATION_CHOICES = [
+        ('DEMO', 'Demo Sandbox'),
+        ('PENDING', 'Activation Requested'),
+        ('ACTIVE', 'Verified Live'),
+        ('REJECTED', 'Rejected'),
+    ]
+    activation_status = models.CharField(max_length=20, choices=ACTIVATION_CHOICES, default='DEMO')
+    pcn_license_number = models.CharField(max_length=100, blank=True, default='')
+    physical_address = models.TextField(blank=True, default='')
+    contact_phone = models.CharField(max_length=40, blank=True, default='')
+    activation_requested_at = models.DateTimeField(null=True, blank=True)
+    activation_reviewed_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True, default='')
+
     def __str__(self):
         return self.shop_name
 
@@ -143,7 +158,7 @@ class PharmacyOwnedModel(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
-        if getattr(self, '_bypass_pharmacy_check', False):
+        if getattr(self, '_bypass_pharmacy_check', False) or getattr(self, 'is_superuser', False):
             return super().save(*args, **kwargs)
         # Allow saving without pharmacy context for existing records
         # (e.g., password reset, profile updates without tenant context,
@@ -234,6 +249,11 @@ ROLE_PERMISSIONS = {
 
 
 class CustomUserManager(TenantScopedManager, BaseUserManager):
+    def get_queryset(self):
+        if get_current_pharmacy_id() is None:
+            return self.model.all_objects.get_queryset()
+        return super().get_queryset()
+
     def get_by_natural_key(self, username):
         return self.model.all_objects.get(
             **{self.model.USERNAME_FIELD: username}
@@ -273,6 +293,7 @@ class CustomUserManager(TenantScopedManager, BaseUserManager):
 
 
 class CustomUser(PharmacyOwnedModel, AbstractUser):
+    pharmacy = models.ForeignKey(Pharmacy, on_delete=models.PROTECT, related_name='customuser_records', null=True, blank=True)
     ROLE_CHOICES = (
         ('ADMIN', 'System Administrator'),
         ('PHARMACIST', 'Pharmacist'),
@@ -482,7 +503,11 @@ class Medication(PharmacyOwnedModel):
         help_text="PCN / NAFDAC regulatory dispensing classification"
     )
     unit_cost = models.DecimalField(max_digits=10, decimal_places=2, default=100.00, help_text="Unit purchase price in Nigerian Naira")
-    selling_price_per_unit = models.DecimalField(max_digits=10, decimal_places=2, default=200.00, help_text="Selling price per unit in Nigerian Naira")
+    selling_price_per_unit = models.DecimalField(max_digits=10, decimal_places=2, default=200.00, help_text="End-user selling price per single unit (₦)")
+    units_per_sachet = models.PositiveIntegerField(default=10, help_text="Number of base units in 1 sachet / blister pack")
+    sachet_selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=1800.00, help_text="Selling price per sachet / pack (₦)")
+    units_per_carton = models.PositiveIntegerField(default=100, help_text="Number of base units in 1 carton / wholesale box")
+    carton_selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=16000.00, help_text="Discounted wholesale selling price per carton (₦)")
 
     # FR3: Economic Order Quantity (EOQ) Parameters
     annual_demand = models.PositiveIntegerField(default=3600, help_text="Configured annual demand units")
@@ -623,6 +648,11 @@ class PurchaseOrder(PharmacyOwnedModel):
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='purchase_orders')
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+    BUYER_TYPES = (
+        ('END_USER', 'End-User (Walk-In Retail)'),
+        ('RESELLER', 'Reseller / Retailer (Wholesale Tier)'),
+    )
+    buyer_type = models.CharField(max_length=20, choices=BUYER_TYPES, default='END_USER')
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -782,7 +812,15 @@ class SalesTransactionItem(PharmacyOwnedModel):
     """Individual medication items in a sales transaction."""
     sales_transaction = models.ForeignKey(SalesTransaction, on_delete=models.CASCADE, related_name='items')
     medication = models.ForeignKey(Medication, on_delete=models.SET_NULL, null=True)
-    quantity_sold = models.PositiveIntegerField()
+    PACK_TIERS = (
+        ('UNIT', 'Unit'),
+        ('SACHET', 'Sachet'),
+        ('CARTON', 'Carton'),
+    )
+    pack_tier = models.CharField(max_length=15, choices=PACK_TIERS, default='UNIT')
+    pack_quantity = models.PositiveIntegerField(default=1, help_text="Number of packs/units billed in selected tier")
+    pack_price_naira = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Selling price per selected package tier (₦)")
+    quantity_sold = models.PositiveIntegerField(help_text="Total base units deducted from inventory")
     unit_price_naira = models.DecimalField(max_digits=10, decimal_places=2)
     subtotal_naira = models.DecimalField(max_digits=12, decimal_places=2)
     updated_at = models.DateTimeField(auto_now=True)
@@ -791,7 +829,10 @@ class SalesTransactionItem(PharmacyOwnedModel):
         ordering = ['-sales_transaction__created_at', 'medication__name']
 
     def save(self, *args, **kwargs):
-        self.subtotal_naira = self.quantity_sold * self.unit_price_naira
+        if self.pack_price_naira and float(self.pack_price_naira) > 0 and self.pack_quantity:
+            self.subtotal_naira = self.pack_quantity * self.pack_price_naira
+        else:
+            self.subtotal_naira = self.quantity_sold * self.unit_price_naira
         super().save(*args, **kwargs)
 
     def __str__(self):

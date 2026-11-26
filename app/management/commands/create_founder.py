@@ -79,7 +79,7 @@ class Command(BaseCommand):
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
-                pharmacy_id=pharmacy.pk,
+                pharmacy_id=None,
                 pha_user_id=generate_founder_id(),
             )
 

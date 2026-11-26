@@ -1,6 +1,36 @@
 {% extends 'base.html' %}
 
-{% block title %}Stock & Inventory Catalog | PharmaAudit OS{% endblock %}
+{% block title %}Stock & Inventory Catalog | PharmaAudit OS
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  if (new URLSearchParams(window.location.search).get('open_new') === '1') {
+    const m = document.getElementById('addMedModal');
+    if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
+  }
+});
+</script>
+
+
+<script>
+function liveFilterCatalog() {
+  const input = document.getElementById('catalogLiveSearchInput');
+  const secSel = document.getElementById('catalogLiveSectionSelect');
+  const q = (input ? input.value : '').toLowerCase().trim();
+  const secText = (secSel && secSel.value && secSel.selectedIndex > 0)
+    ? secSel.options[secSel.selectedIndex].text.toLowerCase().trim()
+    : '';
+  const rows = document.querySelectorAll('table tbody tr');
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    const matchQuery = !q || text.includes(q);
+    const matchSection = !secText || text.includes(secText);
+    row.style.display = (matchQuery && matchSection) ? '' : 'none';
+  });
+}
+document.addEventListener('DOMContentLoaded', liveFilterCatalog);
+</script>
+
+{% endblock %}
 
 {% block main_content %}
 <div class="space-y-6">
@@ -13,20 +43,20 @@
         </div>
 
         {% if user.can_configure_system %}
-        <button onclick="document.getElementById('addMedModal').classList.remove('hidden')" class="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl shadow-md transition-all duration-200 flex items-center space-x-2 flex-shrink-0">
+        <a href="{% url 'add_medication' %}" class="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl shadow-md transition-all duration-200 flex items-center space-x-2 flex-shrink-0">
             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
             <span>Register New Drug Item</span>
-        </button>
+        </a>
         {% endif %}
     </div>
 
     <!-- Filter & Search Bar -->
     <form method="GET" action="{% url 'medications_list' %}" class="flex flex-col sm:flex-row gap-3.5 text-sm">
         <div class="relative flex-1">
-            <input type="text" name="q" value="{{ query }}" placeholder="Search by Drug Name, Formula, or SKU..." class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 placeholder-slate-400">
+            <input type="text" id="catalogLiveSearchInput" name="q" value="{{ query }}" oninput="liveFilterCatalog()" onkeyup="liveFilterCatalog()" autocomplete="off" placeholder="Type any letter to filter Drug Name, Formula, or SKU..." class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 placeholder-slate-400">
         </div>
         
-        <select name="section" class="px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-700 font-medium">
+        <select id="catalogLiveSectionSelect" name="section" onchange="liveFilterCatalog()" class="px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-700 font-medium">
             <option value="">All Pharmacy Sections</option>
             {% for s in sections %}
             <option value="{{ s.id }}" {% if selected_section == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
@@ -169,98 +199,124 @@
 
 {% if user.can_configure_system %}
 <!-- Modal: Register New Medication -->
-<div id="addMedModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="max-w-2xl w-full border border-slate-200 bg-white p-6 sm:p-8 rounded-3xl shadow-2xl text-sm max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
-            <div>
-                <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Catalog Registration</span>
-                <h3 class="font-bold text-slate-900 tracking-tight text-lg">Register New Drug Item & Reorder Settings</h3>
-            </div>
-            <button onclick="document.getElementById('addMedModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 font-bold text-2xl leading-none">&times;</button>
+<div id="addMedModal" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(2,6,23,0.68); align-items: center; justify-content: center; padding: 16px;">
+    <div style="max-width: 620px; width: 100%;" class="border border-slate-200 bg-white rounded-2xl shadow-2xl text-sm max-h-[92vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-extrabold text-slate-900 tracking-tight text-base">New Medicine</h3>
+            <button type="button" onclick="const m=document.getElementById('addMedModal'); if(m){m.classList.remove('hidden'); m.style.display='flex';}" class="w-7 h-7 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 font-bold text-lg leading-none">&times;</button>
         </div>
 
-        <form method="POST" action="{% url 'add_medication' %}" class="space-y-5">
+        <form method="POST" action="{% url 'add_medication' %}" class="p-6 space-y-4">
             {% csrf_token %}
 
-            <div>
-                <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Medication Name</label>
-                {{ form.name }}
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Clean 2-Column Grid matching New Medicine Layout -->
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px;">
                 <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">SKU / Item Code</label>
-                    {{ form.sku }}
+                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Name *</label>
+                    <input type="text" name="name" required placeholder="e.g. Amoxicillin 500mg" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
                 </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Pharmacy Section</label>
-                    {{ form.section }}
-                </div>
-            </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Supplier</label>
+                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">SKU / Item Code *</label>
+                    <input type="text" name="sku" required placeholder="e.g. SKU-AMX-500" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-mono font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Supplier / Manufacturer</label>
                     {{ form.supplier }}
                 </div>
+
                 <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Unit of Measure</label>
+                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Category / Section *</label>
+                    {{ form.section }}
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Unit *</label>
                     {{ form.unit }}
                 </div>
+
                 <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Unit Purchase Cost (₦)</label>
-                    {{ form.unit_cost }}
+                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Pack Size (Units / Sachet)</label>
+                    <input type="number" name="units_per_sachet" min="1" value="10" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-mono font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Unit Cost (₦)</label>
+                    <input type="number" step="0.01" min="0" name="unit_cost" value="100.00" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-mono font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Reorder Level (Safety Stock)</label>
+                    <input type="number" min="0" name="safety_stock" value="50" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-mono font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Unit Selling Price (₦)</label>
+                    <input type="number" step="0.01" min="0" name="selling_price_per_unit" value="200.00" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-mono font-semibold text-emerald-800 focus:border-emerald-600 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Sachet Price (₦)</label>
+                    <input type="number" step="0.01" min="0" name="sachet_selling_price" value="1800.00" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-mono font-semibold text-emerald-800 focus:border-emerald-600 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Units / Carton</label>
+                    <input type="number" min="1" name="units_per_carton" value="100" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-mono font-semibold text-slate-900 focus:border-emerald-600 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Carton Price (₦)</label>
+                    <input type="number" step="0.01" min="0" name="carton_selling_price" value="16000.00" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-mono font-semibold text-emerald-800 focus:border-emerald-600 focus:outline-none">
                 </div>
             </div>
 
-            <div class="p-3.5 bg-slate-100 border border-slate-200 rounded-xl font-semibold text-slate-800 text-xs">
-                Annual Stock Demand Settings:
+            <!-- Hidden EOQ/ROP operational defaults so model validation succeeds cleanly -->
+            <input type="hidden" name="annual_demand" value="3600">
+            <input type="hidden" name="ordering_cost" value="500.00">
+            <input type="hidden" name="holding_cost" value="20.00">
+            <input type="hidden" name="daily_consumption" value="10">
+            <input type="hidden" name="lead_time_days" value="7">
+            <input type="hidden" name="max_level" value="500">
+            <input type="hidden" name="drug_schedule" id="newMedScheduleInput" value="OTC">
+
+            <!-- Inline Regulatory Checkboxes matching New Medicine Layout -->
+            <div style="display: flex; align-items: center; gap: 18px; padding-top: 4px;">
+                <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer">
+                    <input type="checkbox" id="chkRequiresRx" onchange="syncDrugSchedule()" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                    <span>Requires prescription</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer">
+                    <input type="checkbox" id="chkControlledSub" onchange="syncDrugSchedule()" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                    <span>Controlled substance</span>
+                </label>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Annual Demand (Units)</label>
-                    {{ form.annual_demand }}
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Ordering Cost (₦/PO)</label>
-                    {{ form.ordering_cost }}
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Holding Cost (₦/unit/yr)</label>
-                    {{ form.holding_cost }}
-                </div>
-            </div>
-
-            <div class="p-3.5 bg-amber-50/80 border border-amber-100 rounded-xl font-semibold text-amber-900 text-xs">
-                Stock Safety & Reorder Thresholds:
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Daily Usage</label>
-                    {{ form.daily_consumption }}
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Lead Time (Days)</label>
-                    {{ form.lead_time_days }}
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Safety Stock</label>
-                    {{ form.safety_stock }}
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-700 uppercase text-xs mb-1.5">Max Capacity</label>
-                    {{ form.max_level }}
-                </div>
-            </div>
-
-            <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
-                <button type="button" onclick="document.getElementById('addMedModal').classList.add('hidden')" class="px-5 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition">Cancel</button>
-                <button type="submit" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-md transition">Save Drug Record</button>
+            <!-- Full-Width Emerald Save Medicine Button -->
+            <div class="pt-1">
+                <button type="submit" style="background-color: #047857; color: #ffffff;" class="w-full py-2.5 rounded-xl hover:opacity-95 text-xs font-extrabold tracking-wide shadow-md transition cursor-pointer">
+                    Save Medicine
+                </button>
             </div>
         </form>
     </div>
 </div>
+<script>
+function syncDrugSchedule() {
+  const rx = document.getElementById('chkRequiresRx');
+  const ctrl = document.getElementById('chkControlledSub');
+  const out = document.getElementById('newMedScheduleInput');
+  if (!out) return;
+  if (ctrl && ctrl.checked) {
+    if (rx) rx.checked = true;
+    out.value = 'CONTROLLED';
+  } else if (rx && rx.checked) {
+    out.value = 'POM';
+  } else {
+    out.value = 'OTC';
+  }
+}
+</script>
 {% endif %}
 {% endblock %}

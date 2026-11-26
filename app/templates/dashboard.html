@@ -3,6 +3,88 @@
 {% block title %}Real-Time Inventory Dashboard |
 PharmaAudit OS{% endblock %} {% block main_content %}
 <div class="space-y-6">
+    <!-- Compact Top-Right Global Medication Quick-Search Bar -->
+  <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap;" class="relative z-30">
+    <div class="relative" style="width: 240px; max-width: 100%;">
+      <div class="bg-white/85 backdrop-blur-md border border-emerald-300/80 rounded-full px-3 py-1.5 shadow-sm shadow-emerald-900/5 flex items-center gap-2 focus-within:ring-2 focus-within:ring-emerald-500/40 transition">
+        <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input
+          type="text"
+          id="dashboardGlobalMedSearch" onkeyup="this.dispatchEvent(new Event('input'))"
+          autocomplete="off"
+          placeholder="Search drug, SKU..."
+          class="w-full bg-transparent text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none"
+        />
+      </div>
+      <div id="dashboardGlobalSearchResults" class="hidden absolute right-0 mt-1.5 w-80 sm:w-[28rem] bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto divide-y divide-slate-100 z-50"></div>
+    </div>
+    <a href="{% url 'add_medication' %}" class="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-extrabold shadow-xs transition">+ New Drug</a>
+    <a href="{% url 'receive_batch' %}" class="px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-extrabold shadow-xs transition">
+      + Purchase
+    </a>
+    <script>
+    (function() {
+      const input = document.getElementById('dashboardGlobalMedSearch');
+      const box = document.getElementById('dashboardGlobalSearchResults');
+      if (!input || !box) return;
+      let ctrl = null;
+      async function runSearch() {
+        const q = input.value.trim();
+        if (!q) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+        if (ctrl) ctrl.abort();
+        ctrl = new AbortController();
+        try {
+          const res = await fetch(`{% url 'medication_search_ajax' %}?q=${encodeURIComponent(q)}`, {
+            signal: ctrl.signal,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          });
+          if (!res.ok) {
+            box.innerHTML = `<div class="p-3 text-xs text-rose-600 font-semibold">Search status ${res.status}</div>`;
+            box.classList.remove('hidden');
+            return;
+          }
+          const data = await res.json();
+          if (!data.results || data.results.length === 0) {
+            box.innerHTML = '<div class="p-3.5 text-xs font-semibold text-slate-500">No matching medications found.</div>';
+          } else {
+            box.innerHTML = data.results.map(m => `
+              <div class="p-3 hover:bg-emerald-50/70 transition flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-extrabold text-xs text-slate-900 truncate">${m.name}</span>
+                    <span class="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono text-[9px] font-bold">${m.sku}</span>
+                  </div>
+                  <div class="text-[10px] text-slate-600 mt-0.5 font-medium">
+                    Stock: <strong class="text-slate-900 font-mono">${m.stock} ${m.unit}</strong>
+                    &bull; Unit: <strong class="text-emerald-700 font-mono">₦${Number(m.unit_price).toLocaleString()}</strong>
+                    ${m.sachet_price > 0 ? `&bull; Sachet: <strong class="text-emerald-700 font-mono">₦${Number(m.sachet_price).toLocaleString()}</strong>` : ''}
+                    ${m.carton_price > 0 ? `&bull; Carton: <strong class="text-emerald-700 font-mono">₦${Number(m.carton_price).toLocaleString()}</strong>` : ''}
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <a href="{% url 'fefo_dispense' %}" class="px-2.5 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold">Dispense</a>
+                  <a href="{% url 'receive_batch' %}" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold">Restock</a>
+                </div>
+              </div>
+            `).join('');
+          }
+          box.classList.remove('hidden');
+        } catch (err) {
+          if (err.name !== 'AbortError') console.error('Search error:', err);
+        }
+      }
+      input.addEventListener('input', runSearch);
+      input.addEventListener('keyup', runSearch);
+      input.addEventListener('focus', function() { if (input.value.trim().length >= 1) runSearch(); });
+      document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !box.contains(e.target)) box.classList.add('hidden');
+      });
+    })();
+    </script>
+  </div>
+
   <!-- Header Integrity Banner -->
   <div
     class="bg-white/90 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-lg shadow-slate-200/50"
@@ -56,90 +138,168 @@ PharmaAudit OS{% endblock %} {% block main_content %}
       </div>
     </div>
 
-    <!-- FR1: Real-Time Stock Tracking Counters -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      <div
-        class="p-6 bg-gradient-to-br from-emerald-500/10 via-white to-emerald-500/5 border border-emerald-200/80 rounded-2xl shadow-md shadow-emerald-500/5 hover:shadow-lg transition-all duration-200"
-      >
-        <div class="flex items-center justify-between mb-3">
-          <span
-            class="text-emerald-800 font-bold uppercase text-xs tracking-wider"
-            >Adequate Stock</span
-          >
-          <span
-            class="px-2.5 py-1 bg-emerald-500 text-white font-bold text-[10px] uppercase rounded-full shadow-sm"
-            >Normal</span
-          >
+    
+    {% if request.pharmacy and request.pharmacy.activation_status != 'ACTIVE' %}
+    <!-- Activation Readiness Checklist & Demo Governance Card -->
+    <div class="mb-6 rounded-2xl border {% if request.pharmacy.activation_status == 'PENDING' %}border-amber-300 bg-amber-50/60{% elif request.pharmacy.activation_status == 'REJECTED' %}border-rose-300 bg-rose-50/60{% else %}border-slate-300 bg-slate-50/90{% endif %} p-5 sm:p-6">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div class="space-y-2 max-w-2xl">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-slate-900 text-white">
+              Account Status: {% if request.pharmacy.activation_status == 'PENDING' %}Pending Founder Verification{% elif request.pharmacy.activation_status == 'REJECTED' %}Action Required{% else %}Demo Sandbox Trial{% endif %}
+            </span>
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+              Live Stock Uploads Locked
+            </span>
+          </div>
+          <h3 class="text-base sm:text-lg font-extrabold text-slate-900">Activation Readiness Checklist</h3>
+          <p class="text-xs text-slate-600">
+            Explore FEFO dispensing, simulated stock alerts, and audit logs using your pre-loaded demo inventory. When you are ready to upload real shop stock, submit your PCN license for Founder activation.
+          </p>
+          {% if request.pharmacy.activation_status == 'REJECTED' and request.pharmacy.rejection_reason %}
+          <div class="p-3 rounded-xl bg-rose-100/80 border border-rose-200 text-xs text-rose-800 font-medium">
+            <strong>Founder Review Note:</strong> {{ request.pharmacy.rejection_reason }}
+          </div>
+          {% endif %}
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs font-semibold">
+            <div class="flex items-center gap-2 text-emerald-700"><span>&#10003;</span><span>1. Sandbox Account &amp; Demo Stock Ready</span></div>
+            <div class="flex items-center gap-2 text-emerald-700"><span>&#10003;</span><span>2. Test FEFO Dispensing &amp; Reports</span></div>
+            <div class="flex items-center gap-2 {% if request.pharmacy.activation_status == 'PENDING' %}text-emerald-700{% else %}text-slate-500{% endif %}">
+              <span>{% if request.pharmacy.activation_status == 'PENDING' %}&#10003;{% else %}&#9675;{% endif %}</span>
+              <span>3. Submit PCN License &amp; Premise Details</span>
+            </div>
+            <div class="flex items-center gap-2 text-slate-500"><span>&#9675;</span><span>4. Founder Approval &amp; Live Stock Unlock</span></div>
+          </div>
         </div>
-        <span class="text-4xl font-extrabold text-slate-900 block font-mono"
-          >{{ adequate_count }}</span
-        >
-        <p class="text-xs text-slate-500 mt-2 font-sans">
-          Operating at optimal capacity
-        </p>
+
+        <div class="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-2.5 flex-shrink-0">
+          {% if request.pharmacy.activation_status == 'PENDING' %}
+          <div class="px-4 py-3 rounded-xl bg-white border border-amber-300 text-xs font-bold text-amber-900 shadow-xs text-center">
+            Request Submitted &bull; Under Founder Review
+            <div class="text-[11px] font-normal text-slate-500 mt-0.5">PCN: {{ request.pharmacy.pcn_license_number }}</div>
+          </div>
+          {% else %}
+          <button type="button" onclick="document.getElementById('activationRequestModal').classList.remove('hidden')" class="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold uppercase tracking-wider shadow-sm transition">
+            Request Live Activation &rarr;
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Activation Request Modal -->
+    <div id="activationRequestModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl border border-slate-200 max-w-md w-full overflow-hidden shadow-2xl">
+        <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Live Production Onboarding</span>
+            <h3 class="text-base font-extrabold">Request Live Branch Activation</h3>
+          </div>
+          <button type="button" onclick="document.getElementById('activationRequestModal').classList.add('hidden')" class="text-slate-400 hover:text-white text-lg font-bold">&times;</button>
+        </div>
+        <form method="post" action="{% url 'request_activation' %}" class="p-5 space-y-4 text-xs">
+          {% csrf_token %}
+          <p class="text-slate-600">Once verified by the Platform Founder, sample demo data will be cleared automatically and live stock uploads will unlock.</p>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">PCN Pharmacy / Superintendent License Number *</label>
+            <input type="text" name="pcn_license_number" required value="{{ request.pharmacy.pcn_license_number }}" placeholder="e.g. PCN-2026-88412" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-slate-900 font-mono focus:border-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Official Branch Phone Number *</label>
+            <input type="text" name="contact_phone" required value="{{ request.pharmacy.contact_phone }}" placeholder="e.g. +234 803 000 0000" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-slate-900 focus:border-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Registered Physical Premises Address *</label>
+            <textarea name="physical_address" rows="2" required placeholder="Street, City, State" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-slate-900 focus:border-emerald-500 focus:outline-none">{{ request.pharmacy.physical_address }}</textarea>
+          </div>
+          <div class="flex items-center justify-end gap-2 pt-2">
+            <button type="button" onclick="document.getElementById('activationRequestModal').classList.add('hidden')" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold">Cancel</button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold">Submit for Verification</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- FR1: Compact Spherical Translucent Balloon KPI Cards -->
+    <style>
+      .balloon-card {
+        border-radius: 9999px;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.22s ease, box-shadow 0.22s ease;
+      }
+      .balloon-card::before {
+        content: "";
+        position: absolute;
+        top: 8%;
+        left: 14%;
+        width: 42%;
+        height: 28%;
+        border-radius: 9999px;
+        background: radial-gradient(ellipse at center, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0) 75%);
+        pointer-events: none;
+      }
+      .balloon-card:hover {
+        transform: translateY(-3px) scale(1.02);
+      }
+    </style>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+      <!-- 1. Total Catalog (Emerald Sphere) -->
+      <a href="{% url 'medications_list' %}"
+         style="background: radial-gradient(circle at 30% 25%, rgba(16,185,129,0.22), rgba(255,255,255,0.72) 65%, rgba(16,185,129,0.12)); border: 1.5px solid rgba(16,185,129,0.38); box-shadow: 0 10px 24px -6px rgba(16,185,129,0.20), inset 0 -6px 14px rgba(16,185,129,0.12);"
+         class="balloon-card px-4 py-4 flex flex-col items-center justify-center text-center aspect-square max-h-40 mx-auto w-full">
+        <span class="px-2 py-0.5 bg-emerald-600 text-white font-extrabold text-[9px] uppercase rounded-full shadow-2xs mb-1">Catalog</span>
+        <span class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-mono leading-none">{{ total_medications }}</span>
+        <span class="text-emerald-950 font-extrabold uppercase text-[10px] tracking-wider mt-1.5">Total SKUs</span>
+      </a>
+
+      <!-- 2. Adequate Stock (Teal-Emerald Sphere) -->
+      <div
+         style="background: radial-gradient(circle at 30% 25%, rgba(5,150,105,0.20), rgba(255,255,255,0.72) 65%, rgba(5,150,105,0.10)); border: 1.5px solid rgba(5,150,105,0.35); box-shadow: 0 10px 24px -6px rgba(5,150,105,0.18), inset 0 -6px 14px rgba(5,150,105,0.10);"
+         class="balloon-card px-4 py-4 flex flex-col items-center justify-center text-center aspect-square max-h-40 mx-auto w-full">
+        <span class="px-2 py-0.5 bg-emerald-500 text-white font-extrabold text-[9px] uppercase rounded-full shadow-2xs mb-1">Normal</span>
+        <span class="text-2xl sm:text-3xl font-extrabold text-emerald-700 font-mono leading-none">{{ adequate_count }}</span>
+        <span class="text-emerald-900 font-extrabold uppercase text-[10px] tracking-wider mt-1.5">Adequate</span>
       </div>
 
+      <!-- 3. At Reorder Point (Amber Sphere) -->
       <div
-        class="p-6 bg-gradient-to-br from-amber-500/10 via-white to-amber-500/5 border border-amber-200/80 rounded-2xl shadow-md shadow-amber-500/5 hover:shadow-lg transition-all duration-200"
-      >
-        <div class="flex items-center justify-between mb-3">
-          <span
-            class="text-amber-800 font-bold uppercase text-xs tracking-wider"
-            >At Reorder Point (ROP)</span
-          >
-          <span
-            class="px-2.5 py-1 bg-amber-500 text-white font-bold text-[10px] uppercase rounded-full shadow-sm"
-            >Triggered</span
-          >
-        </div>
-        <span class="text-4xl font-extrabold text-amber-600 block font-mono"
-          >{{ at_rop_count }}</span
-        >
-        <p class="text-xs text-slate-500 mt-2 font-sans">
-          Order guidance generated
-        </p>
+         style="background: radial-gradient(circle at 30% 25%, rgba(245,158,11,0.22), rgba(255,255,255,0.72) 65%, rgba(245,158,11,0.12)); border: 1.5px solid rgba(245,158,11,0.40); box-shadow: 0 10px 24px -6px rgba(245,158,11,0.20), inset 0 -6px 14px rgba(245,158,11,0.12);"
+         class="balloon-card px-4 py-4 flex flex-col items-center justify-center text-center aspect-square max-h-40 mx-auto w-full">
+        <span class="px-2 py-0.5 bg-amber-500 text-white font-extrabold text-[9px] uppercase rounded-full shadow-2xs mb-1">Triggered</span>
+        <span class="text-2xl sm:text-3xl font-extrabold text-amber-600 font-mono leading-none">{{ at_rop_count }}</span>
+        <span class="text-amber-900 font-extrabold uppercase text-[10px] tracking-wider mt-1.5">At ROP</span>
       </div>
 
+      <!-- 4. Below Minimum Level (Orange Sphere) -->
       <div
-        class="p-6 bg-gradient-to-br from-orange-500/10 via-white to-orange-500/5 border border-orange-200/80 rounded-2xl shadow-md shadow-orange-500/5 hover:shadow-lg transition-all duration-200"
-      >
-        <div class="flex items-center justify-between mb-3">
-          <span
-            class="text-orange-800 font-bold uppercase text-xs tracking-wider"
-            >Below Minimum Level</span
-          >
-          <span
-            class="px-2.5 py-1 bg-orange-500 text-white font-bold text-[10px] uppercase rounded-full shadow-sm"
-            >Alert</span
-          >
-        </div>
-        <span class="text-4xl font-extrabold text-orange-600 block font-mono"
-          >{{ below_min_count }}</span
-        >
-        <p class="text-xs text-slate-500 mt-2 font-sans">
-          Safety stock compromised
-        </p>
+         style="background: radial-gradient(circle at 30% 25%, rgba(249,115,22,0.22), rgba(255,255,255,0.72) 65%, rgba(249,115,22,0.12)); border: 1.5px solid rgba(249,115,22,0.40); box-shadow: 0 10px 24px -6px rgba(249,115,22,0.20), inset 0 -6px 14px rgba(249,115,22,0.12);"
+         class="balloon-card px-4 py-4 flex flex-col items-center justify-center text-center aspect-square max-h-40 mx-auto w-full">
+        <span class="px-2 py-0.5 bg-orange-500 text-white font-extrabold text-[9px] uppercase rounded-full shadow-2xs mb-1">Alert</span>
+        <span class="text-2xl sm:text-3xl font-extrabold text-orange-600 font-mono leading-none">{{ below_min_count }}</span>
+        <span class="text-orange-900 font-extrabold uppercase text-[10px] tracking-wider mt-1.5">Low Stock</span>
       </div>
 
+      <!-- 5. Out of Stock (Rose Sphere) -->
       <div
-        class="p-6 bg-gradient-to-br from-rose-500/10 via-white to-rose-500/5 border border-rose-200/80 rounded-2xl shadow-md shadow-rose-500/5 hover:shadow-lg transition-all duration-200"
-      >
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-rose-800 font-bold uppercase text-xs tracking-wider"
-            >Out of Stock</span
-          >
-          <span
-            class="px-2.5 py-1 bg-rose-600 text-white font-bold text-[10px] uppercase rounded-full shadow-sm"
-            >Critical</span
-          >
-        </div>
-        <span class="text-4xl font-extrabold text-rose-600 block font-mono"
-          >{{ out_of_stock_count }}</span
-        >
-        <p class="text-xs text-slate-500 mt-2 font-sans">
-          Immediate intake required
-        </p>
+         style="background: radial-gradient(circle at 30% 25%, rgba(244,63,94,0.22), rgba(255,255,255,0.72) 65%, rgba(244,63,94,0.12)); border: 1.5px solid rgba(244,63,94,0.40); box-shadow: 0 10px 24px -6px rgba(244,63,94,0.20), inset 0 -6px 14px rgba(244,63,94,0.12);"
+         class="balloon-card px-4 py-4 flex flex-col items-center justify-center text-center aspect-square max-h-40 mx-auto w-full">
+        <span class="px-2 py-0.5 bg-rose-600 text-white font-extrabold text-[9px] uppercase rounded-full shadow-2xs mb-1">Critical</span>
+        <span class="text-2xl sm:text-3xl font-extrabold text-rose-600 font-mono leading-none">{{ out_of_stock_count }}</span>
+        <span class="text-rose-900 font-extrabold uppercase text-[10px] tracking-wider mt-1.5">Out of Stock</span>
       </div>
+
+      <!-- 6. Near Expiry 30d (Sky/Slate Sphere) -->
+      <a href="{% url 'expiries_monitoring' %}"
+         style="background: radial-gradient(circle at 30% 25%, rgba(14,165,233,0.22), rgba(255,255,255,0.72) 65%, rgba(14,165,233,0.12)); border: 1.5px solid rgba(14,165,233,0.38); box-shadow: 0 10px 24px -6px rgba(14,165,233,0.20), inset 0 -6px 14px rgba(14,165,233,0.12);"
+         class="balloon-card px-4 py-4 flex flex-col items-center justify-center text-center aspect-square max-h-40 mx-auto w-full">
+        <span style="background-color: #0284c7; color: #ffffff;" class="px-2 py-0.5 font-extrabold text-[9px] uppercase rounded-full shadow-2xs mb-1">FEFO 30d</span>
+        <span class="text-2xl sm:text-3xl font-extrabold text-sky-700 font-mono leading-none">{{ critical_30_batches|length }}</span>
+        <span class="text-sky-950 font-extrabold uppercase text-[10px] tracking-wider mt-1.5">Near Expiry</span>
+      </a>
     </div>
   </div>
 
@@ -209,6 +369,10 @@ PharmaAudit OS{% endblock %} {% block main_content %}
       </svg>
       <span>Goods Receipt Intake</span>
     </a>
+      <a href="{% url 'add_medication' %}" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer">
+        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4"/></svg>
+        <span>Register New Stock</span>
+      </a>
     {% endif %}
 
     {% if user.can_approve_purchase_orders %}
@@ -278,59 +442,7 @@ PharmaAudit OS{% endblock %} {% block main_content %}
     {% endif %}
   </div>
 
-
-  <!-- Pharmacy Sections Stock Overview Widget -->
-  <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm shadow-slate-200/50 space-y-5">
-    <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-      <div>
-        <span class="text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200/70 px-2.5 py-1 rounded-full uppercase tracking-wider">Departmental Stock Distribution</span>
-        <h3 class="text-lg font-bold text-slate-900 tracking-tight mt-2">Pharmacy Sections & Inventory Valuation</h3>
-      </div>
-      <a href="{% url 'sections_list' %}" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 transition flex items-center space-x-1">
-        <span>View Section Details</span>
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-      </a>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {% for sec_item in sections_summary %}
-      <div class="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-50 transition space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="px-2.5 py-0.5 bg-slate-900 text-white font-mono text-[10px] font-bold rounded-md uppercase">
-            {{ sec_item.section.code }}
-          </span>
-          <span class="text-[11px] font-mono font-bold px-2 py-0.5 bg-slate-200 text-slate-800 rounded-full">
-            {{ sec_item.skus_count }} SKUs
-          </span>
-        </div>
-
-        <div>
-          <h4 class="font-bold text-sm text-slate-900 leading-tight">{{ sec_item.section.name }}</h4>
-          <p class="text-xs text-slate-500 line-clamp-1 mt-0.5">{{ sec_item.section.description }}</p>
-        </div>
-
-        <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs font-mono">
-          <div>
-            <span class="text-[10px] text-slate-400 uppercase block font-sans">Total Units</span>
-            <span class="font-extrabold text-slate-900">{{ sec_item.total_units }}</span>
-          </div>
-          <div class="text-right">
-            <span class="text-[10px] text-slate-400 uppercase block font-sans">Valuation</span>
-            <span class="font-extrabold text-emerald-700">₦{{ sec_item.valuation|floatformat:2 }}</span>
-          </div>
-        </div>
-
-        {% if sec_item.alert_count > 0 %}
-        <div class="mt-1 text-[11px] text-amber-800 font-semibold bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-lg flex items-center justify-between">
-          <span>{{ sec_item.alert_count }} SKU(s) at or below ROP</span>
-          <a href="{% url 'medications_list' %}?section={{ sec_item.section.id }}" class="underline font-bold text-amber-900">Review</a>
-        </div>
-        {% endif %}
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-  <!-- Main Grid: FR4 ROP Engine & FR6 ABC & FR7 Expiry Module -->
+  <!-- Main Grid: ROP Engine & ABC & Expiry Module -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
     <!-- FR4: Automated ROP Alert Engine & Draft PO Generation -->
     <div
@@ -342,11 +454,8 @@ PharmaAudit OS{% endblock %} {% block main_content %}
         <div>
           <span
             class="text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/70 px-2.5 py-1 rounded-full uppercase"
-            >FR4 ROP ALERT ENGINE</span
+            >ROP ALERTS</span
           >
-          <h3 class="text-lg font-bold text-slate-900 tracking-tight mt-2">
-            Stockout & Reorder Point Alerts
-          </h3>
         </div>
         <a
           href="{% url 'medications_list' %}"
@@ -418,7 +527,7 @@ PharmaAudit OS{% endblock %} {% block main_content %}
       {% endif %}
     </div>
 
-    <!-- FR6: ABC Classification Breakdown & FR7 Expiry Alert Module -->
+    <!-- FR6: ABC Classification Breakdown & Expiry Alert Module -->
     <div class="space-y-6">
       <!-- FR6: ABC Classification Summary Card -->
       <div
@@ -430,7 +539,7 @@ PharmaAudit OS{% endblock %} {% block main_content %}
           <div>
             <span
               class="text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200/70 px-2.5 py-1 rounded-full uppercase"
-              >FR6 ABC CLASSIFICATION</span
+              >ABC CLASSIFICATION</span
             >
             <h3 class="text-lg font-bold text-slate-900 tracking-tight mt-2">
               Consumption Value Categorization
@@ -497,7 +606,7 @@ PharmaAudit OS{% endblock %} {% block main_content %}
           <div>
             <span
               class="text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/70 px-2.5 py-1 rounded-full uppercase"
-              >FR7 AUTOMATED EXPIRY ALERTS</span
+              >AUTOMATED EXPIRY ALERTS</span
             >
             <h3 class="text-lg font-bold text-slate-900 tracking-tight mt-2">
               Batch Expiration Monitoring
@@ -612,7 +721,7 @@ PharmaAudit OS{% endblock %} {% block main_content %}
       <div>
         <span
           class="text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200/70 px-2.5 py-1 rounded-full uppercase"
-          >FR2 IMMUTABLE AUDIT TRAIL</span
+          >IMMUTABLE AUDIT TRAIL</span
         >
         <h3 class="text-lg font-bold text-slate-900 tracking-tight mt-2">
           Cryptographic Audit Chain Feed

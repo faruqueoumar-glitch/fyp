@@ -144,13 +144,13 @@
                         <td class="px-5 py-4 font-mono text-slate-400 font-bold">{{ forloop.counter }}</td>
                         <td class="px-5 py-4">
                             <p class="font-black text-slate-900 text-sm">{{ item.medication.name }}</p>
-                            <p class="font-mono text-[11px] text-slate-500 font-bold">{{ item.medication.sku }} • {{ item.medication.unit }}</p>
+                            <p class="font-mono text-[11px] text-slate-500 font-bold">{{ item.medication.sku }} • {{ item.get_pack_tier_display }} Tier</p>
                         </td>
                         <td class="px-5 py-4 text-center font-mono font-black text-emerald-700 text-sm">
-                            {{ item.quantity_sold }} {{ item.medication.unit }}
+                            {{ item.pack_quantity }} {{ item.get_pack_tier_display }}(s) <span class="block text-[10px] text-slate-500">({{ item.quantity_sold }} {{ item.medication.unit }})</span>
                         </td>
                         <td class="px-5 py-4 text-right font-mono font-bold text-slate-700">
-                            ₦{{ item.unit_price_naira|floatformat:2 }}
+                            ₦{% if item.pack_price_naira %}{{ item.pack_price_naira|floatformat:2 }}{% else %}{{ item.unit_price_naira|floatformat:2 }}{% endif %}
                         </td>
                         <td class="px-5 py-4 text-right font-mono font-black text-slate-900 text-sm">
                             ₦{{ item.subtotal_naira|floatformat:2 }}

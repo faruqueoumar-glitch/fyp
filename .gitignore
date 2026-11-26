@@ -23,3 +23,4 @@ android_app/.gradle/
 android_app/app/build/
 android_app/app/src/main/python/backend/
 release_pkg/
+*.deb

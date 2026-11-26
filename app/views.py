@@ -82,35 +82,35 @@ DEFAULT_SUPPLIERS = [
         'contact_person': 'Dr. Alabi Williams',
         'email': 'orders@fidson.com',
         'phone': '+234-1-342-9100',
-        'address': '26, Kofo Abayomi Street, Victoria Island, Lagos, Nigeria'
+        'physical_address': '26, Kofo Abayomi Street, Victoria Island, Lagos, Nigeria'
     },
     {
         'name': 'May & Baker Nigeria Plc',
         'contact_person': 'Mrs. Chidimma Okeke',
         'email': 'sales@may-baker.com',
         'phone': '+234-1-280-5160',
-        'address': '1, May & Baker Avenue, Ikeja, Lagos, Nigeria'
+        'physical_address': '1, May & Baker Avenue, Ikeja, Lagos, Nigeria'
     },
     {
         'name': 'Emzor Pharmaceutical Industries',
         'contact_person': 'Chief Emeka Nnamdi',
         'email': 'supply@emzorpharma.com',
         'phone': '+234-1-460-7000',
-        'address': 'Plot 3C, Block E, Isolo Industrial Estate, Lagos, Nigeria'
+        'physical_address': 'Plot 3C, Block E, Isolo Industrial Estate, Lagos, Nigeria'
     },
     {
         'name': 'Swiss Pharma Nigeria Limited (Swipha)',
         'contact_person': 'Pharm. Yusuf Bello',
         'email': 'info@swiphanigeria.com',
         'phone': '+234-1-492-0543',
-        'address': '5, Farm Cave Road, Agege Industrial Estate, Lagos, Nigeria'
+        'physical_address': '5, Farm Cave Road, Agege Industrial Estate, Lagos, Nigeria'
     },
     {
         'name': 'GlaxoSmithKline Consumer Nigeria',
         'contact_person': 'Pharm. Sarah Johnson',
         'email': 'ng.orders@gsk.com',
         'phone': '+234-1-271-8000',
-        'address': '1, Industrial Avenue, Ilupeju, Lagos, Nigeria'
+        'physical_address': '1, Industrial Avenue, Ilupeju, Lagos, Nigeria'
     }
 ]
 
@@ -509,8 +509,8 @@ def register_view(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             shop_name = form.cleaned_data['shop_name']
-            phone_number = form.cleaned_data['phone_number']
-            address = form.cleaned_data['address']
+            contact_phone = form.cleaned_data['contact_phone']
+            address = form.cleaned_data['physical_address']
             full_name = form.cleaned_data['full_name']
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
@@ -522,7 +522,7 @@ def register_view(request):
             
             with transaction.atomic():
                 # Create the Pharmacy tenant
-                full_address = f"{address} (Tel: {phone_number})".strip() if phone_number else address
+                full_address = f"{address} (Tel: {contact_phone})".strip() if contact_phone else address
                 pharmacy = Pharmacy.objects.create(
                     shop_name=shop_name,
                     email=email,
@@ -556,6 +556,73 @@ def register_view(request):
     
     return render(request, 'auth/register.html', {'form': form})
 
+
+
+def _seed_demo_inventory_for_pharmacy(pharmacy):
+    from django.utils import timezone
+    from datetime import timedelta
+    with pharmacy_context(pharmacy.id):
+        if Medication.objects.exists():
+            return
+        sec_rx, _ = PharmacySection.objects.get_or_create(
+            name='Prescription Medications',
+            defaults={'code': 'RX-01', 'description': 'Prescription drugs and antibiotics'}
+        )
+        sec_otc, _ = PharmacySection.objects.get_or_create(
+            name='Over-the-Counter',
+            defaults={'code': 'OTC-01', 'description': 'Non-prescription medications and health products'}
+        )
+        sup1, _ = Supplier.objects.get_or_create(
+            name='PharmaCo Distribution',
+            defaults={'contact_person': 'Adeola Martins', 'phone': '+234 800 123 4567', 'email': 'orders@pharmaco.example'}
+        )
+        sample_items = [
+            ('Amoxicillin 500mg Capsules', 'SAM-AMX-500', sec_rx, sup1, 'Capsules', 120.00, 200.00, 2400, 15, 60, 500, 150),
+            ('Ibuprofen 400mg Tablets', 'SAM-IBU-400', sec_otc, sup1, 'Tablets', 50.00, 100.00, 3600, 20, 80, 600, 200),
+            ('Cetirizine 10mg Tablets', 'SAM-CET-010', sec_otc, sup1, 'Tablets', 60.00, 120.00, 1800, 10, 40, 300, 120),
+            ('Metformin 500mg Tablets', 'SAM-MET-500', sec_rx, sup1, 'Tablets', 85.00, 150.00, 2100, 15, 50, 400, 180),
+        ]
+        today = timezone.now().date()
+        for idx, (name, sku, sec, sup, unit, cost, price, annual, lead, rop, eoq, qty) in enumerate(sample_items, start=1):
+            med = Medication.objects.create(
+                name=name, sku=sku, section=sec, supplier=sup, unit=unit,
+                unit_cost=cost, selling_price=price, annual_demand=annual,
+                lead_time_days=lead, reorder_point=rop, eoq=eoq
+            )
+            MedicationBatch.objects.create(
+                medication=med,
+                batch_number=f'DEMO-B0{idx}',
+                quantity=qty,
+                expiry_date=today + timedelta(days=180 + idx * 45),
+                received_date=today
+            )
+
+def request_activation_view(request):
+    if not request.user.is_authenticated or not getattr(request.user, 'pharmacy', None):
+        return redirect('login')
+    pharmacy = request.user.pharmacy
+    if request.method == 'POST':
+        if pharmacy.activation_status == 'ACTIVE':
+            messages.info(request, 'Your pharmacy branch is already verified and active.')
+            return redirect('dashboard')
+        pcn = request.POST.get('pcn_license_number', '').strip()
+        phone = request.POST.get('contact_phone', '').strip()
+        address = request.POST.get('physical_address', '').strip()
+        if not pcn or not phone or not address:
+            messages.error(request, 'Please provide your PCN License Number, Contact Phone, and Physical Address.')
+            return redirect('dashboard')
+        pharmacy.pcn_license_number = pcn
+        pharmacy.contact_phone = phone
+        pharmacy.physical_address = address
+        pharmacy.activation_status = 'PENDING'
+        pharmacy.activation_requested_at = timezone.now()
+        pharmacy.rejection_reason = ''
+        pharmacy.save(update_fields=[
+            'pcn_license_number', 'contact_phone', 'physical_address',
+            'activation_status', 'activation_requested_at', 'rejection_reason'
+        ])
+        messages.success(request, 'Activation request submitted! Your branch is now queued for Founder PCN verification.')
+    return redirect('dashboard')
 
 def load_sample_data(request):
     """Load sample pharmacy data for a new pharmacy with 0 medications."""
@@ -863,13 +930,119 @@ def dashboard_view(request):
 # 3.2.2.1 Goods Receipt Intake View
 @require_permission('record_stock_receipt')
 def receive_batch_view(request):
+    if getattr(request, 'pharmacy', None) and getattr(request.pharmacy, 'activation_status', 'DEMO') != 'ACTIVE':
+        messages.warning(request, 'Live stock uploads are locked in Demo Sandbox mode. Submit your branch for Founder activation on the Dashboard to unlock live inventory.')
+        return redirect('dashboard')
+
+    medications = Medication.objects.select_related('section').order_by('name')
+    suppliers = Supplier.objects.order_by('name')
     form = GoodsReceiptForm(request.POST or None)
-    if request.method == 'POST' and form.is_valid():
+
+    if request.method == 'POST' and request.POST.get('multi_purchase_mode') == '1':
+        from decimal import Decimal
+        supplier_id = request.POST.get('supplier_id', '').strip()
+        invoice_number = request.POST.get('invoice_number', '').strip() or 'N/A'
+        amount_paid = request.POST.get('amount_paid', '').strip() or '0'
+        supplier_obj = Supplier.objects.filter(id=supplier_id).first() if supplier_id else None
+
+        med_ids = request.POST.getlist('item_medication_id[]')
+        batch_nums = request.POST.getlist('item_batch_number[]')
+        expiries = request.POST.getlist('item_expiry_date[]')
+        packs_list = request.POST.getlist('item_packs[]')
+        costs = request.POST.getlist('item_cost[]')
+        sale_prices = request.POST.getlist('item_sale_price[]')
+
+        today = timezone.now().date()
+        created_count = 0
+        for idx in range(len(med_ids)):
+            m_id = (med_ids[idx] or '').strip()
+            if not m_id:
+                continue
+            med = Medication.objects.filter(id=m_id).first()
+            if not med:
+                continue
+            b_num = (batch_nums[idx] if idx < len(batch_nums) else '').strip() or f"BAT-{today.strftime('%Y%m%d')}-{idx+1}"
+            exp_str = (expiries[idx] if idx < len(expiries) else '').strip()
+            if not exp_str:
+                messages.error(request, f"Expiry date is required for {med.name}.")
+                return render(request, 'inventory/receive_batch.html', {
+                    'form': form, 'medications': medications, 'suppliers': suppliers
+                })
+            try:
+                qty = int(packs_list[idx]) if idx < len(packs_list) and packs_list[idx].strip() else 0
+            except ValueError:
+                qty = 0
+            if qty <= 0:
+                messages.error(request, f"Quantity/Packs must be greater than 0 for {med.name}.")
+                return render(request, 'inventory/receive_batch.html', {
+                    'form': form, 'medications': medications, 'suppliers': suppliers
+                })
+
+            prev_stock = med.current_stock
+            # Update unit cost & unit selling price if entered
+            updated_fields = []
+            try:
+                c_val = Decimal(costs[idx].strip()) if idx < len(costs) and costs[idx].strip() else None
+                if c_val is not None and c_val > 0:
+                    med.unit_cost = c_val
+                    updated_fields.append('unit_cost')
+            except Exception:
+                pass
+            try:
+                s_val = Decimal(sale_prices[idx].strip()) if idx < len(sale_prices) and sale_prices[idx].strip() else None
+                if s_val is not None and s_val > 0:
+                    med.selling_price_per_unit = s_val
+                    updated_fields.append('selling_price_per_unit')
+            except Exception:
+                pass
+            if updated_fields:
+                med.save(update_fields=updated_fields)
+
+            batch = MedicationBatch.objects.create(
+                medication=med,
+                supplier=supplier_obj,
+                batch_number=b_num,
+                initial_quantity=qty,
+                quantity=qty,
+                manufacture_date=today,
+                expiry_date=exp_str,
+            )
+            created_count += 1
+            log_audit_trail(
+                request,
+                'STOCK_RECEIPT',
+                'MedicationBatch',
+                batch.id,
+                {'medication': med.name, 'previous_stock': prev_stock},
+                {
+                    'medication': med.name,
+                    'batch_number': batch.batch_number,
+                    'received_qty': batch.quantity,
+                    'new_stock': med.current_stock,
+                    'invoice_number': invoice_number,
+                    'amount_paid': amount_paid,
+                },
+                f"Purchase Invoice {invoice_number}: Batch {batch.batch_number} ({qty} {med.unit}) received from {supplier_obj.name if supplier_obj else 'N/A'}"
+            )
+            NotificationService.send_bulk_notification(
+                recipients=User.objects.all(),
+                actor=request.user,
+                title="Purchase Stock Intake",
+                message=f"Invoice {invoice_number}: Batch {batch.batch_number} ({batch.quantity} {med.unit}) added for {med.name}.",
+                target_obj=batch,
+                category='stock_receipt'
+            )
+
+        if created_count == 0:
+            messages.error(request, "Please select at least one medication item to record a purchase.")
+        else:
+            messages.success(request, f"Purchase saved & stock updated for {created_count} item(s) (Invoice: {invoice_number}).")
+            return redirect('medications_list')
+
+    elif request.method == 'POST' and form.is_valid():
         batch = form.save(commit=False)
         batch.quantity = batch.initial_quantity
         batch.save()
-
-        # Update drug aggregate balance & log audit record
         med = batch.medication
         log_audit_trail(
             request,
@@ -880,18 +1053,14 @@ def receive_batch_view(request):
             {'medication': med.name, 'batch_number': batch.batch_number, 'received_qty': batch.quantity, 'new_stock': med.current_stock},
             f"Goods Receipt intake: Batch {batch.batch_number} received from {batch.supplier.name if batch.supplier else 'N/A'}"
         )
-        NotificationService.send_bulk_notification(
-            recipients=User.objects.all(),
-            actor=request.user,
-            title="Goods Receipt Intake",
-            message=f"Batch {batch.batch_number} ({batch.quantity} {med.unit}) added for {med.name}.",
-            target_obj=batch,
-            category='stock_receipt'
-        )
         messages.success(request, f"Goods Receipt committed! Batch {batch.batch_number} ({batch.quantity} {med.unit}) added for {med.name}.")
         return redirect('medications_list')
 
-    return render(request, 'inventory/receive_batch.html', {'form': form})
+    return render(request, 'inventory/receive_batch.html', {
+        'form': form,
+        'medications': medications,
+        'suppliers': suppliers,
+    })
 
 
 
@@ -975,13 +1144,15 @@ def medications_list_view(request):
 
 @require_permission('configure_system')
 def add_medication_view(request):
+    if getattr(request, 'pharmacy', None) and getattr(request.pharmacy, 'activation_status', 'DEMO') != 'ACTIVE':
+        messages.warning(request, 'Live stock uploads are locked in Demo Sandbox mode. Submit your branch for Founder activation on the Dashboard to unlock live inventory.')
+        return redirect('dashboard')
     form = MedicationForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         med = form.save()
         log_audit_trail(request, 'CONFIG_CHANGE', 'Medication', med.id, {}, {'name': med.name, 'sku': med.sku}, 'New Drug Registered')
         messages.success(request, f"Medication '{med.name}' registered with computed ROP: {med.reorder_point} and EOQ: {med.eoq}.")
-    return redirect('medications_list')
-
+    return render(request, 'medications/add.html', {'form': form})
 
 # FR3 & FR4: Purchase Orders & Automated Draft PO Generation
 @require_permission('approve_purchase_orders')
@@ -1239,8 +1410,11 @@ def fefo_dispense_view(request):
             'unit': med.unit,
             'section': med.section.name if med.section else 'General',
             'supplier': med.supplier.name if med.supplier else 'N/A',
-            'unit_cost': float(med.unit_cost),
             'selling_price': float(med.selling_price_per_unit),
+            'units_per_sachet': int(getattr(med, 'units_per_sachet', 10) or 1),
+            'sachet_selling_price': float(getattr(med, 'sachet_selling_price', 0) or 0),
+            'units_per_carton': int(getattr(med, 'units_per_carton', 100) or 1),
+            'carton_selling_price': float(getattr(med, 'carton_selling_price', 0) or 0),
             'non_expired_stock': med.non_expired_stock,
             'reorder_point': med.reorder_point,
             'min_level': med.min_level,
@@ -1268,51 +1442,99 @@ def fefo_dispense_view(request):
     return render(request, 'inventory/fefo_dispense.html', context)
 
 
+def _resolve_tier_pricing(medication, pack_tier, buyer_type='END_USER'):
+    tier = (pack_tier or 'UNIT').upper()
+    if tier not in ('UNIT', 'SACHET', 'CARTON'):
+        tier = 'UNIT'
+    if tier == 'SACHET':
+        multiplier = max(1, int(getattr(medication, 'units_per_sachet', 1) or 1))
+        tier_price = float(getattr(medication, 'sachet_selling_price', 0) or 0)
+        if tier_price <= 0:
+            tier_price = float(medication.selling_price_per_unit) * multiplier
+        tier_label = f"Sachet ({multiplier} {medication.unit})"
+    elif tier == 'CARTON':
+        multiplier = max(1, int(getattr(medication, 'units_per_carton', 1) or 1))
+        tier_price = float(getattr(medication, 'carton_selling_price', 0) or 0)
+        if tier_price <= 0:
+            tier_price = float(medication.selling_price_per_unit) * multiplier
+        tier_label = f"Carton ({multiplier} {medication.unit})"
+    else:
+        multiplier = 1
+        tier_price = float(medication.selling_price_per_unit)
+        tier_label = f"Unit ({medication.unit})"
+    effective_unit_price = round(tier_price / multiplier, 4)
+    return tier, tier_label, multiplier, tier_price, effective_unit_price
+
+
 @require_permission('dispense_stock')
 def cart_add_item(request):
-    """AJAX endpoint to add medication to cart."""
+    """AJAX endpoint to add a medication in Unit, Sachet, or Carton tier to session cart."""
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request method'}, status=400)
 
     try:
         data = json.loads(request.body)
         medication_id = data.get('medication_id')
-        quantity = int(data.get('quantity', 1))
+        pack_quantity = int(data.get('quantity', 1))
+        pack_tier = (data.get('pack_tier') or 'UNIT').upper()
+        buyer_type = (data.get('buyer_type') or 'END_USER').upper()
 
-        if quantity <= 0:
+        if pack_quantity <= 0:
             return JsonResponse({'error': 'Quantity must be greater than zero'}, status=400)
 
         medication = get_object_or_404(Medication, id=medication_id)
+        tier, tier_label, multiplier, tier_price, effective_unit_price = _resolve_tier_pricing(
+            medication, pack_tier, buyer_type
+        )
+        base_units_to_add = pack_quantity * multiplier
 
-        # Validate available stock (non-expired)
         today = timezone.now().date()
         available_stock = medication.batches.filter(quantity__gt=0, expiry_date__gt=today).aggregate(Sum('quantity'))['quantity__sum'] or 0
 
-        # Initialize cart in session if not exists
+        if available_stock <= 0:
+            return JsonResponse({'error': f'{medication.name} is out of stock or expired.'}, status=400)
+
         if 'cart' not in request.session:
             request.session['cart'] = {}
 
         cart = request.session['cart']
-        med_id_str = str(medication_id)
-        current_in_cart = cart.get(med_id_str, {}).get('quantity', 0)
-        new_total_qty = current_in_cart + quantity
+        cart_key = f"{medication.id}:{tier}"
 
-        if new_total_qty > available_stock:
+        # Total base units across all tiers of this medication already in cart
+        existing_base_units_for_med = sum(
+            int(v.get('base_units', v.get('quantity', 0)))
+            for v in cart.values()
+            if int(v.get('medication_id', 0)) == medication.id
+        )
+        if existing_base_units_for_med + base_units_to_add > available_stock:
             return JsonResponse({
-                'error': f'Cannot add {quantity} units. Only {available_stock} non-expired units available in inventory (currently in cart: {current_in_cart}).',
+                'error': f'Cannot add {pack_quantity} {tier.title()}(s) ({base_units_to_add} {medication.unit}). Only {available_stock} non-expired {medication.unit} available (in cart: {existing_base_units_for_med}).',
                 'available': available_stock
             }, status=400)
 
-        if med_id_str in cart:
-            cart[med_id_str]['quantity'] = new_total_qty
+        if cart_key in cart:
+            cart[cart_key]['pack_quantity'] = int(cart[cart_key].get('pack_quantity', 1)) + pack_quantity
+            cart[cart_key]['base_units'] = cart[cart_key]['pack_quantity'] * multiplier
+            cart[cart_key]['quantity'] = cart[cart_key]['base_units']
+            cart[cart_key]['pack_price'] = tier_price
+            cart[cart_key]['unit_price'] = effective_unit_price
+            cart[cart_key]['buyer_type'] = buyer_type
         else:
-            cart[med_id_str] = {
+            cart[cart_key] = {
+                'cart_key': cart_key,
                 'medication_id': medication.id,
                 'name': medication.name,
                 'sku': medication.sku,
                 'unit': medication.unit,
-                'quantity': quantity,
-                'unit_price': float(medication.selling_price_per_unit)
+                'pack_tier': tier,
+                'tier_label': tier_label,
+                'multiplier': multiplier,
+                'pack_quantity': pack_quantity,
+                'pack_price': tier_price,
+                'base_units': base_units_to_add,
+                'quantity': base_units_to_add,
+                'unit_price': effective_unit_price,
+                'buyer_type': buyer_type,
             }
 
         request.session['cart'] = cart
@@ -1320,8 +1542,8 @@ def cart_add_item(request):
 
         return JsonResponse({
             'success': True,
-            'message': f'Added {quantity} {medication.unit} of {medication.name} to cart',
-            'cart_count': sum(item['quantity'] for item in cart.values()),
+            'message': f'Added {pack_quantity} {tier.title()}(s) of {medication.name} to cart',
+            'cart_count': sum(int(item.get('base_units', item.get('quantity', 0))) for item in cart.values()),
             'unique_items': len(cart)
         })
 
@@ -1331,55 +1553,62 @@ def cart_add_item(request):
 
 @require_permission('dispense_stock')
 def cart_update_item(request):
-    """AJAX endpoint to update cart item quantity."""
+    """AJAX endpoint to update cart item pack quantity."""
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request method'}, status=400)
 
     try:
         data = json.loads(request.body)
-        medication_id = data.get('medication_id')
-        quantity = int(data.get('quantity', 0))
+        cart_key = str(data.get('cart_key') or data.get('medication_id'))
+        pack_quantity = int(data.get('quantity', 0))
 
         if 'cart' not in request.session:
             return JsonResponse({'error': 'Cart is empty'}, status=400)
 
         cart = request.session['cart']
-        med_id_str = str(medication_id)
-
-        if med_id_str not in cart:
+        if cart_key not in cart:
             return JsonResponse({'error': 'Item not in cart'}, status=404)
 
-        if quantity <= 0:
-            del cart[med_id_str]
+        if pack_quantity <= 0:
+            del cart[cart_key]
             request.session['cart'] = cart
             request.session.modified = True
             return JsonResponse({
                 'success': True,
                 'message': 'Item removed from cart',
-                'cart_count': sum(item['quantity'] for item in cart.values()),
+                'cart_count': sum(int(item.get('base_units', item.get('quantity', 0))) for item in cart.values()),
                 'unique_items': len(cart)
             })
 
-        medication = get_object_or_404(Medication, id=medication_id)
+        entry = cart[cart_key]
+        medication = get_object_or_404(Medication, id=entry['medication_id'])
+        multiplier = max(1, int(entry.get('multiplier', 1)))
+        new_base_units = pack_quantity * multiplier
 
-        # Validate available stock
         today = timezone.now().date()
         available_stock = medication.batches.filter(quantity__gt=0, expiry_date__gt=today).aggregate(Sum('quantity'))['quantity__sum'] or 0
 
-        if quantity > available_stock:
+        other_units = sum(
+            int(v.get('base_units', v.get('quantity', 0)))
+            for k, v in cart.items()
+            if k != cart_key and int(v.get('medication_id', 0)) == medication.id
+        )
+        if other_units + new_base_units > available_stock:
             return JsonResponse({
-                'error': f'Cannot set quantity to {quantity}. Only {available_stock} non-expired units available.',
+                'error': f'Cannot set {pack_quantity} pack(s) ({new_base_units} {medication.unit}). Only {available_stock} non-expired units available.',
                 'available': available_stock
             }, status=400)
 
-        cart[med_id_str]['quantity'] = quantity
+        entry['pack_quantity'] = pack_quantity
+        entry['base_units'] = new_base_units
+        entry['quantity'] = new_base_units
         request.session['cart'] = cart
         request.session.modified = True
 
         return JsonResponse({
             'success': True,
             'message': 'Cart updated successfully',
-            'cart_count': sum(item['quantity'] for item in cart.values()),
+            'cart_count': sum(int(item.get('base_units', item.get('quantity', 0))) for item in cart.values()),
             'unique_items': len(cart)
         })
 
@@ -1424,7 +1653,7 @@ def cart_remove_item(request):
 
 @require_permission('dispense_stock')
 def cart_get_contents(request):
-    """AJAX endpoint to get current cart contents and totals with live stock counts."""
+    """AJAX endpoint to get current cart contents and totals with live stock counts (selling prices only)."""
     if 'cart' not in request.session:
         return JsonResponse({
             'items': [],
@@ -1435,33 +1664,43 @@ def cart_get_contents(request):
 
     cart = request.session['cart']
     items = []
-    total_naira = 0
+    total_naira = 0.0
     total_units = 0
     today = timezone.now().date()
 
-    for med_id_str, item in cart.items():
-        qty = item['quantity']
-        price = item['unit_price']
-        subtotal = qty * price
+    for cart_key, item in cart.items():
+        pack_qty = int(item.get('pack_quantity', item.get('quantity', 1)))
+        pack_tier = item.get('pack_tier', 'UNIT')
+        multiplier = max(1, int(item.get('multiplier', 1)))
+        base_units = int(item.get('base_units', pack_qty * multiplier))
+        pack_price = float(item.get('pack_price', item.get('unit_price', 0)))
+        subtotal = round(pack_qty * pack_price, 2)
         total_naira += subtotal
-        total_units += qty
+        total_units += base_units
 
-        # Get fresh available stock
         med = Medication.objects.filter(id=item['medication_id']).first()
         available_stock = med.batches.filter(quantity__gt=0, expiry_date__gt=today).aggregate(Sum('quantity'))['quantity__sum'] or 0 if med else 0
 
         sched = med.drug_schedule if med else 'OTC'
         items.append({
+            'cart_key': cart_key,
             'medication_id': item['medication_id'],
             'name': item['name'],
             'sku': item['sku'],
             'unit': item['unit'],
+            'pack_tier': pack_tier,
+            'tier_label': item.get('tier_label', f"{pack_tier.title()} ({multiplier} {item['unit']})"),
+            'multiplier': multiplier,
+            'pack_quantity': pack_qty,
+            'pack_price': pack_price,
+            'base_units': base_units,
             'drug_schedule': sched,
             'is_restricted': sched in ('POM', 'CONTROLLED'),
-            'quantity': qty,
-            'unit_price': price,
+            'quantity': pack_qty,
+            'unit_price': pack_price,
             'subtotal': subtotal,
-            'available_stock': available_stock
+            'available_stock': available_stock,
+            'buyer_type': item.get('buyer_type', 'END_USER'),
         })
 
     has_restricted = any(it['is_restricted'] for it in items)
@@ -1469,7 +1708,7 @@ def cart_get_contents(request):
     return JsonResponse({
         'items': items,
         'total_units': total_units,
-        'total_naira': float(total_naira),
+        'total_naira': round(total_naira, 2),
         'item_count': len(items),
         'has_restricted': has_restricted,
         'has_controlled': has_controlled,
@@ -1515,6 +1754,9 @@ def checkout_and_dispense(request):
         payment_method = data.get('payment_method', 'CASH').strip()
         if payment_method == 'POS':
             payment_method = 'POS_CARD'
+        buyer_type = (data.get('buyer_type') or 'END_USER').strip().upper()
+        if buyer_type not in ('END_USER', 'RESELLER'):
+            buyer_type = 'END_USER'
         notes = data.get('notes', '').strip()
 
         cart = request.session['cart']
@@ -1542,6 +1784,7 @@ def checkout_and_dispense(request):
                 prescriber_reg_no=prescriber_reg_no,
                 health_facility=health_facility,
                 payment_method=payment_method,
+                buyer_type=buyer_type,
                 notes=notes
             )
 
@@ -1550,8 +1793,12 @@ def checkout_and_dispense(request):
 
             for med_id_str, cart_item in cart.items():
                 medication_id = cart_item['medication_id']
-                quantity_to_dispense = int(cart_item['quantity'])
-                unit_price = float(cart_item['unit_price'])
+                pack_tier = cart_item.get('pack_tier', 'UNIT')
+                multiplier = max(1, int(cart_item.get('multiplier', 1)))
+                pack_quantity = int(cart_item.get('pack_quantity', cart_item.get('quantity', 1)))
+                pack_price = float(cart_item.get('pack_price', cart_item.get('unit_price', 0)))
+                quantity_to_dispense = int(cart_item.get('base_units', pack_quantity * multiplier))
+                unit_price = float(cart_item.get('unit_price', pack_price / multiplier))
 
                 medication = get_object_or_404(Medication, id=medication_id)
 
@@ -1679,9 +1926,9 @@ def checkout_and_dispense(request):
                 'branch': {
                     'shop_name': pharmacy_obj.shop_name if pharmacy_obj else 'PharmaAudit OS',
                     'branch_code': pharmacy_obj.branch_code if pharmacy_obj else '',
-                    'address': pharmacy_obj.address if pharmacy_obj else '',
-                    'phone_number': pharmacy_obj.phone_number if pharmacy_obj else '',
-                    'pcn_license_no': pharmacy_obj.pcn_license_no if pharmacy_obj else '',
+                    'physical_address': pharmacy_obj.address if pharmacy_obj else '',
+                    'contact_phone': pharmacy_obj.contact_phone if pharmacy_obj else '',
+                    'pcn_license_number': pharmacy_obj.pcn_license_number if pharmacy_obj else '',
                     'logo_data': pharmacy_obj.logo_data if pharmacy_obj else '',
                 },
                 'total_units': sum(s['quantity'] for s in dispensed_summary),
@@ -1706,6 +1953,9 @@ def sales_receipt_view(request, transaction_ref):
             'medication_name': item.medication.name if item.medication else 'Unknown Item',
             'sku': item.medication.sku if item.medication else 'N/A',
             'unit': item.medication.unit if item.medication else 'unit',
+            'pack_tier': item.get_pack_tier_display() if hasattr(item, 'get_pack_tier_display') else 'Unit',
+            'pack_quantity': getattr(item, 'pack_quantity', item.quantity_sold),
+            'pack_price': float(getattr(item, 'pack_price_naira', 0) or item.unit_price_naira),
             'quantity': item.quantity_sold,
             'unit_price': float(item.unit_price_naira),
             'subtotal': float(item.subtotal_naira)
@@ -2076,133 +2326,131 @@ def offline_view(request):
 
 @login_required
 def founder_dashboard_view(request):
-    """Super-admin portal: global platform overview & branch management."""
-    # Restrict to superusers only
+    """Super-admin Regulatory & Compliance Command Center."""
     if not request.user.is_superuser:
         return redirect('dashboard')
 
     from app.models import Pharmacy, CustomUser
 
-    # ---- KPI Summary ---
-    # Use _base_manager to bypass tenant scoping for superuser global view
-    total_branches = Pharmacy._base_manager.count()
-    active_branches = Pharmacy._base_manager.filter(is_active=True).count()
-    suspended_branches = Pharmacy._base_manager.filter(is_active=False).count()
-    total_users = CustomUser._base_manager.count()
-    total_superusers = CustomUser._base_manager.filter(is_superuser=True).count()
-
-    # ---- Pharmies with user counts (using reverse relation) ----
-    pharmacies = Pharmacy._base_manager.all().order_by('-created_at').annotate(
-        user_count=Count('customuser_records')
-    )
-
-    # ---- Search/filter bar ----
-    search_query = request.GET.get('q', '')
-    if search_query:
-        pharmacies = pharmacies.filter(
-            Q(shop_name__icontains=search_query) |
-            Q(email__icontains=search_query)
-        )
-
-    # ---- Platform User Management ----
-    users = CustomUser._base_manager.all().select_related('pharmacy').order_by('-date_joined')
-
     if request.method == 'POST':
-        # Branch actions
         pharmacy_id = request.POST.get('pharmacy_id')
         action = request.POST.get('action')
 
         if pharmacy_id and action:
             pharmacy = get_object_or_404(Pharmacy._base_manager, id=pharmacy_id)
 
-            if action == 'suspend':
+            if action == 'approve_activation':
+                with pharmacy_context(pharmacy.id):
+                    SalesTransactionItem.objects.all().delete()
+                    SalesTransaction.objects.all().delete()
+                    StockAuditLedger.objects.all().delete()
+                    PurchaseOrderItem.objects.all().delete()
+                    PurchaseOrder.objects.all().delete()
+                    MedicationBatch.objects.all().delete()
+                    Medication.objects.all().delete()
+                pharmacy.activation_status = 'ACTIVE'
+                pharmacy.is_active = True
+                pharmacy.activation_reviewed_at = timezone.now()
+                pharmacy.rejection_reason = ''
+                pharmacy.save()
+                messages.success(request, f'"{pharmacy.shop_name}" verified & activated for live production! Demo sandbox data cleared.')
+            elif action == 'reject_activation':
+                reason = request.POST.get('rejection_reason', '').strip() or 'PCN license details could not be verified. Please update and resubmit.'
+                pharmacy.activation_status = 'REJECTED'
+                pharmacy.activation_reviewed_at = timezone.now()
+                pharmacy.rejection_reason = reason
+                pharmacy.save()
+                messages.warning(request, f'Activation request for "{pharmacy.shop_name}" declined.')
+            elif action == 'suspend':
                 pharmacy.is_active = False
                 pharmacy.save()
-                messages.success(request, f'Pharmacy branch "{pharmacy.shop_name}" has been suspended.')
+                messages.success(request, f'Pharmacy branch "{pharmacy.shop_name}" suspended.')
             elif action == 'activate':
                 pharmacy.is_active = True
+                pharmacy.activation_status = 'ACTIVE'
                 pharmacy.save()
-                messages.success(request, f'Pharmacy branch "{pharmacy.shop_name}" has been activated.')
+                messages.success(request, f'Pharmacy branch "{pharmacy.shop_name}" re-activated.')
             elif action == 'delete':
                 from django.db import transaction
-                from app.models import (
-                    SalesTransactionItem, SalesTransaction, StockAuditLedger,
-                    PurchaseOrderItem, PurchaseOrder, MedicationBatch,
-                    Medication, PharmacySection, Supplier
-                )
-                shop_name = pharmacy.shop_name
-                deleted_id = pharmacy.id
                 with transaction.atomic():
-                    SalesTransactionItem.all_objects.filter(pharmacy_id=deleted_id).delete()
-                    SalesTransaction.all_objects.filter(pharmacy_id=deleted_id).delete()
-                    StockAuditLedger.all_objects.filter(pharmacy_id=deleted_id).delete()
-                    PurchaseOrderItem.all_objects.filter(pharmacy_id=deleted_id).delete()
-                    PurchaseOrder.all_objects.filter(pharmacy_id=deleted_id).delete()
-                    MedicationBatch.all_objects.filter(pharmacy_id=deleted_id).delete()
-                    Medication.all_objects.filter(pharmacy_id=deleted_id).delete()
-                    PharmacySection.all_objects.filter(pharmacy_id=deleted_id).delete()
-                    Supplier.all_objects.filter(pharmacy_id=deleted_id).delete()
-                    CustomUser._base_manager.filter(pharmacy_id=deleted_id, is_superuser=True).update(pharmacy=None)
-                    CustomUser._base_manager.filter(pharmacy_id=deleted_id, is_superuser=False).delete()
+                    with pharmacy_context(pharmacy.id):
+                        SalesTransactionItem.objects.all().delete()
+                        SalesTransaction.objects.all().delete()
+                        StockAuditLedger.objects.all().delete()
+                        PurchaseOrderItem.objects.all().delete()
+                        PurchaseOrder.objects.all().delete()
+                        MedicationBatch.objects.all().delete()
+                        Medication.objects.all().delete()
+                        PharmacySection.objects.all().delete()
+                        Supplier.objects.all().delete()
+                    CustomUser._base_manager.filter(pharmacy=pharmacy).delete()
                     pharmacy.delete()
-                if request.session.get('pharmacy_id') == deleted_id:
-                    request.session.pop('pharmacy_id', None)
-                messages.success(request, f'Pharmacy branch "{shop_name}" and all associated records have been deleted.')
+                messages.success(request, f'Pharmacy branch "{pharmacy.shop_name}" permanently deleted.')
+            return redirect('founder_dashboard')
 
-        # User management actions
         user_id = request.POST.get('user_id')
         user_action = request.POST.get('user_action')
-
         if user_id and user_action:
-            user = get_object_or_404(CustomUser._base_manager, id=user_id)
+            target_user = get_object_or_404(CustomUser._base_manager, id=user_id)
+            if target_user != request.user:
+                target_user._bypass_pharmacy_check = True
+                if user_action == 'suspend_toggle':
+                    target_user.is_active = not target_user.is_active
+                    target_user.save()
+                    messages.success(request, f'Updated active status for {target_user.email}.')
+                elif user_action == 'change_role':
+                    new_role = request.POST.get('new_role')
+                    if new_role in ('ADMIN', 'PHARMACIST', 'MANAGER'):
+                        target_user.role = new_role
+                        target_user.save()
+                        messages.success(request, f'Updated role for {target_user.email} to {new_role}.')
+                elif user_action == 'reset_password':
+                    import secrets
+                    temp_pw = secrets.token_urlsafe(10)
+                    target_user.set_password(temp_pw)
+                    target_user.save()
+                    messages.success(request, f'Temporary password for {target_user.email}: {temp_pw}')
+                elif user_action == 'delete':
+                    target_user.delete()
+                    messages.success(request, f'User {target_user.email} deleted.')
+            return redirect('founder_dashboard')
 
-            # Safety guard: prevent superuser from suspending/deleting own account
-            if user == request.user:
-                messages.error(request, 'You cannot suspend or delete your own account.')
-            else:
-                with pharmacy_context(user.pharmacy_id):
-                    if user_action == 'suspend_toggle':
-                        user.is_active = not user.is_active
-                        user.save()
-                        messages.success(request, f'User "{user.email}" has been {"activated" if user.is_active else "suspended"}.')
-                    elif user_action == 'change_role':
-                        new_role = request.POST.get('new_role')
-                        if new_role in dict(CustomUser.ROLE_CHOICES):
-                            user.role = new_role
-                            user.save()
-                            messages.success(request, f'User role updated to {user.get_role_display().lower()}.')
-                        else:
-                            messages.error(request, 'Invalid role selected.')
-                    elif user_action == 'reset_password':
-                        # Generate a temporary password and flash it
-                        import secrets
-                        temp_password = secrets.token_urlsafe(8)
-                        user.set_password(temp_password)
-                        user.save()
-                        messages.success(request, f'Temporary password generated for {user.email}: {temp_password}.')
-                    elif user_action == 'delete':
-                        user.delete()
-                        messages.success(request, f'User {user.email} has been deleted.')
+    all_pharmacies = Pharmacy._base_manager.all().order_by('-created_at').annotate(
+        user_count=Count('customuser_records')
+    )
+    demo_count = all_pharmacies.filter(activation_status='DEMO').count()
+    pending_count = all_pharmacies.filter(activation_status='PENDING').count()
+    active_live_count = all_pharmacies.filter(activation_status='ACTIVE', is_active=True).count()
+    rejected_count = all_pharmacies.filter(activation_status='REJECTED').count()
+    total_branches = all_pharmacies.count()
 
-        referer = request.META.get('HTTP_REFERER', '')
-        if '/founder/users' in referer:
-            return redirect('founder_users')
-        return redirect('founder_dashboard')
+    activation_requests = all_pharmacies.filter(activation_status__in=['PENDING', 'REJECTED']).order_by('-activation_requested_at', '-created_at')
 
-    context = {
-        'pharmacies': pharmacies,
-        'search_query': search_query,
+    search_query = request.GET.get('q', '').strip()
+    pharmacies = all_pharmacies
+    if search_query:
+        pharmacies = pharmacies.filter(
+            Q(shop_name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(pcn_license_number__icontains=search_query)
+        )
+
+    users = CustomUser._base_manager.all().select_related('pharmacy').order_by('-date_joined')
+
+    return render(request, 'founder_dashboard.html', {
         'total_branches': total_branches,
-        'active_branches': active_branches,
-        'suspended_branches': suspended_branches,
-        'total_users': total_users,
-        'total_superusers': total_superusers,
+        'demo_count': demo_count,
+        'pending_count': pending_count,
+        'active_live_count': active_live_count,
+        'rejected_count': rejected_count,
+        'activation_requests': activation_requests,
+        'pharmacies': pharmacies,
         'users': users,
-    }
-    return render(request, 'founder_dashboard.html', context)
+        'total_users': users.count(),
+        'total_superusers': users.filter(is_superuser=True).count(),
+        'search_query': search_query,
+    })
 
-
-# --- Help & FAQ (Item 11) ---
 def faq_view(request):
     """FAQ page for the founder console."""
     return render(request, 'faq.html')
@@ -2328,7 +2576,7 @@ def user_profile(request):
         last_name = request.POST.get('last_name', '').strip()
         job_title = request.POST.get('job_title', '').strip()
         license_number = request.POST.get('license_number', '').strip()
-        phone_number = request.POST.get('phone_number', '').strip()
+        contact_phone = request.POST.get('contact_phone', '').strip()
         avatar_data = request.POST.get('avatar_data', '').strip()
         remove_avatar = request.POST.get('remove_avatar') == '1'
 
@@ -2338,7 +2586,7 @@ def user_profile(request):
             user.last_name = last_name
         user.job_title = job_title
         user.license_number = license_number
-        user.phone_number = phone_number
+        user.contact_phone = contact_phone
 
         if remove_avatar:
             user.avatar_data = ''
@@ -2380,9 +2628,9 @@ def branch_settings(request):
 
     if request.method == 'POST':
         shop_name = request.POST.get('shop_name', '').strip()
-        phone_number = request.POST.get('phone_number', '').strip()
-        pcn_license_no = request.POST.get('pcn_license_no', '').strip()
-        address = request.POST.get('address', '').strip()
+        contact_phone = request.POST.get('contact_phone', '').strip()
+        pcn_license_number = request.POST.get('pcn_license_number', '').strip()
+        address = request.POST.get('physical_address', '').strip()
         authenticity_statement = request.POST.get('authenticity_statement', '').strip()
         logo_data = request.POST.get('logo_data', '').strip()
         remove_logo = request.POST.get('remove_logo') == '1'
@@ -2391,8 +2639,8 @@ def branch_settings(request):
             pharmacy.shop_name = shop_name
         if address:
             pharmacy.address = address
-        pharmacy.phone_number = phone_number
-        pharmacy.pcn_license_no = pcn_license_no
+        pharmacy.contact_phone = contact_phone
+        pharmacy.pcn_license_number = pcn_license_number
         if authenticity_statement:
             pharmacy.authenticity_statement = authenticity_statement
 
@@ -2474,3 +2722,38 @@ def submit_feedback_view(request):
     except Exception as exc:
         logger.error("Feedback email failed: %s", exc)
         return JsonResponse({"ok": False, "error": "Email delivery failed."}, status=500)
+
+
+@login_required
+def medication_search_ajax(request):
+    from django.db.models import Q
+    q = request.GET.get('q', '').strip()
+    if len(q) < 1:
+        return JsonResponse({'results': []})
+    starts_qs = list(
+        Medication.objects.filter(
+            Q(name__istartswith=q) | Q(sku__istartswith=q)
+        ).select_related('section').order_by('name')[:25]
+    )
+    seen_ids = {m.id for m in starts_qs}
+    contains_qs = list(
+        Medication.objects.filter(
+            Q(name__icontains=q) | Q(sku__icontains=q) | Q(section__name__icontains=q)
+        ).exclude(id__in=seen_ids).select_related('section').order_by('name')[:15]
+    )
+    results = []
+    for m in (starts_qs + contains_qs)[:25]:
+        results.append({
+            'id': m.id,
+            'name': m.name,
+            'sku': m.sku,
+            'section': m.section.name if m.section else 'General',
+            'unit': m.unit,
+            'stock': int(m.current_stock),
+            'unit_price': float(getattr(m, 'selling_price_per_unit', 0) or 0),
+            'sachet_units': int(getattr(m, 'units_per_sachet', 1) or 1),
+            'sachet_price': float(getattr(m, 'sachet_selling_price', 0) or 0),
+            'carton_units': int(getattr(m, 'units_per_carton', 1) or 1),
+            'carton_price': float(getattr(m, 'carton_selling_price', 0) or 0),
+        })
+    return JsonResponse({'results': results})

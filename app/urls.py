@@ -42,6 +42,7 @@ urlpatterns = [
     # Real-Time Inventory & Optimization
     path('medications/', views.medications_list_view, name='medications_list'),
     path('medications/add/', views.add_medication_view, name='add_medication'),
+    path('medications/search-ajax/', views.medication_search_ajax, name='medication_search_ajax'),
 
     # Goods Receipt Intake & Physical Stock Auditing
     path('inventory/receive/', views.receive_batch_view, name='receive_batch'),
@@ -65,6 +66,7 @@ urlpatterns = [
     path('orders/approve/<int:po_id>/', views.approve_po_view, name='approve_po'),
     path('pharmacy/load-sample-data/', views.load_sample_data, name='load_sample_data'),
     path('pharmacy/clear-sample-data/', views.clear_sample_data, name='clear_sample_data'),
+    path('pharmacy/request-activation/', views.request_activation_view, name='request_activation'),
 
     # FR6 ABC Classification Console
     path('analytics/abc/', views.abc_classification_view, name='abc_classification'),
