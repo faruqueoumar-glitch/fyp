@@ -487,7 +487,7 @@ class Medication(PharmacyOwnedModel):
 
     name = models.CharField(max_length=200)
     sku = models.CharField(max_length=50)
-    section = models.ForeignKey(PharmacySection, on_delete=models.CASCADE, related_name='medications')
+    section = models.ForeignKey(PharmacySection, on_delete=models.SET_NULL, null=True, blank=True, related_name='medications')
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True, related_name='medications')
     DRUG_SCHEDULES = (
         ('OTC', 'OTC — Over-the-Counter (General Sale)'),

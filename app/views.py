@@ -1144,6 +1144,7 @@ def medications_list_view(request):
 
 @require_permission('configure_system')
 def add_medication_view(request):
+    ensure_master_defaults()
     if getattr(request, 'pharmacy', None) and getattr(request.pharmacy, 'activation_status', 'DEMO') != 'ACTIVE':
         messages.warning(request, 'Live stock uploads are locked in Demo Sandbox mode. Submit your branch for Founder activation on the Dashboard to unlock live inventory.')
         return redirect('dashboard')
