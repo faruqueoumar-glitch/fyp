@@ -115,6 +115,16 @@ DESKTOP_BRIDGE_JS = """
 """
 
 
+def _open_file(path: Path) -> None:
+    try:
+        if os.name == "nt":
+            os.startfile(str(path))
+        else:
+            subprocess.Popen(["xdg-open", str(path)], start_new_session=True)
+    except Exception:
+        pass
+
+
 class DesktopAPI:
     def __init__(self):
         self.window = None
@@ -123,10 +133,7 @@ class DesktopAPI:
         safe_name = os.path.basename(filename or f"pharma_export_{int(time.time())}.csv")
         target = DOWNLOADS_DIR / safe_name
         target.write_text(content, encoding="utf-8-sig")
-        try:
-            subprocess.Popen(["xdg-open", str(target)], start_new_session=True)
-        except Exception:
-            pass
+        _open_file(target)
         return str(target)
 
     def print_current_page(self, html: str, base_url: str) -> str:
@@ -138,7 +145,7 @@ class DesktopAPI:
         else:
             final_html = inject + html
         html_path.write_text(final_html, encoding="utf-8")
-        subprocess.Popen(["xdg-open", str(html_path)], start_new_session=True)
+        _open_file(html_path)
         return str(html_path)
 
 
@@ -187,7 +194,7 @@ if __name__ == "__main__":
         )
         api.window = win
         win.events.loaded += lambda: on_loaded(win)
-        webview.start(gui="qt")
+        webview.start(gui="qt") if sys.platform.startswith("linux") else webview.start()
     except Exception:
         webbrowser.open(LOCAL_URL)
         server_thread.join()
