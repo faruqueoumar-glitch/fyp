@@ -772,6 +772,7 @@ class SalesTransaction(PharmacyOwnedModel):
     pharmacist = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
     total_amount_naira = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default='CASH')
+    buyer_type = models.CharField(max_length=20, choices=[('END_USER', 'End-User (Walk-In Retail)'), ('RESELLER', 'Reseller / Retailer (Wholesale Tier)')], default='END_USER')
     
     patient_info = models.CharField(max_length=255, blank=True, help_text="Patient name or prescription reference")
     patient_id_or_phone = models.CharField(max_length=100, blank=True, help_text="Patient phone number or government/hospital ID")
